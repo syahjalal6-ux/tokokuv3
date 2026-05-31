@@ -50,14 +50,7 @@ export default function LandingPage() {
       }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: '10px',
-              background: 'var(--accent-gradient)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '16px', color: '#fff',
-              boxShadow: '0 0 20px var(--accent-glow)',
-            }}>T</div>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem' }}>TokoKu</span>
+            <img src="/exora.png" alt="Exora" style={{ height: 32, objectFit: 'contain' }} />
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Link to="/login" className="btn btn-ghost btn-sm hide-mobile">Masuk</Link>
@@ -94,7 +87,7 @@ export default function LandingPage() {
             color: 'var(--text-secondary)', lineHeight: 1.7,
             marginBottom: '40px', maxWidth: 480, margin: '0 auto 40px',
           }}>
-            Platform toko online gratis untuk semua. Jual produkmu, terima pesanan via WhatsApp. Sesederhana itu.
+            Bangun toko online, kelola bisnis, dan jual ke mana saja.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -110,8 +103,8 @@ export default function LandingPage() {
           {/* Social proof */}
           <div style={{ marginTop: 48, display: 'flex', gap: '32px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {[
-              { val: '1,200+', label: 'Toko Aktif' },
-              { val: '18,000+', label: 'Produk Terjual' },
+              { val: '20+', label: 'Toko Aktif' },
+              { val: '100+', label: 'Produk Terjual' },
               { val: '4.9/5', label: 'Rating Seller' },
             ].map(s => (
               <div key={s.val} style={{ textAlign: 'center' }}>
@@ -155,14 +148,14 @@ export default function LandingPage() {
                   borderRadius: 'var(--radius-full)', padding: '4px 12px',
                   fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center',
                 }}>
-                  tokoku.app/toko/toko-rina
+                  exora.app/toko/rina-handmade
                 </div>
               </div>
 
               {/* Mock storefront */}
               <div style={{ padding: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 20 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: '12px', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff' }}>R</div>
+                  <img src="/rina.png" alt="Rina Handmade" style={{ width: 44, height: 44, borderRadius: '12px', objectFit: 'cover' }} />
                   <div>
                     <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>Rina Handmade</p>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>✨ Produk handmade berkualitas</p>
@@ -171,13 +164,13 @@ export default function LandingPage() {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                   {[
-                    { name: 'Tas Rajut Mini', price: 'Rp 85.000', color: '#f59e0b' },
-                    { name: 'Gelang Manik', price: 'Rp 35.000', color: '#6366f1' },
-                    { name: 'Dompet Anyam', price: 'Rp 65.000', color: '#10b981' },
+                    { name: 'Tote Bag Batik Mega Mendung', price: 'Rp 49.000', img: '/bag.png' },
+                    { name: 'Lilin Aromaterapi Coconut Wax', price: 'Rp 39.000', img: '/wax.png' },
+                    { name: 'Midori Matcha Latte', price: 'Rp 29.000', img: '/matcha.png' },
                   ].map(p => (
                     <div key={p.name} className="glass-card" style={{ overflow: 'hidden', borderRadius: 'var(--radius-lg)' }}>
-                      <div style={{ height: 80, background: `${p.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.8rem' }}>
-                        🛍️
+                      <div style={{ height: 80, overflow: 'hidden' }}>
+                        <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                       <div style={{ padding: '10px' }}>
                         <p style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: 3 }}>{p.name}</p>
@@ -390,16 +383,8 @@ export default function LandingPage() {
         color: 'var(--text-tertiary)', fontSize: '0.82rem',
       }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: 26, height: 26, borderRadius: '8px',
-              background: 'var(--accent-gradient)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '12px', color: '#fff',
-            }}>T</div>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--text-secondary)' }}>TokoKu</span>
-          </div>
-          <p>© 2025 TokoKu. Platform toko online Indonesia.</p>
+          <img src="/exora.png" alt="Exora" style={{ height: 24, objectFit: 'contain' }} />
+          <p>© 2025 Exora. Platform toko online Indonesia.</p>
         </div>
       </footer>
     </div>
