@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { ChevronDown, Check } from 'lucide-react'
 import { Modal } from '../ui/index.jsx'
 import ImageUpload from './ImageUpload.jsx'
 import { produkApi } from '../../lib/api.js'
@@ -13,6 +14,88 @@ const KATEGORI = [
 const INITIAL = {
   nama: '', deskripsi: '', harga: '', hargaCoret: '',
   stok: '', kategori: '', berat: '', foto: null, aktif: true,
+}
+
+// Custom dropdown — tidak pakai <select> native agar styling konsisten
+function KategoriSelect({ value, onChange, error }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: '100%',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px',
+          background: 'var(--surface)',
+          border: `1px solid ${error ? 'var(--danger)' : open ? 'var(--accent)' : 'var(--glass-border)'}`,
+          borderRadius: 'var(--radius-md)',
+          color: value ? 'var(--text-primary)' : 'var(--text-tertiary)',
+          fontSize: '0.875rem',
+          cursor: 'pointer',
+          transition: 'border-color 0.15s',
+          outline: 'none',
+        }}
+      >
+        <span>{value || '— Pilih Kategori —'}</span>
+        <ChevronDown
+          size={16}
+          style={{
+            color: 'var(--text-tertiary)',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 0.2s',
+            flexShrink: 0,
+          }}
+        />
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 100,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-lg)',
+          boxShadow: 'var(--shadow-lg)',
+          overflow: 'hidden',
+          animation: 'fadeIn 0.1s ease',
+        }}>
+          {KATEGORI.map(k => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => { onChange(k); setOpen(false) }}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '10px 14px',
+                background: value === k ? 'rgba(91,138,245,0.1)' : 'transparent',
+                border: 'none',
+                color: value === k ? 'var(--accent)' : 'var(--text-primary)',
+                fontSize: '0.875rem', fontWeight: value === k ? 600 : 400,
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'background 0.1s',
+              }}
+              onMouseEnter={e => { if (value !== k) e.currentTarget.style.background = 'var(--surface-hover)' }}
+              onMouseLeave={e => { if (value !== k) e.currentTarget.style.background = 'transparent' }}
+            >
+              {k}
+              {value === k && <Check size={14} />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function ProdukForm({ isOpen, onClose, editData }) {
@@ -43,7 +126,6 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
   }, [editData, isOpen])
 
   const set = (field, val) => {
-    console.log(`[ProdukForm] set('${field}',`, val, ')')
     setForm(f => ({ ...f, [field]: val }))
     if (errors[field]) setErrors(e => ({ ...e, [field]: null }))
   }
@@ -73,10 +155,6 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
         aktif: form.aktif,
         foto: form.foto || '',
       }
-
-      console.log('[ProdukForm] form.foto saat submit:', form.foto)
-      console.log('[ProdukForm] payload.foto:', payload.foto)
-      console.log('[ProdukForm] full payload:', payload)
 
       if (isEdit) {
         const res = await produkApi.update(token, editData.id, payload)
@@ -176,14 +254,11 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
 
         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
           <label className="form-label">Kategori *</label>
-          <select
-            className={`form-input form-select ${errors.kategori ? 'error' : ''}`}
+          <KategoriSelect
             value={form.kategori}
-            onChange={e => set('kategori', e.target.value)}
-          >
-            <option value="">— Pilih Kategori —</option>
-            {KATEGORI.map(k => <option key={k} value={k}>{k}</option>)}
-          </select>
+            onChange={(v) => set('kategori', v)}
+            error={errors.kategori}
+          />
           {errors.kategori && <span className="form-error">{errors.kategori}</span>}
         </div>
 
