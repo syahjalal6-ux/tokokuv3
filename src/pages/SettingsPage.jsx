@@ -53,7 +53,7 @@ export default function SettingsPage() {
 // =============================================
 
 function TokoSettings({ token, toko, setToko, pro }) {
-  const [form, setForm] = useState({ nama: '', deskripsi: '', wa: '', customDomain: '', tema: 'default' })
+  const [form, setForm] = useState({ nama: '', deskripsi: '', wa: '', customDomain: '', tema: 'default', musik: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
@@ -65,6 +65,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
         wa: toko.wa || '',
         customDomain: toko.customDomain || '',
         tema: toko.tema || 'default',
+        musik: toko.musik || '',
       })
     }
   }, [toko])
@@ -127,6 +128,19 @@ function TokoSettings({ token, toko, setToko, pro }) {
             <input className={`form-input ${errors.wa ? 'error' : ''}`} placeholder="081234567890" value={form.wa} onChange={e => set('wa', e.target.value)} />
             {errors.wa && <span className="form-error">{errors.wa}</span>}
             <span className="form-hint">Nomor ini yang dihubungi pembeli saat checkout</span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Musik Toko (YouTube)</label>
+            <input
+              className="form-input"
+              placeholder="cth: https://www.youtube.com/watch?v=xxxxx"
+              value={form.musik}
+              onChange={e => set('musik', e.target.value)}
+            />
+            <span className="form-hint">
+              Akan muncul sebagai tombol 🎵 di toko kamu — buyer klik untuk putar
+            </span>
           </div>
 
           <div className="form-group">
