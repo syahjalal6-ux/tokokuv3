@@ -11,13 +11,11 @@ const TEMA = {
   rose:    { accent: '#f43f5e', accent2: '#ec4899', gradient: 'linear-gradient(135deg, #f43f5e, #ec4899)' },
 }
 
-// Guard: pastikan wa selalu string sebelum dipakai
 function safeWA(wa) {
   if (!wa) return ''
   return String(wa)
 }
 
-// Extract YouTube video ID dari berbagai format URL
 function getYouTubeId(url) {
   if (!url) return null
   const patterns = [
@@ -31,10 +29,6 @@ function getYouTubeId(url) {
   return null
 }
 
-// =============================================
-// MUSIC PLAYER — floating button + mini player
-// =============================================
-
 function MusicPlayer({ musikUrl, tema }) {
   const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
@@ -44,12 +38,11 @@ function MusicPlayer({ musikUrl, tema }) {
 
   return (
     <>
-      {/* Floating button */}
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           position: 'fixed',
-          bottom: 56, // di atas footer
+          bottom: 56,
           right: 20,
           zIndex: 200,
           width: 48, height: 48,
@@ -81,7 +74,6 @@ function MusicPlayer({ musikUrl, tema }) {
         `}</style>
       </button>
 
-      {/* Mini player panel */}
       {open && (
         <div style={{
           position: 'fixed',
@@ -97,7 +89,6 @@ function MusicPlayer({ musikUrl, tema }) {
           boxShadow: `0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px ${tema.accent}15`,
           animation: 'playerSlideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}>
-          {/* Player header */}
           <div style={{
             padding: '12px 14px',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -112,17 +103,12 @@ function MusicPlayer({ musikUrl, tema }) {
             </div>
             <button
               onClick={() => setOpen(false)}
-              style={{
-                background: 'transparent', border: 'none',
-                color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
-                display: 'flex', padding: 2,
-              }}
+              style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', padding: 2 }}
             >
               <X size={14} />
             </button>
           </div>
 
-          {/* YouTube iframe */}
           <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
             <iframe
               src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
@@ -130,15 +116,10 @@ function MusicPlayer({ musikUrl, tema }) {
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               onLoad={() => setPlaying(true)}
-              style={{
-                position: 'absolute', top: 0, left: 0,
-                width: '100%', height: '100%',
-                border: 'none',
-              }}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
             />
           </div>
 
-          {/* Note */}
           <div style={{ padding: '8px 14px', borderTop: `1px solid ${tema.accent}15` }}>
             <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
               Musik dipilih oleh pemilik toko
@@ -172,7 +153,6 @@ export default function StorefrontPage() {
         tokoApi.getBySlug(slug),
         produkApi.getByToko(slug),
       ])
-      // Normalisasi data toko — pastikan wa selalu string
       const tokoData = tokoRes.data
         ? { ...tokoRes.data, wa: safeWA(tokoRes.data.wa) }
         : null
@@ -217,7 +197,6 @@ export default function StorefrontPage() {
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            {/* Logo */}
             <div style={{
               width: 64, height: 64, borderRadius: '18px',
               background: tema.gradient,
@@ -364,11 +343,10 @@ export default function StorefrontPage() {
         background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(16px)',
         borderTop: '1px solid var(--glass-border)',
         padding: '10px 24px', textAlign: 'center',
-        fontSize: '0.72rem', color: 'var(--text-tertiary)',
+        fontSize: '0.72rem', color: '#ffffff',
       }}>
-        Toko ini ditenagai oleh{' '}
-        <a href="/" style={{ color: tema.accent, fontWeight: 700 }}>Exora</a>
-        {' '}— Buka toko online gratis kamu sekarang
+        Powered by{' '}
+        <a href="/" style={{ color: '#3B82F6', fontWeight: 700, textDecoration: 'none' }}>Exora</a>
       </div>
     </div>
   )
@@ -405,7 +383,6 @@ function ProdukCard({ produk: p, tema, onClick }) {
         e.currentTarget.style.boxShadow = 'var(--shadow-card)'
       }}
     >
-      {/* Image */}
       <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', background: 'var(--surface)' }}>
         {p.foto ? (
           <img
@@ -446,7 +423,6 @@ function ProdukCard({ produk: p, tema, onClick }) {
         )}
       </div>
 
-      {/* Info */}
       <div style={{ padding: '14px' }}>
         <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 4, lineHeight: 1.3 }}>
           {truncate(p.nama, 36)}
@@ -500,19 +476,12 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
       >
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
 
-        {/* Image */}
         <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
           {p.foto ? (
             <img
               src={p.foto}
               alt={p.nama}
-              style={{
-                width: '100%', height: '100%',
-                objectFit: 'contain',
-                objectPosition: 'center',
-                padding: '8px',
-                background: 'var(--surface)',
-              }}
+              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', padding: '8px', background: 'var(--surface)' }}
             />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
@@ -539,7 +508,6 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
           )}
         </div>
 
-        {/* Content */}
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           {p.kategori && (
             <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
@@ -549,7 +517,6 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.2rem', marginBottom: 10 }}>
             {p.nama}
           </h2>
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 16 }}>
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.4rem', color: tema.accent }}>
               {formatRupiah(p.harga)}
@@ -560,25 +527,21 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
               </p>
             )}
           </div>
-
           {p.stok !== null && (
             <p style={{ fontSize: '0.8rem', color: p.stok === 0 ? 'var(--danger)' : p.stok < 5 ? 'var(--warning)' : 'var(--success)', marginBottom: 12 }}>
               {p.stok === 0 ? '✕ Stok habis' : p.stok < 5 ? `⚠ Sisa ${p.stok} stok` : `✓ Stok tersedia (${p.stok})`}
             </p>
           )}
-
           {p.deskripsi && (
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 16, whiteSpace: 'pre-line' }}>
               {p.deskripsi}
             </p>
           )}
-
           {p.berat && (
             <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Berat: {p.berat}g</p>
           )}
         </div>
 
-        {/* Action */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '10px' }}>
           {toko.wa && (
             <a
@@ -628,7 +591,6 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
     const e = {}
     if (!form.nama.trim()) e.nama = 'Nama wajib diisi'
     if (!form.wa.trim()) e.wa = 'Nomor WA wajib diisi'
-    // Validasi WA dengan guard String() dulu
     if (form.wa && !validateWA(String(form.wa))) e.wa = 'Format WA tidak valid'
     if (!form.alamat.trim()) e.alamat = 'Alamat wajib diisi'
     setErrors(e)
@@ -666,21 +628,18 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
           animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
-        {/* Header */}
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Detail Pesanan</h3>
           <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
         </div>
 
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Product summary */}
           <div style={{ display: 'flex', gap: '12px', padding: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
             {p.foto && <img src={p.foto} alt={p.nama} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>{p.nama}</p>
               <p style={{ color: tema.accent, fontWeight: 800 }}>{formatRupiah(p.harga)}</p>
             </div>
-            {/* Qty selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button
                 onClick={() => set('qty', Math.max(1, form.qty - 1))}
@@ -694,7 +653,6 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
             </div>
           </div>
 
-          {/* Form */}
           <div className="form-group">
             <label className="form-label">Nama Lengkap *</label>
             <input className={`form-input ${errors.nama ? 'error' : ''}`} placeholder="Nama penerima" value={form.nama} onChange={e => set('nama', e.target.value)} />
@@ -718,7 +676,6 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
             <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} />
           </div>
 
-          {/* Total */}
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '14px 16px', background: `${tema.accent}12`, border: `1px solid ${tema.accent}22`, borderRadius: 'var(--radius-lg)' }}>
             <span style={{ fontWeight: 700 }}>Total</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', color: tema.accent }}>
@@ -726,7 +683,6 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
             </span>
           </div>
 
-          {/* CTA */}
           <button
             onClick={handleCheckout}
             className="btn btn-lg"
