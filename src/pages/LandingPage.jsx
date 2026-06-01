@@ -25,7 +25,6 @@ const FAQ = [
   { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.PRO_PRICE}.` },
 ]
 
-// Icon X Exora (SVG gradient)
 const ExoraIcon = () => (
   <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
@@ -39,6 +38,8 @@ const ExoraIcon = () => (
   </svg>
 )
 
+const PJS = "'Plus Jakarta Sans', sans-serif"
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null)
   const [scrolled, setScrolled] = useState(false)
@@ -50,7 +51,7 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', fontFamily: PJS }}>
       {/* Navbar */}
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -68,14 +69,14 @@ export default function LandingPage() {
             <ExoraIcon />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
               <span style={{
-                fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+                fontFamily: PJS,
                 fontWeight: 800,
                 fontSize: '1.15rem',
                 color: '#ffffff',
                 letterSpacing: '-0.02em',
               }}>exora</span>
               <span style={{
-                fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+                fontFamily: PJS,
                 fontWeight: 600,
                 fontSize: '0.6rem',
                 background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
@@ -106,16 +107,17 @@ export default function LandingPage() {
             marginBottom: '28px',
           }}>
             <Zap size={13} color="var(--accent-3)" />
-            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-3)', letterSpacing: '0.04em' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-3)', letterSpacing: '0.04em', fontFamily: PJS }}>
               GRATIS • TANPA CODING • LANGSUNG ONLINE
             </span>
           </div>
 
           {/* Hero brand */}
-          <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)', marginBottom: '8px', letterSpacing: '-0.04em' }}>
+          <h1 className="text-display gradient-text" style={{ fontFamily: PJS, fontSize: 'clamp(3rem, 8vw, 5.5rem)', marginBottom: '8px', letterSpacing: '-0.04em' }}>
             exora
           </h1>
           <p style={{
+            fontFamily: PJS,
             fontSize: 'clamp(1rem, 2.5vw, 1.4rem)',
             fontWeight: 700,
             background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
@@ -127,9 +129,13 @@ export default function LandingPage() {
           </p>
 
           <p style={{
+            fontFamily: PJS,
             fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-            color: 'var(--text-secondary)', lineHeight: 1.7,
-            marginBottom: '40px', maxWidth: 480, margin: '0 auto 40px',
+            color: '#ffffff',
+            lineHeight: 1.7,
+            marginBottom: '40px',
+            maxWidth: 480,
+            margin: '0 auto 40px',
           }}>
             Bangun toko online, kelola bisnis, dan jual ke mana saja.
           </p>
@@ -151,80 +157,11 @@ export default function LandingPage() {
               { val: '100+', label: 'Produk Terjual' },
               { val: '4.9/5', label: 'Rating Seller' },
             ].map(s => (
-              <div key={s.val} style={{ textAlign: 'center' }}>
-                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em' }}>{s.val}</p>
-                <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', marginTop: 2 }}>{s.label}</p>
+              <div key={s.label} style={{ textAlign: 'center' }}>
+                <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: '#fff' }}>{s.val}</p>
+                <p style={{ fontFamily: PJS, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{s.label}</p>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Hero mockup */}
-        <div style={{ marginTop: 72, position: 'relative' }}>
-          <div style={{
-            maxWidth: 800, margin: '0 auto',
-            background: 'linear-gradient(135deg, rgba(91,138,245,0.15) 0%, rgba(167,139,250,0.1) 100%)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: 'var(--radius-2xl)',
-            padding: '3px',
-            boxShadow: '0 40px 120px rgba(0,0,0,0.6), 0 0 80px rgba(91,138,245,0.15)',
-          }}>
-            <div style={{
-              background: 'var(--bg-secondary)',
-              borderRadius: 'calc(var(--radius-2xl) - 3px)',
-              overflow: 'hidden',
-            }}>
-              {/* Browser bar */}
-              <div style={{
-                background: 'var(--bg-tertiary)',
-                borderBottom: '1px solid var(--glass-border)',
-                padding: '10px 16px',
-                display: 'flex', alignItems: 'center', gap: '8px',
-              }}>
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {['#f87171', '#fbbf24', '#34d399'].map(c => (
-                    <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.8 }} />
-                  ))}
-                </div>
-                <div style={{
-                  flex: 1, maxWidth: 300, margin: '0 auto',
-                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
-                  borderRadius: 'var(--radius-full)', padding: '4px 12px',
-                  fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center',
-                }}>
-                  exora.app/toko/rina-handmade
-                </div>
-              </div>
-
-              {/* Mock storefront */}
-              <div style={{ padding: 24 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 20 }}>
-                  <img src="/rina.png" alt="Rina Handmade" style={{ width: 44, height: 44, borderRadius: '12px', objectFit: 'cover' }} />
-                  <div>
-                    <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>Rina Handmade</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>✨ Produk handmade berkualitas</p>
-                  </div>
-                  <span className="badge badge-pro" style={{ marginLeft: 'auto' }}>⭐ Pro</span>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                  {[
-                    { name: 'Tote Bag Batik Mega Mendung', price: 'Rp 49.000', img: '/bag.png' },
-                    { name: 'Lilin Aromaterapi Coconut Wax', price: 'Rp 39.000', img: '/wax.png' },
-                    { name: 'Midori Matcha Latte', price: 'Rp 29.000', img: '/matcha.png' },
-                  ].map(p => (
-                    <div key={p.name} className="glass-card" style={{ overflow: 'hidden', borderRadius: 'var(--radius-lg)' }}>
-                      <div style={{ height: 80, overflow: 'hidden' }}>
-                        <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      </div>
-                      <div style={{ padding: '10px' }}>
-                        <p style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: 3 }}>{p.name}</p>
-                        <p style={{ fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 800 }}>{p.price}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
           </div>
         </div>
       </section>
@@ -233,26 +170,24 @@ export default function LandingPage() {
       <section id="fitur" style={{ padding: '100px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2 className="text-heading" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', marginBottom: 12 }}>
+            <h2 className="text-heading" style={{ fontFamily: PJS, fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', marginBottom: 12 }}>
               Semua yang kamu butuhkan
             </h2>
-            <p style={{ color: 'var(--text-secondary)', maxWidth: 480, margin: '0 auto' }}>
-              Fitur lengkap untuk berjualan online, tanpa ribet.
-            </p>
+            <p style={{ fontFamily: PJS, color: 'var(--text-secondary)' }}>Fitur lengkap, gratis, tanpa ribet.</p>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }} className="stagger">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
             {FEATURES.map(f => (
-              <div key={f.title} className="glass-card animate-fade-in" style={{ padding: '28px 24px' }}>
+              <div key={f.title} className="glass-card" style={{ padding: '28px' }}>
                 <div style={{
-                  width: 44, height: 44, borderRadius: 'var(--radius-lg)',
+                  width: 44, height: 44, borderRadius: 'var(--radius-md)',
                   background: 'var(--accent-gradient-soft)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 16, color: 'var(--accent-3)',
+                  marginBottom: 16, color: 'var(--accent)',
                 }}>
                   <f.icon size={20} />
                 </div>
-                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: 8, fontSize: '1rem' }}>{f.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.65 }}>{f.desc}</p>
+                <h3 style={{ fontFamily: PJS, fontWeight: 700, fontSize: '1rem', marginBottom: 8 }}>{f.title}</h3>
+                <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.65 }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -263,21 +198,21 @@ export default function LandingPage() {
       <section id="harga" style={{ padding: '100px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 56 }}>
-            <h2 className="text-heading" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', marginBottom: 12 }}>
+            <h2 className="text-heading" style={{ fontFamily: PJS, fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', marginBottom: 12 }}>
               Harga yang jelas
             </h2>
-            <p style={{ color: 'var(--text-secondary)' }}>Mulai gratis, upgrade kalau butuh lebih.</p>
+            <p style={{ fontFamily: PJS, color: 'var(--text-secondary)' }}>Mulai gratis, upgrade kalau butuh lebih.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', maxWidth: 720, margin: '0 auto' }}>
             <div className="glass-card" style={{ padding: '32px' }}>
               <span className="badge badge-free" style={{ marginBottom: 16 }}>Gratis</span>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 0</p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>Selamanya</p>
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 0</p>
+              <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>Selamanya</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
                 {PLAN_FEATURES.free.features.map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -292,13 +227,13 @@ export default function LandingPage() {
             }}>
               <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
               <span className="badge badge-pro" style={{ marginBottom: 16 }}>⭐ Pro</span>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 49.000</p>
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>per bulan</p>
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 49.000</p>
+              <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>per bulan</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
                 {PLAN_FEATURES.pro.features.map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -313,7 +248,7 @@ export default function LandingPage() {
       {/* Testimonials */}
       <section style={{ padding: '80px 0' }}>
         <div className="container">
-          <h2 className="text-heading" style={{ textAlign: 'center', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', marginBottom: 48 }}>
+          <h2 className="text-heading" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', marginBottom: 48 }}>
             Kata mereka yang sudah pakai
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '20px' }}>
@@ -324,12 +259,12 @@ export default function LandingPage() {
                     <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />
                   ))}
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>"{t.text}"</p>
+                <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>"{t.text}"</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div className="avatar avatar-sm">{t.name[0]}</div>
                   <div>
-                    <p style={{ fontSize: '0.82rem', fontWeight: 700 }}>{t.name}</p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t.toko}</p>
+                    <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700 }}>{t.name}</p>
+                    <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t.toko}</p>
                   </div>
                 </div>
               </div>
@@ -341,7 +276,7 @@ export default function LandingPage() {
       {/* FAQ */}
       <section style={{ padding: '80px 0' }}>
         <div className="container-sm">
-          <h2 className="text-heading" style={{ textAlign: 'center', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', marginBottom: 48 }}>
+          <h2 className="text-heading" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', marginBottom: 48 }}>
             Pertanyaan umum
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -353,14 +288,14 @@ export default function LandingPage() {
                     width: '100%', padding: '18px 20px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
-                    fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.95rem', textAlign: 'left', gap: '12px',
+                    fontFamily: PJS, fontWeight: 600, fontSize: '0.95rem', textAlign: 'left', gap: '12px',
                   }}
                 >
                   {f.q}
                   <ChevronDown size={16} color="var(--text-tertiary)" style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                 </button>
                 {openFaq === i && (
-                  <div style={{ padding: '0 20px 18px', color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.65, borderTop: '1px solid var(--glass-border)', paddingTop: 14 }}>
+                  <div style={{ padding: '0 20px 18px', color: 'var(--text-secondary)', fontFamily: PJS, fontSize: '0.875rem', lineHeight: 1.65, borderTop: '1px solid var(--glass-border)', paddingTop: 14 }}>
                     {f.a}
                   </div>
                 )}
@@ -382,8 +317,8 @@ export default function LandingPage() {
             position: 'relative', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
-            <h2 className="text-display" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', marginBottom: 16 }}>Mulai jualan sekarang</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 32, maxWidth: 380, margin: '0 auto 32px' }}>
+            <h2 className="text-display" style={{ fontFamily: PJS, fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', marginBottom: 16 }}>Mulai jualan sekarang</h2>
+            <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', marginBottom: 32, maxWidth: 380, margin: '0 auto 32px' }}>
               Gratis, tanpa kartu kredit, tanpa coding. Toko onlinemu siap dalam 5 menit.
             </p>
             <Link to="/login" className="btn btn-primary btn-lg">
@@ -403,11 +338,11 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ExoraIcon />
             <span style={{
-              fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+              fontFamily: PJS,
               fontWeight: 800, fontSize: '1rem', color: '#ffffff', letterSpacing: '-0.02em',
             }}>exora</span>
           </div>
-          <p>© 2025 Exora. Platform toko online Indonesia.</p>
+          <p style={{ fontFamily: PJS }}>© 2025 Exora. Platform toko online Indonesia.</p>
         </div>
       </footer>
     </div>
