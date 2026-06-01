@@ -1,5 +1,5 @@
 /* ============================================
-   TOKOKU — Apple Style + Glassmorphism Design
+   EXORA — Apple Style + Glassmorphism Design
    ============================================ */
 
 :root {
@@ -58,8 +58,8 @@
   --transition-spring: 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Fonts */
-  --font-display: 'Sora', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Plus Jakarta Sans', sans-serif;
 }
 
 *, *::before, *::after {
@@ -215,23 +215,20 @@ input, textarea, select {
 
 .text-display {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: -0.03em;
-  line-height: 1.15;
+  line-height: 1.1;
 }
 
 .text-heading {
   font-family: var(--font-display);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
 
 .gradient-text {
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #ffffff;
 }
 
 /* ============ BUTTONS ============ */
