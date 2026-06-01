@@ -113,7 +113,15 @@ export default function LandingPage() {
           </div>
 
           {/* Hero brand */}
-          <h1 className="text-display gradient-text" style={{ fontFamily: PJS, fontSize: 'clamp(3rem, 8vw, 5.5rem)', marginBottom: '8px', letterSpacing: '-0.04em' }}>
+          <h1 style={{
+            fontFamily: PJS,
+            fontWeight: 800,
+            fontSize: 'clamp(5rem, 16vw, 9rem)',
+            marginBottom: '4px',
+            letterSpacing: '-0.05em',
+            color: '#ffffff',
+            lineHeight: 1,
+          }}>
             exora
           </h1>
           <p style={{
@@ -123,21 +131,19 @@ export default function LandingPage() {
             background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
-            marginBottom: '16px',
+            marginBottom: '12px',
           }}>
             Start. Sell. Scale.
           </p>
 
           <p style={{
             fontFamily: PJS,
-            fontSize: 'clamp(1rem, 2vw, 1.2rem)',
+            fontSize: 'clamp(1rem, 2vw, 1.15rem)',
             color: '#ffffff',
-            lineHeight: 1.7,
+            lineHeight: 1.5,
             marginBottom: '40px',
-            maxWidth: 480,
-            margin: '0 auto 40px',
           }}>
-            Bangun toko online, kelola bisnis, dan jual ke mana saja.
+            Bangun toko online, kelola bisnis, sell everywhere.
           </p>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
