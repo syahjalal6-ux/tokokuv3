@@ -25,6 +25,20 @@ const FAQ = [
   { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.PRO_PRICE}.` },
 ]
 
+// Icon X Exora (SVG gradient)
+const ExoraIcon = () => (
+  <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="xGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#7C3AED" />
+        <stop offset="50%" stopColor="#3B82F6" />
+        <stop offset="100%" stopColor="#06B6D4" />
+      </linearGradient>
+    </defs>
+    <path d="M10 10 L42 50 L10 90 H32 L50 65 L68 90 H90 L58 50 L90 10 H68 L50 35 L32 10 Z" fill="url(#xGrad)" />
+  </svg>
+)
+
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null)
   const [scrolled, setScrolled] = useState(false)
@@ -49,8 +63,27 @@ export default function LandingPage() {
         display: 'flex', alignItems: 'center',
       }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <img src="/exora.png" alt="Exora" style={{ height: 32, objectFit: 'contain' }} />
+          {/* Logo Exora */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ExoraIcon />
+            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+              <span style={{
+                fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+                fontWeight: 800,
+                fontSize: '1.15rem',
+                color: '#ffffff',
+                letterSpacing: '-0.02em',
+              }}>exora</span>
+              <span style={{
+                fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+                fontWeight: 600,
+                fontSize: '0.6rem',
+                background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '0.05em',
+              }}>Start. Sell. Scale.</span>
+            </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Link to="/login" className="btn btn-ghost btn-sm hide-mobile">Masuk</Link>
@@ -78,9 +111,20 @@ export default function LandingPage() {
             </span>
           </div>
 
-          <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(2.4rem, 6vw, 4rem)', marginBottom: '24px' }}>
-            Buka Toko Online<br />dalam 5 Menit
+          {/* Hero brand */}
+          <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(3rem, 8vw, 5.5rem)', marginBottom: '8px', letterSpacing: '-0.04em' }}>
+            exora
           </h1>
+          <p style={{
+            fontSize: 'clamp(1rem, 2.5vw, 1.4rem)',
+            fontWeight: 700,
+            background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            marginBottom: '16px',
+          }}>
+            Start. Sell. Scale.
+          </p>
 
           <p style={{
             fontSize: 'clamp(1rem, 2vw, 1.2rem)',
@@ -196,7 +240,6 @@ export default function LandingPage() {
               Fitur lengkap untuk berjualan online, tanpa ribet.
             </p>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }} className="stagger">
             {FEATURES.map(f => (
               <div key={f.title} className="glass-card animate-fade-in" style={{ padding: '28px 24px' }}>
@@ -225,9 +268,7 @@ export default function LandingPage() {
             </h2>
             <p style={{ color: 'var(--text-secondary)' }}>Mulai gratis, upgrade kalau butuh lebih.</p>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', maxWidth: 720, margin: '0 auto' }}>
-            {/* Free */}
             <div className="glass-card" style={{ padding: '32px' }}>
               <span className="badge badge-free" style={{ marginBottom: 16 }}>Gratis</span>
               <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 0</p>
@@ -240,30 +281,18 @@ export default function LandingPage() {
                   </div>
                 ))}
               </div>
-              <Link to="/login" className="btn btn-secondary" style={{ width: '100%' }}>
-                Mulai Gratis
-              </Link>
+              <Link to="/login" className="btn btn-secondary" style={{ width: '100%' }}>Mulai Gratis</Link>
             </div>
-
-            {/* Pro */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.12) 100%)',
               border: '1px solid rgba(167,139,250,0.3)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '32px',
+              borderRadius: 'var(--radius-xl)', padding: '32px',
               boxShadow: '0 8px 40px rgba(91,138,245,0.2)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{
-                position: 'absolute', top: -20, right: -20,
-                width: 120, height: 120,
-                background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)',
-                borderRadius: '50%',
-              }} />
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
               <span className="badge badge-pro" style={{ marginBottom: 16 }}>⭐ Pro</span>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>
-                Rp 49.000
-              </p>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 49.000</p>
               <p style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>per bulan</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
                 {PLAN_FEATURES.pro.features.map(f => (
@@ -274,8 +303,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <Link to="/login" className="btn btn-primary" style={{ width: '100%' }}>
-                Coba Pro Sekarang
-                <ArrowRight size={14} />
+                Coba Pro Sekarang <ArrowRight size={14} />
               </Link>
             </div>
           </div>
@@ -296,9 +324,7 @@ export default function LandingPage() {
                     <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />
                   ))}
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>
-                  "{t.text}"
-                </p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>"{t.text}"</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <div className="avatar avatar-sm">{t.name[0]}</div>
                   <div>
@@ -331,11 +357,7 @@ export default function LandingPage() {
                   }}
                 >
                   {f.q}
-                  <ChevronDown
-                    size={16}
-                    color="var(--text-tertiary)"
-                    style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}
-                  />
+                  <ChevronDown size={16} color="var(--text-tertiary)" style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                 </button>
                 {openFaq === i && (
                   <div style={{ padding: '0 20px 18px', color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.65, borderTop: '1px solid var(--glass-border)', paddingTop: 14 }}>
@@ -360,15 +382,12 @@ export default function LandingPage() {
             position: 'relative', overflow: 'hidden',
           }}>
             <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
-            <h2 className="text-display" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', marginBottom: 16 }}>
-              Mulai jualan sekarang
-            </h2>
+            <h2 className="text-display" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.8rem)', marginBottom: 16 }}>Mulai jualan sekarang</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: 32, maxWidth: 380, margin: '0 auto 32px' }}>
               Gratis, tanpa kartu kredit, tanpa coding. Toko onlinemu siap dalam 5 menit.
             </p>
             <Link to="/login" className="btn btn-primary btn-lg">
-              Buat Toko Gratis
-              <ArrowRight size={16} />
+              Buat Toko Gratis <ArrowRight size={16} />
             </Link>
           </div>
         </div>
@@ -378,12 +397,16 @@ export default function LandingPage() {
       <footer style={{
         borderTop: '1px solid var(--glass-border)',
         padding: '32px 24px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        flexWrap: 'wrap', gap: '16px',
         color: 'var(--text-tertiary)', fontSize: '0.82rem',
       }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
-          <img src="/exora.png" alt="Exora" style={{ height: 24, objectFit: 'contain' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ExoraIcon />
+            <span style={{
+              fontFamily: "'Inter', 'Helvetica Neue', sans-serif",
+              fontWeight: 800, fontSize: '1rem', color: '#ffffff', letterSpacing: '-0.02em',
+            }}>exora</span>
+          </div>
           <p>© 2025 Exora. Platform toko online Indonesia.</p>
         </div>
       </footer>
