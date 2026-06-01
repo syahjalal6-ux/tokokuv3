@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, Star, ChevronLeft, X, Plus, Minus, Package } from 'lucide-react'
+import { MessageCircle, Search, ShoppingBag, Store, Star, ChevronLeft, X, Plus, Minus, Package, Music, Play, Pause, ChevronDown, ChevronUp } from 'lucide-react'
 import { tokoApi, produkApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 
@@ -15,6 +15,139 @@ const TEMA = {
 function safeWA(wa) {
   if (!wa) return ''
   return String(wa)
+}
+
+// Extract YouTube video ID dari berbagai format URL
+function getYouTubeId(url) {
+  if (!url) return null
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
+    /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
+  ]
+  for (const p of patterns) {
+    const m = url.match(p)
+    if (m) return m[1]
+  }
+  return null
+}
+
+// =============================================
+// MUSIC PLAYER — floating button + mini player
+// =============================================
+
+function MusicPlayer({ musikUrl, tema }) {
+  const [open, setOpen] = useState(false)
+  const [playing, setPlaying] = useState(false)
+  const videoId = getYouTubeId(musikUrl)
+
+  if (!videoId) return null
+
+  return (
+    <>
+      {/* Floating button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          position: 'fixed',
+          bottom: 56, // di atas footer
+          right: 20,
+          zIndex: 200,
+          width: 48, height: 48,
+          borderRadius: 'var(--radius-full)',
+          background: playing ? tema.gradient : 'rgba(10,10,15,0.85)',
+          backdropFilter: 'blur(16px)',
+          border: `1px solid ${playing ? tema.accent + '66' : 'var(--glass-border)'}`,
+          boxShadow: playing
+            ? `0 4px 24px ${tema.accent}55, 0 0 0 3px ${tema.accent}22`
+            : '0 4px 16px rgba(0,0,0,0.4)',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff',
+          transition: 'all 0.3s ease',
+          animation: playing ? 'musicPulse 2s ease-in-out infinite' : 'none',
+        }}
+        title={open ? 'Tutup player' : 'Putar musik toko'}
+      >
+        <Music size={18} />
+        <style>{`
+          @keyframes musicPulse {
+            0%, 100% { box-shadow: 0 4px 24px ${tema.accent}55, 0 0 0 3px ${tema.accent}22; }
+            50% { box-shadow: 0 4px 32px ${tema.accent}77, 0 0 0 6px ${tema.accent}15; }
+          }
+          @keyframes playerSlideIn {
+            from { opacity: 0; transform: translateY(12px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+        `}</style>
+      </button>
+
+      {/* Mini player panel */}
+      {open && (
+        <div style={{
+          position: 'fixed',
+          bottom: 116,
+          right: 20,
+          zIndex: 200,
+          width: 300,
+          background: 'rgba(10,10,15,0.92)',
+          backdropFilter: 'blur(24px)',
+          border: `1px solid ${tema.accent}33`,
+          borderRadius: 'var(--radius-xl)',
+          overflow: 'hidden',
+          boxShadow: `0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px ${tema.accent}15`,
+          animation: 'playerSlideIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}>
+          {/* Player header */}
+          <div style={{
+            padding: '12px 14px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            borderBottom: `1px solid ${tema.accent}22`,
+            background: `${tema.accent}0d`,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Music size={13} color={tema.accent} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: tema.accent, letterSpacing: '0.04em' }}>
+                MUSIK TOKO
+              </span>
+            </div>
+            <button
+              onClick={() => setOpen(false)}
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'rgba(255,255,255,0.4)', cursor: 'pointer',
+                display: 'flex', padding: 2,
+              }}
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* YouTube iframe */}
+          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+              title="Musik Toko"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onLoad={() => setPlaying(true)}
+              style={{
+                position: 'absolute', top: 0, left: 0,
+                width: '100%', height: '100%',
+                border: 'none',
+              }}
+            />
+          </div>
+
+          {/* Note */}
+          <div style={{ padding: '8px 14px', borderTop: `1px solid ${tema.accent}15` }}>
+            <p style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>
+              Musik dipilih oleh pemilik toko
+            </p>
+          </div>
+        </div>
+      )}
+    </>
+  )
 }
 
 export default function StorefrontPage() {
@@ -222,6 +355,9 @@ export default function StorefrontPage() {
         />
       )}
 
+      {/* Music player floating */}
+      {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} />}
+
       {/* Footer */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -231,7 +367,7 @@ export default function StorefrontPage() {
         fontSize: '0.72rem', color: 'var(--text-tertiary)',
       }}>
         Toko ini ditenagai oleh{' '}
-        <a href="/" style={{ color: tema.accent, fontWeight: 700 }}>TokoKu</a>
+        <a href="/" style={{ color: tema.accent, fontWeight: 700 }}>Exora</a>
         {' '}— Buka toko online gratis kamu sekarang
       </div>
     </div>
@@ -272,8 +408,18 @@ function ProdukCard({ produk: p, tema, onClick }) {
       {/* Image */}
       <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', background: 'var(--surface)' }}>
         {p.foto ? (
-          <img src={p.foto} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.4s ease' }}
-            onMouseEnter={e => e.target.style.transform = 'scale(1.05)'}
+          <img
+            src={p.foto}
+            alt={p.nama}
+            style={{
+              width: '100%', height: '100%',
+              objectFit: 'contain',
+              objectPosition: 'center',
+              padding: '4px',
+              transition: 'transform 0.4s ease',
+              background: 'var(--surface)',
+            }}
+            onMouseEnter={e => e.target.style.transform = 'scale(1.04)'}
             onMouseLeave={e => e.target.style.transform = 'scale(1)'}
           />
         ) : (
@@ -355,9 +501,19 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
 
         {/* Image */}
-        <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
+        <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
           {p.foto ? (
-            <img src={p.foto} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <img
+              src={p.foto}
+              alt={p.nama}
+              style={{
+                width: '100%', height: '100%',
+                objectFit: 'contain',
+                objectPosition: 'center',
+                padding: '8px',
+                background: 'var(--surface)',
+              }}
+            />
           ) : (
             <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
               <Package size={56} />
