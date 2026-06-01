@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Settings,
-  Zap, ExternalLink, LogOut, Menu, X, ChevronRight,
+  Zap, ExternalLink, LogOut, Menu, X,
   Store
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
@@ -10,12 +10,27 @@ import { getInitials, isPro } from '../../lib/utils.js'
 import { CONFIG } from '../../lib/config.js'
 import toast from 'react-hot-toast'
 
+const PJS = "'Plus Jakarta Sans', sans-serif"
+
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, exact: true },
   { to: '/dashboard/produk', label: 'Produk', icon: Package },
   { to: '/dashboard/pesanan', label: 'Pesanan', icon: ShoppingBag },
   { to: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
 ]
+
+const ExoraIcon = ({ size = 26 }) => (
+  <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="xGradSidebar" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#7C3AED" />
+        <stop offset="50%" stopColor="#3B82F6" />
+        <stop offset="100%" stopColor="#06B6D4" />
+      </linearGradient>
+    </defs>
+    <path d="M10 10 L42 50 L10 90 H32 L50 65 L68 90 H90 L58 50 L90 10 H68 L50 35 L32 10 Z" fill="url(#xGradSidebar)" />
+  </svg>
+)
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -46,17 +61,25 @@ export default function Sidebar() {
     }}>
       {/* Logo */}
       <div style={{ padding: '4px 12px 20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: '10px',
-          background: 'var(--accent-gradient)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '16px', color: '#fff',
-          boxShadow: '0 0 20px var(--accent-glow)',
-          flexShrink: 0,
-        }}>T</div>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem' }}>
-          TokoKu
-        </span>
+        <ExoraIcon size={26} />
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+          <span style={{
+            fontFamily: PJS,
+            fontWeight: 800,
+            fontSize: '1.05rem',
+            color: '#ffffff',
+            letterSpacing: '-0.02em',
+          }}>exora</span>
+          <span style={{
+            fontFamily: PJS,
+            fontWeight: 600,
+            fontSize: '0.55rem',
+            background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '0.05em',
+          }}>Start. Sell. Scale.</span>
+        </div>
       </div>
 
       {/* Toko info */}
@@ -76,7 +99,7 @@ export default function Sidebar() {
           onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
         >
           <Store size={14} color="var(--text-tertiary)" />
-          <span style={{ flex: 1, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ flex: 1, fontFamily: PJS, fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {toko.nama}
           </span>
           <ExternalLink size={12} color="var(--text-tertiary)" />
@@ -94,7 +117,7 @@ export default function Sidebar() {
             style={({ isActive }) => ({
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '10px 12px', borderRadius: 'var(--radius-md)',
-              fontSize: '0.875rem', fontWeight: isActive ? 600 : 500,
+              fontFamily: PJS, fontSize: '0.875rem', fontWeight: isActive ? 600 : 500,
               color: isActive ? 'var(--text-primary)' : 'var(--text-secondary)',
               background: isActive ? 'var(--surface-active)' : 'transparent',
               textDecoration: 'none',
@@ -126,7 +149,7 @@ export default function Sidebar() {
             style={({ isActive }) => ({
               display: 'flex', alignItems: 'center', gap: '10px',
               padding: '10px 12px', borderRadius: 'var(--radius-md)',
-              fontSize: '0.875rem', fontWeight: 600,
+              fontFamily: PJS, fontSize: '0.875rem', fontWeight: 600,
               color: 'var(--accent-3)',
               background: isActive ? 'var(--accent-gradient-soft)' : 'transparent',
               textDecoration: 'none',
@@ -141,6 +164,7 @@ export default function Sidebar() {
               background: 'var(--accent-gradient)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
+              fontFamily: PJS,
               fontSize: '0.72rem', fontWeight: 800,
             }}>BARU</span>
           </NavLink>
@@ -160,7 +184,7 @@ export default function Sidebar() {
             <div className="avatar avatar-sm">{getInitials(user?.name)}</div>
           )}
           <div style={{ flex: 1, overflow: 'hidden' }}>
-            <p style={{ fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -173,7 +197,8 @@ export default function Sidebar() {
 
         <button onClick={handleLogout} className="btn btn-ghost" style={{
           width: '100%', justifyContent: 'flex-start', gap: '10px',
-          padding: '8px 12px', borderRadius: 'var(--radius-md)', fontSize: '0.85rem',
+          padding: '8px 12px', borderRadius: 'var(--radius-md)',
+          fontFamily: PJS, fontSize: '0.85rem',
           color: 'var(--text-tertiary)',
         }}>
           <LogOut size={15} />
@@ -200,13 +225,16 @@ export default function Sidebar() {
         alignItems: 'center', justifyContent: 'space-between',
       }} className="flex show-mobile" id="mobile-topbar">
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: '8px',
-            background: 'var(--accent-gradient)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '13px', color: '#fff',
-          }}>T</div>
-          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800 }}>TokoKu</span>
+          <ExoraIcon size={22} />
+          <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
+            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', letterSpacing: '-0.02em' }}>exora</span>
+            <span style={{
+              fontFamily: PJS, fontWeight: 600, fontSize: '0.5rem',
+              background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              letterSpacing: '0.05em',
+            }}>Start. Sell. Scale.</span>
+          </div>
         </div>
         <button onClick={() => setMobileOpen(true)} className="btn btn-ghost btn-icon btn-sm">
           <Menu size={20} />
