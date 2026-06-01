@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Store, User, Bell, Shield } from 'lucide-react'
+import { Save, Store, User } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { Alert } from '../components/ui/index.jsx'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
@@ -13,6 +13,14 @@ export default function SettingsPage() {
   const [tab, setTab] = useState('toko')
   const pro = isPro(user)
 
+  useEffect(() => {
+    if (token && !toko) {
+      tokoApi.getMine(token).then(res => {
+        if (res.data) setToko(res.data)
+      }).catch(() => {})
+    }
+  }, [token])
+
   const TABS = [
     { key: 'toko', label: 'Info Toko', icon: Store },
     { key: 'profil', label: 'Profil', icon: User },
@@ -20,7 +28,6 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout title="Pengaturan">
-      {/* Tabs */}
       <div style={{ display: 'flex', gap: '4px', marginBottom: '28px' }}>
         {TABS.map(t => (
           <button
@@ -47,10 +54,6 @@ export default function SettingsPage() {
     </DashboardLayout>
   )
 }
-
-// =============================================
-// TOKO SETTINGS
-// =============================================
 
 function TokoSettings({ token, toko, setToko, pro }) {
   const [form, setForm] = useState({ nama: '', deskripsi: '', wa: '', customDomain: '', tema: 'default', musik: '' })
@@ -106,7 +109,6 @@ function TokoSettings({ token, toko, setToko, pro }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* Toko info */}
       <div className="glass-card" style={{ padding: '28px' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '20px', fontSize: '1rem' }}>
           Informasi Toko
@@ -138,9 +140,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
               value={form.musik}
               onChange={e => set('musik', e.target.value)}
             />
-            <span className="form-hint">
-              Akan muncul sebagai tombol 🎵 di toko kamu — buyer klik untuk putar
-            </span>
+            <span className="form-hint">Akan muncul sebagai tombol 🎵 di toko kamu — buyer klik untuk putar</span>
           </div>
 
           <div className="form-group">
@@ -151,22 +151,15 @@ function TokoSettings({ token, toko, setToko, pro }) {
         </div>
       </div>
 
-      {/* Custom Domain (Pro only) */}
       <div className="glass-card" style={{ padding: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Custom Domain</h3>
           {!pro && <span className="badge badge-pro">⭐ Pro</span>}
         </div>
-
         {pro ? (
           <div className="form-group">
             <label className="form-label">Domain Kustom</label>
-            <input
-              className="form-input"
-              placeholder="cth: toko.namadomain.com"
-              value={form.customDomain}
-              onChange={e => set('customDomain', e.target.value)}
-            />
+            <input className="form-input" placeholder="cth: toko.namadomain.com" value={form.customDomain} onChange={e => set('customDomain', e.target.value)} />
             <span className="form-hint">Arahkan CNAME domain kamu ke: tokoku.vercel.app</span>
           </div>
         ) : (
@@ -174,20 +167,16 @@ function TokoSettings({ token, toko, setToko, pro }) {
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
               Pakai domain sendiri seperti <code style={{ color: 'var(--accent)', background: 'var(--surface)', padding: '2px 6px', borderRadius: 4, fontSize: '0.82rem' }}>toko.namakamu.com</code>
             </p>
-            <a href="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ width: 'fit-content' }}>
-              Upgrade ke Pro
-            </a>
+            <a href="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ width: 'fit-content' }}>Upgrade ke Pro</a>
           </div>
         )}
       </div>
 
-      {/* Tema (Pro only) */}
       <div className="glass-card" style={{ padding: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Tema Toko</h3>
           {!pro && <span className="badge badge-pro">⭐ Pro</span>}
         </div>
-
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '10px' }}>
           {[
             { key: 'default', label: 'Default', preview: ['#5b8af5', '#7c6af7'] },
@@ -228,10 +217,6 @@ function TokoSettings({ token, toko, setToko, pro }) {
   )
 }
 
-// =============================================
-// PROFIL SETTINGS
-// =============================================
-
 function ProfilSettings({ user }) {
   return (
     <div className="glass-card" style={{ padding: '28px' }}>
@@ -252,7 +237,6 @@ function ProfilSettings({ user }) {
           </span>
         </div>
       </div>
-
       <Alert type="info">
         Data profil diambil dari akun Google kamu dan tidak bisa diubah di sini.
         Ubah foto dan nama melalui akun Google kamu.
