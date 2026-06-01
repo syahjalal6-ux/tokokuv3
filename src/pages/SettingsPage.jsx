@@ -65,7 +65,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
       setForm({
         nama: toko.nama || '',
         deskripsi: toko.deskripsi || '',
-        wa: toko.wa || '',
+        wa: String(toko.wa || ''),
         customDomain: toko.customDomain || '',
         tema: toko.tema || 'default',
         musik: toko.musik || '',
