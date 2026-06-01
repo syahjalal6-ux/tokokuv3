@@ -7,8 +7,15 @@ class ApiError extends Error {
   }
 }
 
-// Semua request pakai GET — fix 302 redirect issue GAS
-// Untuk field 'foto': dikirim terpisah via searchParams agar tidak corrupt di spread
+const TIMEOUT_MS = 8000
+
+function fetchWithTimeout(url, options = {}) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  return fetch(url, { ...options, signal: controller.signal, redirect: 'follow' })
+    .finally(() => clearTimeout(timer))
+}
+
 async function request(action, data = {}) {
   try {
     const url = new URL(CONFIG.GAS_URL)
@@ -16,7 +23,6 @@ async function request(action, data = {}) {
 
     Object.entries(data).forEach(([k, v]) => {
       if (v !== undefined && v !== null) {
-        // Encode eksplisit untuk semua string — penting untuk URL Cloudinary
         url.searchParams.set(k, String(v))
       }
     })
@@ -24,7 +30,7 @@ async function request(action, data = {}) {
     console.log('[API] request:', action, '| foto:', data.foto ?? '(tidak ada)')
     console.log('[API] full URL length:', url.toString().length)
 
-    const res = await fetch(url.toString(), { redirect: 'follow' })
+    const res = await fetchWithTimeout(url.toString())
     const text = await res.text()
 
     let json
@@ -38,6 +44,7 @@ async function request(action, data = {}) {
     if (!json.success) throw new ApiError(json.message || 'Terjadi kesalahan', 400)
     return json
   } catch (err) {
+    if (err.name === 'AbortError') throw new ApiError('Request timeout. Coba lagi.', 408)
     if (err instanceof ApiError) throw err
     throw new ApiError(err.message || 'Gagal terhubung ke server', 0)
   }
@@ -67,8 +74,6 @@ export const tokoApi = {
 }
 
 // PRODUK
-// foto = URL string dari Cloudinary, dikirim via query param seperti field lain
-// Jika URL length > 1800 char, switch otomatis ke POST untuk keamanan
 export const produkApi = {
   create: (token, data) => requestSafe('createProduk', { token, ...data }),
   update: (token, produkId, data) => requestSafe('updateProduk', { token, produkId, ...data }),
@@ -91,48 +96,34 @@ export const analyticsApi = {
   getDashboard: (token) => request('getAnalytics', { token }),
 }
 
-// Khusus untuk request yang bisa punya URL panjang (create/update produk dengan foto)
-// Jika total URL > 1800 char, kirim foto via POST body sebagai JSON
-// GAS harus support doPost untuk ini — lihat catatan di bawah
 async function requestSafe(action, data = {}) {
   const url = new URL(CONFIG.GAS_URL)
   url.searchParams.set('action', action)
 
-  // Pisahkan foto dari data lain untuk estimasi panjang URL dulu
   const { foto, ...rest } = data
   Object.entries(rest).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
   })
 
-  // Cek panjang URL tanpa foto
   const urlWithoutFoto = url.toString()
   const fotoStr = foto ? String(foto) : ''
-  const totalLength = urlWithoutFoto.length + (fotoStr ? fotoStr.length + 6 : 0) // +6 untuk "&foto="
+  const totalLength = urlWithoutFoto.length + (fotoStr ? fotoStr.length + 6 : 0)
 
   console.log('[API] requestSafe:', action, '| URL length (estimasi):', totalLength)
 
   if (totalLength <= 1800) {
-    // Aman pakai GET biasa
     if (fotoStr) url.searchParams.set('foto', fotoStr)
     console.log('[API] mode: GET | foto dikirim via query param')
-    const res = await fetch(url.toString(), { redirect: 'follow' })
+    const res = await fetchWithTimeout(url.toString())
     return parseGasResponse(res)
   } else {
-    // URL terlalu panjang — kirim via POST
-    // CATATAN: GAS harus punya doPost() yang handle JSON body
-    // Tambahkan ini ke GAS jika belum ada:
-    //   function doPost(e) {
-    //     const data = JSON.parse(e.postData.contents)
-    //     return handleAction(data.action, data)
-    //   }
     console.log('[API] mode: POST (URL terlalu panjang) | foto length:', fotoStr.length)
     const body = { action, ...rest }
     if (fotoStr) body.foto = fotoStr
-    const res = await fetch(CONFIG.GAS_URL, {
+    const res = await fetchWithTimeout(CONFIG.GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      redirect: 'follow',
     })
     return parseGasResponse(res)
   }
