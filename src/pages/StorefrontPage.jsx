@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, Star, ChevronLeft, X, Plus, Minus, Package, Music, Play, Pause, ChevronDown, ChevronUp } from 'lucide-react'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music } from 'lucide-react'
 import { tokoApi, produkApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 
@@ -9,6 +9,16 @@ const TEMA = {
   emerald: { accent: '#10b981', accent2: '#059669', gradient: 'linear-gradient(135deg, #10b981, #059669)' },
   sunset:  { accent: '#f59e0b', accent2: '#ef4444', gradient: 'linear-gradient(135deg, #f59e0b, #ef4444)' },
   rose:    { accent: '#f43f5e', accent2: '#ec4899', gradient: 'linear-gradient(135deg, #f43f5e, #ec4899)' },
+}
+
+function parseFotos(foto) {
+  if (!foto) return []
+  try {
+    const parsed = JSON.parse(foto)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return String(foto).split(',').map(s => s.trim()).filter(Boolean)
+  }
 }
 
 function safeWA(wa) {
@@ -131,6 +141,100 @@ function MusicPlayer({ musikUrl, tema }) {
   )
 }
 
+function PhotoCarousel({ fotos, nama }) {
+  const [idx, setIdx] = useState(0)
+  const touchStartX = useRef(null)
+
+  if (!fotos.length) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
+        <Package size={56} />
+      </div>
+    )
+  }
+
+  const prev = (e) => { e.stopPropagation(); setIdx(i => (i - 1 + fotos.length) % fotos.length) }
+  const next = (e) => { e.stopPropagation(); setIdx(i => (i + 1) % fotos.length) }
+
+  const onTouchStart = (e) => { touchStartX.current = e.touches[0].clientX }
+  const onTouchEnd = (e) => {
+    if (touchStartX.current === null) return
+    const diff = touchStartX.current - e.changedTouches[0].clientX
+    if (diff > 40) setIdx(i => (i + 1) % fotos.length)
+    else if (diff < -40) setIdx(i => (i - 1 + fotos.length) % fotos.length)
+    touchStartX.current = null
+  }
+
+  return (
+    <div
+      style={{ position: 'relative', width: '100%', height: '100%' }}
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
+      <img
+        key={idx}
+        src={fotos[idx]}
+        alt={`${nama} ${idx + 1}`}
+        style={{
+          width: '100%', height: '100%',
+          objectFit: 'contain', objectPosition: 'center',
+          padding: '8px', background: 'var(--surface)',
+          animation: 'fadeIn 0.2s ease',
+        }}
+      />
+
+      {fotos.length > 1 && (
+        <>
+          <button
+            onClick={prev}
+            style={{
+              position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)',
+              background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 'var(--radius-full)',
+              width: 32, height: 32,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#fff',
+            }}
+          ><ChevronLeft size={16} /></button>
+
+          <button
+            onClick={next}
+            style={{
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+              background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)',
+              border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 'var(--radius-full)',
+              width: 32, height: 32,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', color: '#fff',
+            }}
+          ><ChevronRight size={16} /></button>
+
+          <div style={{
+            position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)',
+            display: 'flex', gap: 5,
+          }}>
+            {fotos.map((_, i) => (
+              <div
+                key={i}
+                onClick={(e) => { e.stopPropagation(); setIdx(i) }}
+                style={{
+                  width: i === idx ? 18 : 6, height: 6,
+                  borderRadius: 'var(--radius-full)',
+                  background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)',
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer',
+                }}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export default function StorefrontPage() {
   const { slug } = useParams()
   const [toko, setToko] = useState(null)
@@ -189,7 +293,6 @@ export default function StorefrontPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
-      {/* Hero / Header */}
       <div style={{
         background: `linear-gradient(180deg, ${tema.accent}22 0%, transparent 100%)`,
         borderBottom: '1px solid var(--glass-border)',
@@ -248,9 +351,7 @@ export default function StorefrontPage() {
         </div>
       </div>
 
-      {/* Content */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '28px 24px 80px' }}>
-        {/* Search & filter */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
           <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
@@ -291,7 +392,6 @@ export default function StorefrontPage() {
           )}
         </div>
 
-        {/* Products grid */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
             <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
@@ -313,7 +413,6 @@ export default function StorefrontPage() {
         )}
       </div>
 
-      {/* Product detail modal */}
       {selectedProduk && (
         <ProdukModal
           produk={selectedProduk}
@@ -324,7 +423,6 @@ export default function StorefrontPage() {
         />
       )}
 
-      {/* Checkout modal */}
       {checkoutOpen && (
         <CheckoutModal
           produk={checkoutOpen}
@@ -334,10 +432,8 @@ export default function StorefrontPage() {
         />
       )}
 
-      {/* Music player floating */}
       {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} />}
 
-      {/* Footer */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(16px)',
@@ -352,11 +448,9 @@ export default function StorefrontPage() {
   )
 }
 
-// =============================================
-// PRODUCT CARD
-// =============================================
-
 function ProdukCard({ produk: p, tema, onClick }) {
+  const fotos = parseFotos(p.foto)
+  const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
 
   return (
@@ -384,14 +478,13 @@ function ProdukCard({ produk: p, tema, onClick }) {
       }}
     >
       <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', background: 'var(--surface)' }}>
-        {p.foto ? (
+        {thumbUrl ? (
           <img
-            src={p.foto}
+            src={thumbUrl}
             alt={p.nama}
             style={{
               width: '100%', height: '100%',
-              objectFit: 'contain',
-              objectPosition: 'center',
+              objectFit: 'contain', objectPosition: 'center',
               padding: '4px',
               transition: 'transform 0.4s ease',
               background: 'var(--surface)',
@@ -402,6 +495,17 @@ function ProdukCard({ produk: p, tema, onClick }) {
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
             <Package size={40} />
+          </div>
+        )}
+        {fotos.length > 1 && (
+          <div style={{
+            position: 'absolute', bottom: 6, right: 6,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
+            borderRadius: 'var(--radius-full)',
+            padding: '2px 7px',
+            fontSize: '0.65rem', fontWeight: 700, color: '#fff',
+          }}>
+            1/{fotos.length}
           </div>
         )}
         {diskon && (
@@ -442,11 +546,8 @@ function ProdukCard({ produk: p, tema, onClick }) {
   )
 }
 
-// =============================================
-// PRODUCT DETAIL MODAL
-// =============================================
-
 function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
+  const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   const sold = p.stok === 0
 
@@ -477,17 +578,7 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
 
         <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
-          {p.foto ? (
-            <img
-              src={p.foto}
-              alt={p.nama}
-              style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', padding: '8px', background: 'var(--surface)' }}
-            />
-          ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
-              <Package size={56} />
-            </div>
-          )}
+          <PhotoCarousel fotos={fotos} nama={p.nama} />
           <button onClick={onClose} style={{
             position: 'absolute', top: 12, right: 12,
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)',
@@ -495,6 +586,7 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
             borderRadius: 'var(--radius-full)', padding: '8px',
             cursor: 'pointer', color: '#fff',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 10,
           }}>
             <X size={16} />
           </button>
@@ -504,6 +596,7 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
               background: '#ef4444', color: '#fff',
               fontSize: '0.8rem', fontWeight: 800,
               padding: '4px 10px', borderRadius: 'var(--radius-full)',
+              zIndex: 10,
             }}>-{diskon}%</div>
           )}
         </div>
@@ -572,11 +665,9 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
   )
 }
 
-// =============================================
-// CHECKOUT MODAL
-// =============================================
-
 function CheckoutModal({ produk: p, toko, tema, onClose }) {
+  const fotos = parseFotos(p.foto)
+  const thumbUrl = fotos[0] || null
   const [form, setForm] = useState({ nama: '', wa: '', alamat: '', catatan: '', qty: 1 })
   const [errors, setErrors] = useState({})
 
@@ -635,7 +726,7 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
 
         <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', gap: '12px', padding: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
-            {p.foto && <img src={p.foto} alt={p.nama} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
+            {thumbUrl && <img src={thumbUrl} alt={p.nama} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>{p.nama}</p>
               <p style={{ color: tema.accent, fontWeight: 800 }}>{formatRupiah(p.harga)}</p>
@@ -705,10 +796,6 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
     </div>
   )
 }
-
-// =============================================
-// LOADING SKELETON
-// =============================================
 
 function StorefrontSkeleton() {
   return (
