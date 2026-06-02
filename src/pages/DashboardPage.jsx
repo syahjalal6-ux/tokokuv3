@@ -14,13 +14,14 @@ export default function DashboardPage() {
   const { toko, load: loadToko, setToko } = useTokoStore()
   const { produk, load: loadProduk } = useProdukStore()
   const [linkCopied, setLinkCopied] = useState(false)
-  const [tokoLoading, setTokoLoading] = useState(false)
+  const [tokoLoading, setTokoLoading] = useState(true)
   const navigate = useNavigate()
   const pro = isPro(user)
 
   useEffect(() => {
     if (token) {
-      loadToko(token)
+      setTokoLoading(true)
+      loadToko(token).finally(() => setTokoLoading(false))
       loadProduk(token)
     }
   }, [token])
@@ -49,8 +50,11 @@ export default function DashboardPage() {
         )
       }
     >
-      {/* No toko yet */}
-      {!toko ? (
+      {tokoLoading ? (
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px' }}>
+          <div className="spinner" />
+        </div>
+      ) : !toko ? (
         <SetupTokoCard token={token} setToko={setToko} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -230,10 +234,6 @@ export default function DashboardPage() {
   )
 }
 
-// =============================================
-// SETUP TOKO CARD (first time)
-// =============================================
-
 function SetupTokoCard({ token, setToko }) {
   const [form, setForm] = useState({ nama: '', slug: '', deskripsi: '', wa: '' })
   const [errors, setErrors] = useState({})
@@ -296,7 +296,7 @@ function SetupTokoCard({ token, setToko }) {
             <label className="form-label">Slug / URL Toko *</label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <span style={{ position: 'absolute', left: 12, color: 'var(--text-tertiary)', fontSize: '0.82rem', pointerEvents: 'none' }}>
-                tokoku.app/toko/
+                exora.app/toko/
               </span>
               <input
                 className={`form-input ${errors.slug ? 'error' : ''}`}
