@@ -7,24 +7,16 @@ export default function DashboardLayout({ children, title, subtitle, actions }) 
       <Sidebar />
 
       {/* Main content */}
-      <main style={{
-        flex: 1,
-        marginLeft: 240,
-        minHeight: '100vh',
-        display: 'flex', flexDirection: 'column',
-      }}>
+      <main className="dashboard-main">
         {/* Page header */}
         {(title || actions) && (
-          <div style={{
-            padding: '32px 40px 0',
-            display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-            gap: '16px',
-          }}>
+          <div className="dashboard-header">
             <div>
               {title && (
                 <h1 style={{
                   fontFamily: 'var(--font-display)', fontWeight: 800,
-                  fontSize: '1.6rem', letterSpacing: '-0.03em', marginBottom: '4px',
+                  fontSize: 'clamp(1.2rem, 3vw, 1.6rem)',
+                  letterSpacing: '-0.03em', marginBottom: '4px',
                 }}>
                   {title}
                 </h1>
@@ -36,7 +28,7 @@ export default function DashboardLayout({ children, title, subtitle, actions }) 
               )}
             </div>
             {actions && (
-              <div style={{ display: 'flex', gap: '10px', flexShrink: 0, marginTop: '4px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexShrink: 0, flexWrap: 'wrap', marginTop: '4px' }}>
                 {actions}
               </div>
             )}
@@ -44,17 +36,45 @@ export default function DashboardLayout({ children, title, subtitle, actions }) 
         )}
 
         {/* Content */}
-        <div style={{ padding: '24px 40px 48px', flex: 1 }}>
+        <div className="dashboard-content">
           {children}
         </div>
       </main>
 
       <style>{`
+        .dashboard-main {
+          flex: 1;
+          margin-left: 240px;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          min-width: 0;
+        }
+
+        .dashboard-header {
+          padding: 32px 40px 0;
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .dashboard-content {
+          padding: 24px 40px 48px;
+          flex: 1;
+        }
+
         @media (max-width: 768px) {
-          main { margin-left: 0 !important; padding-top: 60px; }
-          main > div:first-child { padding: 20px 16px 0 !important; }
-          main > div:last-child { padding: 16px 16px 48px !important; }
-          #mobile-topbar { display: flex !important; }
+          .dashboard-main {
+            margin-left: 0;
+            padding-top: 60px;
+          }
+          .dashboard-header {
+            padding: 20px 16px 0;
+          }
+          .dashboard-content {
+            padding: 16px 16px 80px;
+          }
         }
       `}</style>
     </div>
