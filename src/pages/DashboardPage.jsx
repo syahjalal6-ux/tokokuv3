@@ -9,6 +9,16 @@ import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard } from '../lib/u
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
 
+function parseFotos(foto) {
+  if (!foto) return []
+  try {
+    const parsed = JSON.parse(foto)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return String(foto).split(',').map(s => s.trim()).filter(Boolean)
+  }
+}
+
 export default function DashboardPage() {
   const { user, token } = useAuthStore()
   const { toko, load: loadToko, setToko } = useTokoStore()
@@ -59,7 +69,6 @@ export default function DashboardPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-          {/* Upgrade banner */}
           {!pro && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(91,138,245,0.1) 0%, rgba(167,139,250,0.1) 100%)',
@@ -84,7 +93,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Limit warning */}
           {limitReached && (
             <Alert type="warning" title="Batas produk tercapai">
               Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
@@ -92,7 +100,6 @@ export default function DashboardPage() {
             </Alert>
           )}
 
-          {/* Toko link */}
           <div className="glass-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -117,7 +124,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Stats */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
             <StatCard
               label="Total Produk"
@@ -147,7 +153,6 @@ export default function DashboardPage() {
             />
           </div>
 
-          {/* Quick actions */}
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', marginBottom: '16px' }}>
               Aksi Cepat
@@ -187,7 +192,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Recent products */}
           {produk.length > 0 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
@@ -197,34 +201,37 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {produk.slice(0, 5).map(p => (
-                  <div key={p.id} className="glass-card" style={{
-                    padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px',
-                    borderRadius: 'var(--radius-lg)',
-                  }}>
-                    {p.foto ? (
-                      <img src={p.foto} alt={p.nama} style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
-                    ) : (
-                      <div style={{
-                        width: 44, height: 44, borderRadius: 'var(--radius-md)',
-                        background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: 'var(--text-tertiary)', flexShrink: 0,
-                      }}>
-                        <Package size={18} />
+                {produk.slice(0, 5).map(p => {
+                  const thumbUrl = parseFotos(p.foto)[0] || null
+                  return (
+                    <div key={p.id} className="glass-card" style={{
+                      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px',
+                      borderRadius: 'var(--radius-lg)',
+                    }}>
+                      {thumbUrl ? (
+                        <img src={thumbUrl} alt={p.nama} style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{
+                          width: 44, height: 44, borderRadius: 'var(--radius-md)',
+                          background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--text-tertiary)', flexShrink: 0,
+                        }}>
+                          <Package size={18} />
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontWeight: 600, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nama}</p>
+                        <p style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>{p.kategori}</p>
                       </div>
-                    )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, fontSize: '0.875rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nama}</p>
-                      <p style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem' }}>{p.kategori}</p>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <p style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '0.875rem' }}>{formatRupiah(p.harga)}</p>
+                        <span className={`badge ${p.aktif ? 'badge-success' : 'badge-free'}`} style={{ fontSize: '0.65rem' }}>
+                          {p.aktif ? 'Aktif' : 'Nonaktif'}
+                        </span>
+                      </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '0.875rem' }}>{formatRupiah(p.harga)}</p>
-                      <span className={`badge ${p.aktif ? 'badge-success' : 'badge-free'}`} style={{ fontSize: '0.65rem' }}>
-                        {p.aktif ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
