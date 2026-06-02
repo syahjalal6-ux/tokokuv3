@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Search, Package, Edit2, Trash2, Eye, EyeOff, Filter } from 'lucide-react'
+import { Plus, Search, Package, Edit2, Trash2, Eye, EyeOff } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import ProdukForm from '../components/seller/ProdukForm.jsx'
 import { EmptyState, ConfirmDialog, Alert, ProductSkeleton } from '../components/ui/index.jsx'
@@ -9,6 +9,16 @@ import { formatRupiah, isPro, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
+
+function parseFotos(foto) {
+  if (!foto) return []
+  try {
+    const parsed = JSON.parse(foto)
+    return Array.isArray(parsed) ? parsed : [parsed]
+  } catch {
+    return String(foto).split(',').map(s => s.trim()).filter(Boolean)
+  }
+}
 
 export default function ProdukPage() {
   const { user, token } = useAuthStore()
@@ -42,7 +52,7 @@ export default function ProdukPage() {
 
   const handleToggleAktif = async (p) => {
     try {
-      const res = await produkApi.update(token, p.id, { aktif: !p.aktif })
+      await produkApi.update(token, p.id, { aktif: !p.aktif })
       update(p.id, { aktif: !p.aktif })
       toast.success(p.aktif ? 'Produk dinonaktifkan' : 'Produk diaktifkan')
     } catch (err) {
@@ -88,7 +98,6 @@ export default function ProdukPage() {
             </Alert>
           )}
 
-          {/* Search & Filter */}
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
               <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
@@ -115,7 +124,6 @@ export default function ProdukPage() {
             </select>
           </div>
 
-          {/* Product grid */}
           {isLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
               {Array(6).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
@@ -166,15 +174,28 @@ export default function ProdukPage() {
 }
 
 function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
+  const fotos = parseFotos(p.foto)
+  const thumbUrl = fotos[0] || null
+
   return (
     <div className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      {/* Image */}
       <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
-        {p.foto ? (
-          <img src={p.foto} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        {thumbUrl ? (
+          <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}>
             <Package size={36} />
+          </div>
+        )}
+        {fotos.length > 1 && (
+          <div style={{
+            position: 'absolute', bottom: 6, right: 6,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
+            borderRadius: 'var(--radius-full)',
+            padding: '2px 7px',
+            fontSize: '0.65rem', fontWeight: 700, color: '#fff',
+          }}>
+            1/{fotos.length}
           </div>
         )}
         {!p.aktif && (
@@ -192,7 +213,6 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
         )}
       </div>
 
-      {/* Info */}
       <div style={{ padding: '14px', flex: 1, display: 'flex', flexDirection: 'column' }}>
         <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 3, lineHeight: 1.3 }}>
           {truncate(p.nama, 40)}
@@ -207,7 +227,6 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
           )}
         </div>
 
-        {/* Actions */}
         <div style={{ display: 'flex', gap: '6px', marginTop: 'auto' }}>
           <button onClick={onToggle} className="btn btn-secondary btn-sm" style={{ flex: 1, fontSize: '0.72rem' }} title={p.aktif ? 'Nonaktifkan' : 'Aktifkan'}>
             {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
