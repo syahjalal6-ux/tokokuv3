@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './lib/store.js'
-
+import AdminGuard from './lib/AdminGuard.js'
 // Pages
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -13,7 +13,7 @@ import SettingsPage from './pages/SettingsPage.jsx'
 import UpgradePage from './pages/UpgradePage.jsx'
 import StorefrontPage from './pages/StorefrontPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
-
+import AdminPage from './pages/AdminPage.jsx'
 // Route Guards
 function PrivateRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -21,14 +21,12 @@ function PrivateRoute({ children }) {
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return children
 }
-
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuthStore()
   if (isLoading) return <AppLoader />
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
   return children
 }
-
 function AppLoader() {
   return (
     <div style={{
@@ -59,20 +57,16 @@ function AppLoader() {
     </div>
   )
 }
-
 export default function App() {
   const init = useAuthStore(s => s.init)
-
   useEffect(() => {
     init()
   }, [init])
-
   return (
     <BrowserRouter>
       <div className="bg-mesh">
         <div className="bg-mesh-mid" />
       </div>
-
       <Toaster
         position="top-right"
         toastOptions={{
@@ -89,22 +83,20 @@ export default function App() {
           },
         }}
       />
-
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-
         {/* Storefront publik */}
         <Route path="/toko/:slug" element={<StorefrontPage />} />
-
         {/* Private (seller) */}
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
         <Route path="/dashboard/produk" element={<PrivateRoute><ProdukPage /></PrivateRoute>} />
         <Route path="/dashboard/pesanan" element={<PrivateRoute><PesananPage /></PrivateRoute>} />
         <Route path="/dashboard/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         <Route path="/dashboard/upgrade" element={<PrivateRoute><UpgradePage /></PrivateRoute>} />
-
+        {/* Admin */}
+        <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
