@@ -106,17 +106,22 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
   const { add, update } = useProdukStore()
   const isEdit = !!editData
 
-  // Derive plan from user
   const plan = user?.plan === 'pro' && user?.planExpiry && new Date(user.planExpiry) > new Date()
     ? 'pro'
     : 'free'
 
   useEffect(() => {
     if (editData) {
-      // Parse foto: bisa string comma-separated atau string tunggal
+      // Parse foto: bisa JSON array, comma-separated string, atau string tunggal
       let fotos = []
       if (editData.foto) {
-        fotos = String(editData.foto).split(',').map(s => s.trim()).filter(Boolean)
+        try {
+          const parsed = JSON.parse(editData.foto)
+          fotos = Array.isArray(parsed) ? parsed : [parsed]
+        } catch {
+          // fallback: comma-separated (data lama)
+          fotos = String(editData.foto).split(',').map(s => s.trim()).filter(Boolean)
+        }
       }
       setForm({
         nama: editData.nama || '',
@@ -154,8 +159,8 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
     if (!validate()) return
     setLoading(true)
     try {
-      // Serialize fotos array jadi comma-separated string
-      const fotoStr = form.fotos.join(',')
+      // Simpan sebagai JSON array string
+      const fotoStr = JSON.stringify(form.fotos)
 
       const payload = {
         nama: form.nama.trim(),
