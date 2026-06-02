@@ -13,10 +13,10 @@ const KATEGORI = [
 
 const INITIAL = {
   nama: '', deskripsi: '', harga: '', hargaCoret: '',
-  stok: '', kategori: '', berat: '', foto: null, aktif: true,
+  stok: '', kategori: '', berat: '', fotos: [], aktif: true,
 }
 
-// Custom dropdown — tidak pakai <select> native agar styling konsisten
+// Custom dropdown
 function KategoriSelect({ value, onChange, error }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
@@ -102,12 +102,22 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
   const [form, setForm] = useState(INITIAL)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const { token } = useAuthStore()
+  const { token, user } = useAuthStore()
   const { add, update } = useProdukStore()
   const isEdit = !!editData
 
+  // Derive plan from user
+  const plan = user?.plan === 'pro' && user?.planExpiry && new Date(user.planExpiry) > new Date()
+    ? 'pro'
+    : 'free'
+
   useEffect(() => {
     if (editData) {
+      // Parse foto: bisa string comma-separated atau string tunggal
+      let fotos = []
+      if (editData.foto) {
+        fotos = String(editData.foto).split(',').map(s => s.trim()).filter(Boolean)
+      }
       setForm({
         nama: editData.nama || '',
         deskripsi: editData.deskripsi || '',
@@ -116,7 +126,7 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
         stok: editData.stok?.toString() || '',
         kategori: editData.kategori || '',
         berat: editData.berat?.toString() || '',
-        foto: editData.foto || null,
+        fotos,
         aktif: editData.aktif !== false,
       })
     } else {
@@ -144,6 +154,9 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
     if (!validate()) return
     setLoading(true)
     try {
+      // Serialize fotos array jadi comma-separated string
+      const fotoStr = form.fotos.join(',')
+
       const payload = {
         nama: form.nama.trim(),
         deskripsi: form.deskripsi.trim(),
@@ -153,7 +166,7 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
         kategori: form.kategori,
         berat: form.berat ? Number(form.berat) : null,
         aktif: form.aktif,
-        foto: form.foto || '',
+        foto: fotoStr,
       }
 
       if (isEdit) {
@@ -194,7 +207,11 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
         <div style={{ gridColumn: '1 / -1' }}>
           <label className="form-label" style={{ display: 'block', marginBottom: 8 }}>Foto Produk</label>
-          <ImageUpload value={form.foto} onChange={(v) => set('foto', v)} />
+          <ImageUpload
+            value={form.fotos}
+            onChange={(urls) => set('fotos', urls)}
+            plan={plan}
+          />
         </div>
 
         <div className="form-group" style={{ gridColumn: '1 / -1' }}>
