@@ -13,9 +13,9 @@ const FEATURES = [
 ]
 
 const TESTIMONIALS = [
-  { name: 'Rina S.', toko: 'Rina Handmade', text: 'Buka toko online jadi gampang banget! Langsung jalan dalam 10 menit.', stars: 5 },
-  { name: 'Budi W.', toko: 'BudiSnack', text: 'Pesanan masuk lewat WA, gampang banget kelolanya. Recommended!', stars: 5 },
-  { name: 'Sari M.', toko: 'Sari Beauty', text: 'Desainnya keren, pembeli saya bilang toko saya keliatan profesional.', stars: 5 },
+  { name: 'Rina S.', toko: 'Rina Handmade', text: 'Buka toko online jadi gampang banget! Langsung jalan dalam 10 menit.', stars: 5, img: '/rina2.png' },
+  { name: 'Budi W.', toko: 'BudiSnack', text: 'Pesanan masuk lewat WA, gampang banget kelolanya. Recommended!', stars: 5, img: '/budi.png' },
+  { name: 'Sari M.', toko: 'Sari Beauty', text: 'Desainnya keren, pembeli saya bilang toko saya keliatan profesional.', stars: 5, img: '/sari.png' },
 ]
 
 const FAQ = [
@@ -128,10 +128,11 @@ export default function LandingPage() {
             Start. Sell. Scale.
           </p>
 
+          {/* CHANGE 1: warna putih */}
           <p style={{
             fontFamily: PJS,
             fontSize: 'clamp(1rem, 2vw, 1.15rem)',
-            color: 'var(--text-secondary)',
+            color: '#ffffff',
             lineHeight: 1.6,
             marginBottom: '40px',
             maxWidth: 480,
@@ -280,10 +281,15 @@ export default function LandingPage() {
               <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 0</p>
               <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>Selamanya</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
+                {/* CHANGE 2: subdomain text updated */}
                 {PLAN_FEATURES.free.features.map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                      {f.includes('tokoku.vercel.app/toko/slug')
+                        ? f.replace('tokoku.vercel.app/toko/slug', 'exorav2/namatoko/..')
+                        : f}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -331,9 +337,11 @@ export default function LandingPage() {
                     <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />
                   ))}
                 </div>
-                <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>"{t.text}"</p>
+                {/* CHANGE 4: teks komentar putih */}
+                <p style={{ fontFamily: PJS, color: '#ffffff', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>"{t.text}"</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div className="avatar avatar-sm">{t.name[0]}</div>
+                  {/* CHANGE 3: avatar pakai foto */}
+                  <img src={t.img} alt={t.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                   <div>
                     <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700 }}>{t.name}</p>
                     <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t.toko}</p>
