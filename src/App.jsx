@@ -2,7 +2,7 @@ import React, { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './lib/store.js'
-import AdminGuard from './lib/AdminGuard.js'
+import AdminGuard from './lib/AdminGuard.jsx'
 // Pages
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
