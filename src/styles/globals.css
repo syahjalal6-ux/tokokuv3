@@ -542,6 +542,7 @@ input, textarea, select {
   .container { padding: 0 16px; }
   .container-sm { padding: 0 16px; }
   .hide-mobile { display: none !important; }
+  .show-mobile { display: flex !important; }
 }
 
 @media (max-width: 480px) {
