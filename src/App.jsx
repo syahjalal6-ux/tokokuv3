@@ -14,6 +14,20 @@ import UpgradePage from './pages/UpgradePage.jsx'
 import StorefrontPage from './pages/StorefrontPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+
+const ExoraIcon = () => (
+  <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="xGradLoader" x1="0%" y1="100%" x2="100%" y2="0%">
+        <stop offset="0%" stopColor="#7C3AED" />
+        <stop offset="50%" stopColor="#3B82F6" />
+        <stop offset="100%" stopColor="#06B6D4" />
+      </linearGradient>
+    </defs>
+    <path d="M10 10 L42 50 L10 90 H32 L50 65 L68 90 H90 L58 50 L90 10 H68 L50 35 L32 10 Z" fill="url(#xGradLoader)" />
+  </svg>
+)
+
 // Route Guards
 function PrivateRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -39,20 +53,11 @@ function AppLoader() {
       gap: '16px',
     }}>
       <div style={{
-        width: 48,
-        height: 48,
-        borderRadius: '14px',
-        background: 'var(--accent-gradient)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: '22px',
-        fontWeight: 800,
-        color: '#fff',
-        fontFamily: 'var(--font-display)',
-        boxShadow: '0 0 40px rgba(91,138,245,0.4)',
         animation: 'pulse 1.5s ease-in-out infinite',
-      }}>T</div>
+        filter: 'drop-shadow(0 0 20px rgba(91,138,245,0.5))',
+      }}>
+        <ExoraIcon />
+      </div>
       <div className="spinner" />
     </div>
   )
