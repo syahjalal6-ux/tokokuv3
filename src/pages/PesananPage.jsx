@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { ShoppingBag, MessageCircle, ChevronDown, Clock, Search } from 'lucide-react'
+import { ShoppingBag, MessageCircle, ChevronDown, Search, Download } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
-import { EmptyState, Alert, ProGate } from '../components/ui/index.jsx'
+import { EmptyState, ProGate } from '../components/ui/index.jsx'
 import { useAuthStore } from '../lib/store.js'
 import { pesananApi } from '../lib/api.js'
 import { formatRupiah, formatDateTime, generateWALink, isPro, PESANAN_STATUS } from '../lib/utils.js'
-import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 const STATUS_TABS = [
@@ -17,6 +16,51 @@ const STATUS_TABS = [
   { key: 'done', label: 'Selesai' },
   { key: 'cancelled', label: 'Dibatalkan' },
 ]
+
+function exportToExcel(pesanan) {
+  if (!pesanan.length) {
+    toast.error('Tidak ada data untuk diekspor')
+    return
+  }
+
+  const rows = []
+
+  // Header
+  rows.push([
+    'ID Pesanan', 'Tanggal', 'Nama Pembeli', 'WA Pembeli', 'Alamat',
+    'Catatan', 'Produk', 'Total', 'Status'
+  ])
+
+  pesanan.forEach(p => {
+    const produkList = (p.items || []).map(i => `${i.nama} x${i.qty}`).join('; ')
+    rows.push([
+      p.id || '',
+      formatDateTime(p.createdAt),
+      p.buyerNama || '',
+      p.buyerWa || '',
+      p.buyerAlamat || '',
+      p.catatan || '',
+      produkList,
+      p.total || 0,
+      PESANAN_STATUS[p.status]?.label || p.status || '',
+    ])
+  })
+
+  // Build CSV
+  const csv = rows.map(row =>
+    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
+  ).join('\n')
+
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `pesanan-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+  toast.success('Data berhasil diekspor!')
+}
 
 export default function PesananPage() {
   const { user, token } = useAuthStore()
@@ -75,42 +119,62 @@ export default function PesananPage() {
       subtitle={`${pesanan.filter(p => p.status === 'pending').length} menunggu konfirmasi`}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        {/* Tabs */}
-        <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: 4 }}>
-          {STATUS_TABS.map(t => {
-            const count = t.key === 'all' ? pesanan.length : pesanan.filter(p => p.status === t.key).length
-            return (
-              <button
-                key={t.key}
-                onClick={() => setActiveTab(t.key)}
-                className="btn btn-sm"
-                style={{
-                  flexShrink: 0,
-                  background: activeTab === t.key ? 'var(--surface-active)' : 'var(--surface)',
-                  color: activeTab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                  border: `1px solid ${activeTab === t.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
-                  borderRadius: 'var(--radius-full)',
-                  gap: 6,
-                }}
-              >
-                {t.label}
-                {count > 0 && (
-                  <span style={{
-                    background: activeTab === t.key ? 'var(--accent)' : 'var(--surface-hover)',
-                    color: activeTab === t.key ? '#fff' : 'var(--text-tertiary)',
+
+        {/* Tabs + Export */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: 4, flex: 1 }}>
+            {STATUS_TABS.map(t => {
+              const count = t.key === 'all' ? pesanan.length : pesanan.filter(p => p.status === t.key).length
+              return (
+                <button
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className="btn btn-sm"
+                  style={{
+                    flexShrink: 0,
+                    background: activeTab === t.key ? 'var(--surface-active)' : 'var(--surface)',
+                    color: activeTab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    border: `1px solid ${activeTab === t.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
                     borderRadius: 'var(--radius-full)',
-                    padding: '1px 7px', fontSize: '0.7rem', fontWeight: 700,
-                  }}>{count}</span>
-                )}
-              </button>
-            )
-          })}
+                    gap: 6,
+                  }}
+                >
+                  {t.label}
+                  {count > 0 && (
+                    <span style={{
+                      background: activeTab === t.key ? 'var(--accent)' : 'var(--surface-hover)',
+                      color: activeTab === t.key ? '#fff' : 'var(--text-tertiary)',
+                      borderRadius: 'var(--radius-full)',
+                      padding: '1px 7px', fontSize: '0.7rem', fontWeight: 700,
+                    }}>{count}</span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Export button */}
+          <button
+            onClick={() => exportToExcel(filtered)}
+            className="btn btn-secondary btn-sm"
+            style={{ flexShrink: 0, gap: 6 }}
+            disabled={filtered.length === 0}
+          >
+            <Download size={14} />
+            Export Excel
+          </button>
         </div>
 
         {/* Search */}
         <div style={{ position: 'relative', maxWidth: 400 }}>
           <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-          <input className="form-input" style={{ paddingLeft: 36 }} placeholder="Cari nama pembeli / ID pesanan..." value={search} onChange={e => setSearch(e.target.value)} />
+          <input
+            className="form-input"
+            style={{ paddingLeft: 36 }}
+            placeholder="Cari nama pembeli / ID pesanan..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
 
         {/* Pesanan list */}
