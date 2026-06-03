@@ -335,7 +335,7 @@ export default function StorefrontPage() {
               </p>
             </div>
             {toko.wa && (
-              
+              <a
                 href={generateWALink(toko.wa)}
                 target="_blank" rel="noreferrer"
                 className="btn btn-sm"
