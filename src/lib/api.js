@@ -101,6 +101,7 @@ export const authApi = {
 export const tokoApi = {
   create: (token, data) => request('createToko', { token, ...data }),
   update: (token, tokoId, data) => request('updateToko', { token, tokoId, ...data }),
+  delete: (token, tokoId) => request('deleteToko', { token, tokoId }),
   getMine: (token) => request('getMyToko', { token }),
   getBySlug: (slug) => request('getTokoBySlug', { slug }),
   checkSlug: (slug) => request('checkSlug', { slug }),
@@ -131,4 +132,9 @@ export const analyticsApi = {
 export const tokoInfoApi = {
   get: (token) => request('getTokoInfo', { token }),
   update: (token, data) => request('updateTokoInfo', { token, ...data }),
+}
+
+export const ratingApi = {
+  add: (data) => request('addRating', data),
+  get: (params) => request('getRating', params),
 }
