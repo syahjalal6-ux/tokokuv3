@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music } from 'lucide-react'
-import { tokoApi, produkApi } from '../lib/api.js'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Megaphone } from 'lucide-react'
+import { tokoApi, produkApi, ratingApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
 
@@ -40,6 +40,258 @@ function getYouTubeId(url) {
   return null
 }
 
+// ================================================
+// STAR RATING DISPLAY
+// ================================================
+function StarDisplay({ rating, size = 14, color }) {
+  return (
+    <div style={{ display: 'flex', gap: 2 }}>
+      {[1,2,3,4,5].map(i => (
+        <Star
+          key={i}
+          size={size}
+          fill={i <= Math.round(rating) ? (color || '#f59e0b') : 'transparent'}
+          color={i <= Math.round(rating) ? (color || '#f59e0b') : 'rgba(255,255,255,0.2)'}
+        />
+      ))}
+    </div>
+  )
+}
+
+// ================================================
+// STAR RATING INPUT
+// ================================================
+function StarInput({ value, onChange }) {
+  const [hover, setHover] = useState(0)
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {[1,2,3,4,5].map(i => (
+        <button
+          key={i}
+          type="button"
+          onClick={() => onChange(i)}
+          onMouseEnter={() => setHover(i)}
+          onMouseLeave={() => setHover(0)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer', padding: 2,
+            transition: 'transform 0.15s ease',
+            transform: (hover || value) >= i ? 'scale(1.15)' : 'scale(1)',
+          }}
+        >
+          <Star
+            size={28}
+            fill={(hover || value) >= i ? '#f59e0b' : 'transparent'}
+            color={(hover || value) >= i ? '#f59e0b' : 'rgba(255,255,255,0.25)'}
+          />
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ================================================
+// RATING SECTION (inside ProdukModal)
+// ================================================
+function RatingSection({ produk, toko, tema }) {
+  const [data, setData] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [showForm, setShowForm] = useState(false)
+  const [form, setForm] = useState({ buyerNama: '', rating: 0, komentar: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    loadRating()
+  }, [produk.id])
+
+  const loadRating = async () => {
+    setLoading(true)
+    try {
+      const res = await ratingApi.get({ produkId: produk.id })
+      setData(res.data)
+    } catch {
+      setData({ ratings: [], total: 0, avgRating: null })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!form.buyerNama.trim()) { setError('Nama wajib diisi'); return }
+    if (!form.rating) { setError('Pilih rating bintang dulu'); return }
+    setError('')
+    setSubmitting(true)
+    try {
+      await ratingApi.add({
+        tokoId: toko.id,
+        produkId: produk.id,
+        buyerNama: form.buyerNama,
+        rating: form.rating,
+        komentar: form.komentar,
+      })
+      setSubmitted(true)
+      setShowForm(false)
+      setForm({ buyerNama: '', rating: 0, komentar: '' })
+      await loadRating()
+    } catch (e) {
+      setError(e.message || 'Gagal kirim ulasan')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (loading) return (
+    <div style={{ padding: '16px 0' }}>
+      <div className="skeleton" style={{ height: 16, width: '40%', borderRadius: 6, marginBottom: 8 }} />
+      <div className="skeleton" style={{ height: 12, width: '60%', borderRadius: 6 }} />
+    </div>
+  )
+
+  const { ratings, total, avgRating } = data || {}
+
+  return (
+    <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: 20, marginTop: 4 }}>
+      {/* Header rating */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem' }}>Ulasan</span>
+          {avgRating && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <StarDisplay rating={avgRating} size={13} color={tema.accent} />
+              <span style={{ fontSize: '0.8rem', fontWeight: 700, color: tema.accent }}>{avgRating}</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>({total})</span>
+            </div>
+          )}
+        </div>
+        {!submitted && (
+          <button
+            onClick={() => setShowForm(f => !f)}
+            className="btn btn-sm"
+            style={{
+              background: showForm ? `${tema.accent}22` : 'var(--surface)',
+              color: showForm ? tema.accent : 'var(--text-secondary)',
+              border: `1px solid ${showForm ? tema.accent + '44' : 'var(--glass-border)'}`,
+              borderRadius: 'var(--radius-full)',
+              fontSize: '0.75rem',
+            }}
+          >
+            {showForm ? 'Batal' : '+ Tulis Ulasan'}
+          </button>
+        )}
+      </div>
+
+      {/* Notif sukses */}
+      {submitted && (
+        <div style={{
+          background: '#10b98118', border: '1px solid #10b98144',
+          borderRadius: 'var(--radius-lg)', padding: '10px 14px',
+          fontSize: '0.8rem', color: '#10b981', marginBottom: 14,
+        }}>
+          ✓ Ulasan kamu berhasil dikirim! Terima kasih.
+        </div>
+      )}
+
+      {/* Form ulasan */}
+      {showForm && (
+        <div style={{
+          background: 'var(--surface)', border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-lg)', padding: '16px', marginBottom: 16,
+          animation: 'fadeIn 0.2s ease',
+        }}>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6, display: 'block' }}>
+              Bintang *
+            </label>
+            <StarInput value={form.rating} onChange={v => setForm(f => ({ ...f, rating: v }))} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6, display: 'block' }}>
+              Nama *
+            </label>
+            <input
+              className="form-input"
+              style={{ fontSize: '0.875rem' }}
+              placeholder="Nama kamu..."
+              value={form.buyerNama}
+              onChange={e => setForm(f => ({ ...f, buyerNama: e.target.value }))}
+            />
+          </div>
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 6, display: 'block' }}>
+              Komentar (opsional)
+            </label>
+            <textarea
+              className="form-input form-textarea"
+              style={{ fontSize: '0.875rem', resize: 'none' }}
+              placeholder="Ceritain pengalamanmu..."
+              rows={3}
+              value={form.komentar}
+              onChange={e => setForm(f => ({ ...f, komentar: e.target.value }))}
+            />
+          </div>
+          {error && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--danger)', marginBottom: 10 }}>{error}</p>
+          )}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="btn btn-sm btn-primary"
+            style={{
+              background: tema.gradient, border: 'none', color: '#fff',
+              width: '100%', justifyContent: 'center',
+              opacity: submitting ? 0.6 : 1,
+            }}
+          >
+            <Send size={13} />
+            {submitting ? 'Mengirim...' : 'Kirim Ulasan'}
+          </button>
+        </div>
+      )}
+
+      {/* List ulasan */}
+      {!ratings?.length ? (
+        <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', textAlign: 'center', padding: '16px 0' }}>
+          Belum ada ulasan. Jadilah yang pertama!
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {ratings.slice(0, 5).map((r, i) => (
+            <div
+              key={r.id || i}
+              style={{
+                background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                borderRadius: 'var(--radius-lg)', padding: '12px 14px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{r.buyerNama}</span>
+                <StarDisplay rating={Number(r.rating)} size={12} />
+              </div>
+              {r.komentar && (
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
+                  {r.komentar}
+                </p>
+              )}
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 6 }}>
+                {r.createdAt ? new Date(r.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+              </p>
+            </div>
+          ))}
+          {total > 5 && (
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textAlign: 'center' }}>
+              +{total - 5} ulasan lainnya
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ================================================
+// MUSIC PLAYER
+// ================================================
 function MusicPlayer({ musikUrl, tema }) {
   const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
@@ -142,6 +394,9 @@ function MusicPlayer({ musikUrl, tema }) {
   )
 }
 
+// ================================================
+// PHOTO CAROUSEL
+// ================================================
 function PhotoCarousel({ fotos, nama }) {
   const [idx, setIdx] = useState(0)
   const touchStartX = useRef(null)
@@ -236,6 +491,9 @@ function PhotoCarousel({ fotos, nama }) {
   )
 }
 
+// ================================================
+// STOREFRONT PAGE
+// ================================================
 export default function StorefrontPage() {
   const { slug } = useParams()
   const [toko, setToko] = useState(null)
@@ -295,45 +553,65 @@ export default function StorefrontPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+
+      {/* ── HEADER ── */}
       <div style={{
         background: `linear-gradient(180deg, ${tema.accent}22 0%, transparent 100%)`,
         borderBottom: '1px solid var(--glass-border)',
-        padding: '40px 24px 32px',
+        padding: '24px 16px 20px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+
+          {/* Row 1: Avatar + Info + Tombol WA */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            {/* Avatar */}
             <div style={{
-              width: 64, height: 64, borderRadius: '18px',
+              width: 52, height: 52,
+              borderRadius: 14,
               background: tema.gradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '26px', color: '#fff',
+              fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '22px', color: '#fff',
               flexShrink: 0,
-              boxShadow: `0 0 28px ${tema.accent}44`,
+              boxShadow: `0 0 20px ${tema.accent}44`,
             }}>
               {toko.nama?.[0]?.toUpperCase()}
             </div>
+
+            {/* Info */}
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: 4 }}>
-                <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.02em' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                <h1 style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 800,
+                  fontSize: 'clamp(1rem, 4vw, 1.4rem)',
+                  letterSpacing: '-0.02em', lineHeight: 1.2,
+                  whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  maxWidth: '100%',
+                }}>
                   {toko.nama}
                 </h1>
                 {toko.plan === 'pro' && (
                   <span style={{
                     background: tema.gradient, color: '#fff',
-                    fontSize: '0.7rem', fontWeight: 800, padding: '2px 8px',
+                    fontSize: '0.65rem', fontWeight: 800, padding: '2px 7px',
                     borderRadius: 'var(--radius-full)', letterSpacing: '0.04em',
+                    flexShrink: 0,
                   }}>⭐ VERIFIED</span>
                 )}
               </div>
               {toko.deskripsi && (
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5 }}>
+                <p style={{
+                  color: 'var(--text-secondary)', fontSize: '0.8rem', lineHeight: 1.4,
+                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>
                   {toko.deskripsi}
                 </p>
               )}
-              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem', marginTop: 6 }}>
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.72rem', marginTop: 4 }}>
                 {produk.length} produk tersedia
               </p>
             </div>
+
+            {/* Tombol WA — desktop */}
             {toko.wa && (
               <a
                 href={generateWALink(toko.wa)}
@@ -342,20 +620,64 @@ export default function StorefrontPage() {
                 style={{
                   background: '#25d366', color: '#fff', border: 'none',
                   boxShadow: '0 4px 16px rgba(37,211,102,0.3)',
-                  flexShrink: 0,
+                  flexShrink: 0, whiteSpace: 'nowrap',
+                  display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
                 <MessageCircle size={14} />
-                Chat Penjual
+                <span className="hide-xs">Chat Penjual</span>
               </a>
             )}
           </div>
+
+          {/* Tombol WA — mobile only (full width) */}
+          {toko.wa && (
+            <a
+              href={generateWALink(toko.wa)}
+              target="_blank" rel="noreferrer"
+              className="btn btn-sm show-xs"
+              style={{
+                background: '#25d366', color: '#fff', border: 'none',
+                boxShadow: '0 4px 16px rgba(37,211,102,0.3)',
+                width: '100%', justifyContent: 'center',
+                marginTop: 12, display: 'none',
+              }}
+            >
+              <MessageCircle size={14} /> Chat Penjual
+            </a>
+          )}
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '28px 24px 80px' }}>
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '24px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+      {/* ── PENGUMUMAN ── */}
+      {toko.pengumuman && (
+        <div style={{
+          maxWidth: 900, margin: '16px auto 0',
+          padding: '0 16px',
+        }}>
+          <div style={{
+            background: `${tema.accent}12`,
+            border: `1px solid ${tema.accent}33`,
+            borderRadius: 'var(--radius-lg)',
+            padding: '10px 14px',
+            display: 'flex', alignItems: 'flex-start', gap: 10,
+          }}>
+            <Megaphone size={15} color={tema.accent} style={{ flexShrink: 0, marginTop: 1 }} />
+            <p style={{
+              fontSize: '0.8rem', color: 'var(--text-primary)', lineHeight: 1.5, margin: 0,
+            }}>
+              {toko.pengumuman}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ── KONTEN ── */}
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px 80px' }}>
+
+        {/* Search + Filter */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', flex: 1, minWidth: 160 }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
             <input
               className="form-input"
@@ -394,6 +716,7 @@ export default function StorefrontPage() {
           )}
         </div>
 
+        {/* Grid Produk */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
             <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
@@ -402,19 +725,44 @@ export default function StorefrontPage() {
             </p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-            {filtered.map(p => (
-              <ProdukCard
-                key={p.id}
-                produk={p}
-                tema={tema}
-                onClick={() => setSelectedProduk(p)}
-              />
-            ))}
-          </div>
+          <>
+            {/* Grid — 2 kolom di mobile, auto-fill di desktop */}
+            <style>{`
+              .produk-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+              }
+              @media (min-width: 480px) {
+                .produk-grid {
+                  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                  gap: 16px;
+                }
+              }
+              /* Hide WA button on mobile (show full-width version instead) */
+              @media (max-width: 479px) {
+                .hide-xs { display: none !important; }
+                .show-xs { display: flex !important; }
+              }
+              @media (min-width: 480px) {
+                .show-xs { display: none !important; }
+              }
+            `}</style>
+            <div className="produk-grid">
+              {filtered.map(p => (
+                <ProdukCard
+                  key={p.id}
+                  produk={p}
+                  tema={tema}
+                  onClick={() => setSelectedProduk(p)}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
 
+      {/* Modals */}
       {selectedProduk && (
         <ProdukModal
           produk={selectedProduk}
@@ -447,6 +795,7 @@ export default function StorefrontPage() {
 
       {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} />}
 
+      {/* Footer */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
         background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(16px)',
@@ -461,6 +810,9 @@ export default function StorefrontPage() {
   )
 }
 
+// ================================================
+// PRODUK CARD
+// ================================================
 function ProdukCard({ produk: p, tema, onClick }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
@@ -540,16 +892,16 @@ function ProdukCard({ produk: p, tema, onClick }) {
         )}
       </div>
 
-      <div style={{ padding: '14px' }}>
-        <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 4, lineHeight: 1.3 }}>
-          {truncate(p.nama, 36)}
+      <div style={{ padding: '10px 12px 12px' }}>
+        <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4, lineHeight: 1.3 }}>
+          {truncate(p.nama, 32)}
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-          <p style={{ fontWeight: 800, color: tema.accent, fontSize: '0.95rem' }}>
+          <p style={{ fontWeight: 800, color: tema.accent, fontSize: '0.88rem' }}>
             {formatRupiah(p.harga)}
           </p>
           {p.hargaCoret && (
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>
+            <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>
               {formatRupiah(p.hargaCoret)}
             </p>
           )}
@@ -559,6 +911,9 @@ function ProdukCard({ produk: p, tema, onClick }) {
   )
 }
 
+// ================================================
+// PRODUK MODAL
+// ================================================
 function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
@@ -583,13 +938,14 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
           border: '1px solid var(--glass-border)',
           borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
           overflow: 'hidden',
-          maxHeight: '90vh',
+          maxHeight: '92vh',
           display: 'flex', flexDirection: 'column',
           animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
 
+        {/* Foto */}
         <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
           <PhotoCarousel fotos={fotos} nama={p.nama} />
           <button onClick={onClose} style={{
@@ -614,17 +970,18 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
           )}
         </div>
 
-        <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
+        {/* Detail */}
+        <div style={{ padding: '20px 20px 0', overflowY: 'auto', flex: 1 }}>
           {p.kategori && (
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
               {p.kategori}
             </p>
           )}
-          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.2rem', marginBottom: 10 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.15rem', marginBottom: 8, lineHeight: 1.3 }}>
             {p.nama}
           </h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 16 }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.4rem', color: tema.accent }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: 12 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: tema.accent }}>
               {formatRupiah(p.harga)}
             </p>
             {p.hargaCoret && (
@@ -634,21 +991,32 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
             )}
           </div>
           {p.stok !== null && (
-            <p style={{ fontSize: '0.8rem', color: p.stok === 0 ? 'var(--danger)' : p.stok < 5 ? 'var(--warning)' : 'var(--success)', marginBottom: 12 }}>
+            <p style={{ fontSize: '0.8rem', color: p.stok === 0 ? 'var(--danger)' : p.stok < 5 ? 'var(--warning)' : 'var(--success)', marginBottom: 10 }}>
               {p.stok === 0 ? '✕ Stok habis' : p.stok < 5 ? `⚠ Sisa ${p.stok} stok` : `✓ Stok tersedia (${p.stok})`}
             </p>
           )}
           {p.deskripsi && (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 16, whiteSpace: 'pre-line' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 14, whiteSpace: 'pre-line' }}>
               {p.deskripsi}
             </p>
           )}
           {p.berat && (
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Berat: {p.berat}g</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)', marginBottom: 16 }}>Berat: {p.berat}g</p>
           )}
+
+          {/* Rating Section */}
+          <div style={{ paddingBottom: 20 }}>
+            <RatingSection produk={p} toko={toko} tema={tema} />
+          </div>
         </div>
 
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '10px' }}>
+        {/* CTA */}
+        <div style={{
+          padding: '14px 20px',
+          borderTop: '1px solid var(--glass-border)',
+          display: 'flex', gap: '10px',
+          background: 'var(--bg-secondary)',
+        }}>
           <button
             onClick={() => onChat(p)}
             className="btn btn-secondary"
@@ -675,6 +1043,9 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
   )
 }
 
+// ================================================
+// CHECKOUT MODAL
+// ================================================
 function CheckoutModal({ produk: p, toko, tema, onClose }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
@@ -729,12 +1100,12 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
           animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
+        <div style={{ padding: '20px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Detail Pesanan</h3>
           <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
         </div>
 
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', gap: '12px', padding: '14px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
             {thumbUrl && <img src={thumbUrl} alt={p.nama} style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
@@ -807,20 +1178,24 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
   )
 }
 
+// ================================================
+// SKELETON
+// ================================================
 function StorefrontSkeleton() {
   return (
     <div style={{ minHeight: '100vh' }}>
-      <div style={{ padding: '40px 24px 32px', borderBottom: '1px solid var(--glass-border)' }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: '16px', alignItems: 'center' }}>
-          <div className="skeleton" style={{ width: 64, height: 64, borderRadius: '18px', flexShrink: 0 }} />
+      <div style={{ padding: '24px 16px 20px', borderBottom: '1px solid var(--glass-border)' }}>
+        <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div className="skeleton" style={{ width: 52, height: 52, borderRadius: '14px', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
-            <div className="skeleton" style={{ height: 24, width: '40%', marginBottom: 8, borderRadius: 6 }} />
-            <div className="skeleton" style={{ height: 14, width: '60%', borderRadius: 6 }} />
+            <div className="skeleton" style={{ height: 20, width: '40%', marginBottom: 8, borderRadius: 6 }} />
+            <div className="skeleton" style={{ height: 13, width: '60%', borderRadius: 6 }} />
           </div>
         </div>
       </div>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '28px 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+        <style>{`.skeleton-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; } @media(min-width:480px){.skeleton-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px;}}`}</style>
+        <div className="skeleton-grid">
           {Array(8).fill(0).map((_, i) => (
             <div key={i} className="skeleton" style={{ aspectRatio: '1', borderRadius: 'var(--radius-xl)' }} />
           ))}
