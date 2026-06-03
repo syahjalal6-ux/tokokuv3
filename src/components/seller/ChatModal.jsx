@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { X, Send, Bot, User, Loader, ShoppingBag, MessageCircle } from 'lucide-react'
+import { X, Send, Bot, User, Loader, ShoppingBag } from 'lucide-react'
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNFrArQcqL7BUh_uv3z2tNG0OoYI0EXZhsFGTrt0IfmxKTG4ascHDbUJ8CSjCXPnT1/exec'
 
@@ -37,7 +37,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
     try {
       const res = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify({
           action: 'chat',
           messages: newMessages,
@@ -55,6 +55,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
             deskripsi: toko.deskripsi,
           },
         }),
+        redirect: 'follow',
       })
 
       const data = await res.json()
@@ -229,9 +230,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
           </button>
 
           {/* Input */}
-          <div style={{
-            display: 'flex', gap: 8, alignItems: 'flex-end',
-          }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
               value={input}
