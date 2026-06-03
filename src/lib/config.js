@@ -11,7 +11,7 @@ export const CONFIG = {
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
 
   // Nomor WA Admin (format: 628xxx tanpa +)
-  ADMIN_WA: import.meta.env.VITE_ADMIN_WA || '628123456789',
+  ADMIN_WA: import.meta.env.VITE_ADMIN_WA || '6283879527517',
 
   // App info
   APP_NAME: 'TokoKu',
