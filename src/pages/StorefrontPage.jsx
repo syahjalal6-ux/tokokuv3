@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music } from 'lucide-react'
 import { tokoApi, produkApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
-import ChatModal from './ChatModal.jsx'
+import ChatModal from '../components/seller/ChatModal.jsx'
 
 const TEMA = {
   default: { accent: '#5b8af5', accent2: '#7c6af7', gradient: 'linear-gradient(135deg, #5b8af5, #7c6af7)' },
