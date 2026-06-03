@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music } from 'lucide-react'
 import { tokoApi, produkApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
+import ChatModal from './ChatModal.jsx'
 
 const TEMA = {
   default: { accent: '#5b8af5', accent2: '#7c6af7', gradient: 'linear-gradient(135deg, #5b8af5, #7c6af7)' },
@@ -245,6 +246,7 @@ export default function StorefrontPage() {
   const [filterKat, setFilterKat] = useState('all')
   const [selectedProduk, setSelectedProduk] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false) // ← TAMBAHAN
 
   useEffect(() => {
     loadStorefront()
@@ -420,6 +422,7 @@ export default function StorefrontPage() {
           tema={tema}
           onClose={() => setSelectedProduk(null)}
           onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }}
+          onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} // ← TAMBAHAN
         />
       )}
 
@@ -429,6 +432,17 @@ export default function StorefrontPage() {
           toko={toko}
           tema={tema}
           onClose={() => setCheckoutOpen(false)}
+        />
+      )}
+
+      {/* TAMBAHAN: render ChatModal */}
+      {chatOpen && (
+        <ChatModal
+          produk={chatOpen}
+          toko={toko}
+          tema={tema}
+          onClose={() => setChatOpen(false)}
+          onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }}
         />
       )}
 
@@ -546,7 +560,8 @@ function ProdukCard({ produk: p, tema, onClick }) {
   )
 }
 
-function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
+// ↓ DIREVISI: tambah prop onChat, ganti tombol "Tanya Penjual" dari link WA ke button ChatModal
+function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   const sold = p.stok === 0
@@ -636,16 +651,14 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout }) {
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '10px' }}>
-          {toko.wa && (
-            <a
-              href={generateWALink(toko.wa, `Halo, saya mau tanya tentang produk: ${p.nama}`)}
-              target="_blank" rel="noreferrer"
-              className="btn btn-secondary"
-              style={{ flex: 1 }}
-            >
-              <MessageCircle size={15} /> Tanya Penjual
-            </a>
-          )}
+          {/* DIREVISI: dari <a href WA> jadi <button onClick onChat> */}
+          <button
+            onClick={() => onChat(p)}
+            className="btn btn-secondary"
+            style={{ flex: 1 }}
+          >
+            <MessageCircle size={15} /> Tanya Penjual
+          </button>
           <button
             onClick={() => !sold && onCheckout(p)}
             className="btn btn-primary"
