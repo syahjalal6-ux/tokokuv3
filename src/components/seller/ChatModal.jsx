@@ -12,6 +12,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [keyboardHeight, setKeyboardHeight] = useState(0)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
   const sold = produk.stok === 0
@@ -22,6 +23,23 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
 
   useEffect(() => {
     inputRef.current?.focus()
+  }, [])
+
+  // Detect keyboard on mobile via visualViewport
+  useEffect(() => {
+    const vv = window.visualViewport
+    if (!vv) return
+
+    const onResize = () => {
+      const diff = window.innerHeight - vv.height
+      setKeyboardHeight(diff > 0 ? diff : 0)
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+
+    vv.addEventListener('resize', onResize)
+    return () => vv.removeEventListener('resize', onResize)
   }, [])
 
   const sendMessage = async () => {
@@ -98,6 +116,8 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
           maxHeight: '85vh',
           display: 'flex', flexDirection: 'column',
           animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          paddingBottom: keyboardHeight,
+          transition: 'padding-bottom 0.15s ease',
         }}
       >
         <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
@@ -202,7 +222,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
           <div ref={bottomRef} />
         </div>
 
-        {/* Checkout CTA */}
+        {/* Checkout CTA + Input */}
         <div style={{
           padding: '10px 16px',
           borderTop: '1px solid var(--glass-border)',
@@ -229,7 +249,6 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
             {sold ? 'Stok Habis' : 'Lanjut Beli via WhatsApp'}
           </button>
 
-          {/* Input */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <textarea
               ref={inputRef}
