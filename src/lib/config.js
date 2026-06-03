@@ -14,9 +14,9 @@ export const CONFIG = {
   ADMIN_WA: import.meta.env.VITE_ADMIN_WA || '6283879527517',
 
   // App info
-  APP_NAME: 'TokoKu',
+  APP_NAME: 'Exora',
   APP_TAGLINE: 'Buka toko online gratis, terima pesanan via WhatsApp',
-  APP_URL: import.meta.env.VITE_APP_URL || 'https://tokoku.vercel.app',
+  APP_URL: import.meta.env.VITE_APP_URL || 'https://exorav2.vercel.app',
 
   // Batas produk untuk free plan
   FREE_PRODUCT_LIMIT: 10,
