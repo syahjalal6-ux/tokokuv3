@@ -17,15 +17,20 @@ export default function UpgradePage() {
   if (pro) {
     return (
       <DashboardLayout title="Upgrade Pro">
-        <div style={{ maxWidth: 480, margin: '40px auto', textAlign: 'center' }}>
-          <div className="glass-card" style={{ padding: '48px 40px' }}>
+        <div style={{ maxWidth: 480, margin: '40px auto', textAlign: 'center', padding: '0 16px' }}>
+          <div className="glass-card" style={{ padding: '48px 32px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⭐</div>
             <h2 className="text-heading" style={{ marginBottom: 12 }}>Kamu sudah Pro!</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
-              Kamu sudah menikmati semua fitur Pro. Terima kasih sudah mendukung TokoKu!
+              Kamu sudah menikmati semua fitur Pro. Terima kasih sudah mendukung Exora!
             </p>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: 24 }}>
-              Pro aktif hingga: <strong style={{ color: 'var(--text-secondary)' }}>{user?.planExpiry ? new Date(user.planExpiry).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}</strong>
+              Pro aktif hingga:{' '}
+              <strong style={{ color: 'var(--text-secondary)' }}>
+                {user?.planExpiry
+                  ? new Date(user.planExpiry).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+                  : '-'}
+              </strong>
             </p>
             <Link to="/dashboard" className="btn btn-secondary">
               <ArrowLeft size={14} /> Kembali ke Dashboard
@@ -39,10 +44,11 @@ export default function UpgradePage() {
   return (
     <DashboardLayout title="Upgrade ke Pro">
       <div style={{ maxWidth: 960, margin: '0 auto' }}>
+
         {/* Hero */}
         <div style={{
-          textAlign: 'center', marginBottom: '48px',
-          padding: '40px 24px',
+          textAlign: 'center', marginBottom: '32px',
+          padding: 'clamp(24px, 4vw, 40px) clamp(16px, 4vw, 24px)',
           background: 'linear-gradient(135deg, rgba(91,138,245,0.08) 0%, rgba(167,139,250,0.08) 100%)',
           borderRadius: 'var(--radius-2xl)',
           border: '1px solid rgba(167,139,250,0.15)',
@@ -52,28 +58,35 @@ export default function UpgradePage() {
             padding: '6px 16px', borderRadius: 'var(--radius-full)',
             background: 'var(--accent-gradient-soft)',
             border: '1px solid rgba(167,139,250,0.2)',
-            marginBottom: '20px',
+            marginBottom: '16px',
           }}>
             <Zap size={13} color="var(--accent-3)" />
             <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--accent-3)', letterSpacing: '0.04em' }}>
               UPGRADE KE PRO
             </span>
           </div>
-          <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(1.8rem, 4vw, 2.6rem)', marginBottom: 12 }}>
+          <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 12 }}>
             Bisnis kamu layak yang terbaik
           </h1>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7 }}>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
             Satu langkah kecil ke Pro, tapi dampaknya besar untuk bisnismu.
           </p>
         </div>
 
-        {/* Comparison */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '40px' }}>
+        {/* Comparison — 1 kolom di mobile, 2 kolom di desktop */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px',
+        }}>
           {/* Free */}
-          <div className="glass-card" style={{ padding: '32px' }}>
+          <div className="glass-card" style={{ padding: 'clamp(20px, 4vw, 32px)' }}>
             <span className="badge badge-free" style={{ marginBottom: 16 }}>Paket Sekarang</span>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.2rem', marginBottom: 4 }}>Rp 0</p>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 24 }}>Selamanya gratis</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', marginBottom: 4 }}>
+              Rp 0
+            </p>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 20 }}>Selamanya gratis</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 20 }}>
               {PLAN_FEATURES.free.features.map(f => (
@@ -100,18 +113,23 @@ export default function UpgradePage() {
             background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.15) 100%)',
             border: '2px solid rgba(167,139,250,0.3)',
             borderRadius: 'var(--radius-xl)',
-            padding: '32px',
+            padding: 'clamp(20px, 4vw, 32px)',
             position: 'relative', overflow: 'hidden',
             boxShadow: '0 8px 40px rgba(91,138,245,0.2)',
           }}>
-            <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--accent-gradient)', color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
+            <div style={{
+              position: 'absolute', top: 12, right: 12,
+              background: 'var(--accent-gradient)', color: '#fff',
+              fontSize: '0.7rem', fontWeight: 800,
+              padding: '3px 10px', borderRadius: 'var(--radius-full)',
+            }}>
               POPULER
             </div>
             <span className="badge badge-pro" style={{ marginBottom: 16 }}>⭐ Pro</span>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '2.2rem', marginBottom: 4 }}>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', marginBottom: 4 }}>
               {CONFIG.PRO_PRICE}
             </p>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 24 }}>per bulan</p>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 20 }}>per bulan</p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 24 }}>
               {PLAN_FEATURES.pro.features.map(f => (
@@ -122,7 +140,12 @@ export default function UpgradePage() {
               ))}
             </div>
 
-            <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
+            <a
+              href={waLink}
+              target="_blank" rel="noreferrer"
+              className="btn btn-primary btn-lg"
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
               <MessageCircle size={16} />
               Upgrade via WhatsApp
             </a>
@@ -130,11 +153,11 @@ export default function UpgradePage() {
         </div>
 
         {/* How it works */}
-        <div className="glass-card" style={{ padding: '32px' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '20px', textAlign: 'center' }}>
+        <div className="glass-card" style={{ padding: 'clamp(20px, 4vw, 32px)' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '20px', textAlign: 'center', fontSize: 'clamp(0.95rem, 2vw, 1.1rem)' }}>
             Cara upgrade
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '16px' }}>
             {[
               { step: '1', title: 'Klik tombol upgrade', desc: 'Kamu akan diarahkan ke WhatsApp admin' },
               { step: '2', title: 'Kirim pesan', desc: 'Pesan sudah terisi otomatis, tinggal kirim' },
@@ -143,27 +166,33 @@ export default function UpgradePage() {
             ].map(s => (
               <div key={s.step} style={{ textAlign: 'center' }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: '50%',
+                  width: 36, height: 36, borderRadius: '50%',
                   background: 'var(--accent-gradient)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'var(--font-display)', fontWeight: 800, color: '#fff',
-                  margin: '0 auto 12px',
+                  margin: '0 auto 10px', fontSize: '0.9rem',
                 }}>
                   {s.step}
                 </div>
-                <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 4 }}>{s.title}</p>
-                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.78rem', lineHeight: 1.5 }}>{s.desc}</p>
+                <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>{s.title}</p>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', lineHeight: 1.5 }}>{s.desc}</p>
               </div>
             ))}
           </div>
 
-          <div style={{ textAlign: 'center', marginTop: '28px' }}>
-            <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-primary">
+          <div style={{ textAlign: 'center', marginTop: '24px' }}>
+            <a
+              href={waLink}
+              target="_blank" rel="noreferrer"
+              className="btn btn-primary"
+              style={{ width: '100%', maxWidth: 360, justifyContent: 'center' }}
+            >
               <MessageCircle size={15} />
               Upgrade Sekarang — {CONFIG.PRO_PRICE}
             </a>
           </div>
         </div>
+
       </div>
     </DashboardLayout>
   )
