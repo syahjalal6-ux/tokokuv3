@@ -27,9 +27,6 @@ async function request(action, data = {}) {
       }
     })
 
-    console.log('[API] request:', action, '| foto:', data.foto ?? '(tidak ada)')
-    console.log('[API] full URL length:', url.toString().length)
-
     const res = await fetchWithTimeout(url.toString())
     const text = await res.text()
 
@@ -37,7 +34,6 @@ async function request(action, data = {}) {
     try {
       json = JSON.parse(text)
     } catch {
-      console.error('GAS response bukan JSON:', text.slice(0, 300))
       throw new ApiError('Response dari server tidak valid.', 500)
     }
 
@@ -48,52 +44,6 @@ async function request(action, data = {}) {
     if (err instanceof ApiError) throw err
     throw new ApiError(err.message || 'Gagal terhubung ke server', 0)
   }
-}
-
-// AUTH
-export const authApi = {
-  loginWithGoogle: (googleUser) => request('loginWithGoogle', {
-    email: googleUser.email,
-    name: googleUser.name,
-    picture: googleUser.picture,
-    googleId: googleUser.sub,
-  }),
-  getMe: (token) => request('getMe', { token }),
-  logout: (token) => request('logout', { token }),
-}
-
-// TOKO
-export const tokoApi = {
-  create: (token, data) => request('createToko', { token, ...data }),
-  update: (token, tokoId, data) => request('updateToko', { token, tokoId, ...data }),
-  getMine: (token) => request('getMyToko', { token }),
-  getBySlug: (slug) => request('getTokoBySlug', { slug }),
-  checkSlug: (slug) => request('checkSlug', { slug }),
-  requestUpgrade: (token) => request('requestUpgrade', { token }),
-  confirmUpgrade: (adminToken, userId) => request('confirmUpgrade', { adminToken, userId }),
-}
-
-// PRODUK
-export const produkApi = {
-  create: (token, data) => requestSafe('createProduk', { token, ...data }),
-  update: (token, produkId, data) => requestSafe('updateProduk', { token, produkId, ...data }),
-  delete: (token, produkId) => request('deleteProduk', { token, produkId }),
-  getMine: (token) => request('getMyProduk', { token }),
-  getByToko: (tokoId, params = {}) => request('getProdukByToko', { tokoId, ...params }),
-  getById: (produkId) => request('getProdukById', { produkId }),
-}
-
-// PESANAN
-export const pesananApi = {
-  create: (data) => request('createPesanan', data),
-  getMine: (token, status = 'all') => request('getMyPesanan', { token, status }),
-  updateStatus: (token, pesananId, status) => request('updatePesananStatus', { token, pesananId, status }),
-  getById: (pesananId, buyerWa) => request('getPesananById', { pesananId, buyerWa }),
-}
-
-// ANALYTICS
-export const analyticsApi = {
-  getDashboard: (token) => request('getAnalytics', { token }),
 }
 
 async function requestSafe(action, data = {}) {
@@ -109,15 +59,11 @@ async function requestSafe(action, data = {}) {
   const fotoStr = foto ? String(foto) : ''
   const totalLength = urlWithoutFoto.length + (fotoStr ? fotoStr.length + 6 : 0)
 
-  console.log('[API] requestSafe:', action, '| URL length (estimasi):', totalLength)
-
   if (totalLength <= 1800) {
     if (fotoStr) url.searchParams.set('foto', fotoStr)
-    console.log('[API] mode: GET | foto dikirim via query param')
     const res = await fetchWithTimeout(url.toString())
     return parseGasResponse(res)
   } else {
-    console.log('[API] mode: POST (URL terlalu panjang) | foto length:', fotoStr.length)
     const body = { action, ...rest }
     if (fotoStr) body.foto = fotoStr
     const res = await fetchWithTimeout(CONFIG.GAS_URL, {
@@ -135,9 +81,54 @@ async function parseGasResponse(res) {
   try {
     json = JSON.parse(text)
   } catch {
-    console.error('GAS response bukan JSON:', text.slice(0, 300))
     throw new ApiError('Response dari server tidak valid.', 500)
   }
   if (!json.success) throw new ApiError(json.message || 'Terjadi kesalahan', 400)
   return json
+}
+
+export const authApi = {
+  loginWithGoogle: (googleUser) => request('loginWithGoogle', {
+    email: googleUser.email,
+    name: googleUser.name,
+    picture: googleUser.picture,
+    googleId: googleUser.sub,
+  }),
+  getMe: (token) => request('getMe', { token }),
+  logout: (token) => request('logout', { token }),
+}
+
+export const tokoApi = {
+  create: (token, data) => request('createToko', { token, ...data }),
+  update: (token, tokoId, data) => request('updateToko', { token, tokoId, ...data }),
+  getMine: (token) => request('getMyToko', { token }),
+  getBySlug: (slug) => request('getTokoBySlug', { slug }),
+  checkSlug: (slug) => request('checkSlug', { slug }),
+  requestUpgrade: (token) => request('requestUpgrade', { token }),
+  confirmUpgrade: (adminToken, userId) => request('confirmUpgrade', { adminToken, userId }),
+}
+
+export const produkApi = {
+  create: (token, data) => requestSafe('createProduk', { token, ...data }),
+  update: (token, produkId, data) => requestSafe('updateProduk', { token, produkId, ...data }),
+  delete: (token, produkId) => request('deleteProduk', { token, produkId }),
+  getMine: (token) => request('getMyProduk', { token }),
+  getByToko: (tokoId, params = {}) => request('getProdukByToko', { tokoId, ...params }),
+  getById: (produkId) => request('getProdukById', { produkId }),
+}
+
+export const pesananApi = {
+  create: (data) => request('createPesanan', data),
+  getMine: (token, status = 'all') => request('getMyPesanan', { token, status }),
+  updateStatus: (token, pesananId, status) => request('updatePesananStatus', { token, pesananId, status }),
+  getById: (pesananId, buyerWa) => request('getPesananById', { pesananId, buyerWa }),
+}
+
+export const analyticsApi = {
+  getDashboard: (token) => request('getAnalytics', { token }),
+}
+
+export const tokoInfoApi = {
+  get: (token) => request('getTokoInfo', { token }),
+  update: (token, data) => request('updateTokoInfo', { token, ...data }),
 }
