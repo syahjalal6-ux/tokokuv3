@@ -246,7 +246,7 @@ export default function StorefrontPage() {
   const [filterKat, setFilterKat] = useState('all')
   const [selectedProduk, setSelectedProduk] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false) // ← TAMBAHAN
+  const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
     loadStorefront()
@@ -263,7 +263,7 @@ export default function StorefrontPage() {
         ? { ...tokoRes.data, wa: safeWA(tokoRes.data.wa) }
         : null
       setToko(tokoData)
-      setProduk((produkRes.data || []).filter(p => p.aktif))
+      setProduk((produkRes.data || []).filter(p => p.aktif === true || p.aktif === 'TRUE'))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -335,7 +335,7 @@ export default function StorefrontPage() {
               </p>
             </div>
             {toko.wa && (
-              <a
+              
                 href={generateWALink(toko.wa)}
                 target="_blank" rel="noreferrer"
                 className="btn btn-sm"
@@ -422,7 +422,7 @@ export default function StorefrontPage() {
           tema={tema}
           onClose={() => setSelectedProduk(null)}
           onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }}
-          onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} // ← TAMBAHAN
+          onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }}
         />
       )}
 
@@ -435,7 +435,6 @@ export default function StorefrontPage() {
         />
       )}
 
-      {/* TAMBAHAN: render ChatModal */}
       {chatOpen && (
         <ChatModal
           produk={chatOpen}
@@ -560,7 +559,6 @@ function ProdukCard({ produk: p, tema, onClick }) {
   )
 }
 
-// ↓ DIREVISI: tambah prop onChat, ganti tombol "Tanya Penjual" dari link WA ke button ChatModal
 function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
@@ -651,7 +649,6 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: '10px' }}>
-          {/* DIREVISI: dari <a href WA> jadi <button onClick onChat> */}
           <button
             onClick={() => onChat(p)}
             className="btn btn-secondary"
