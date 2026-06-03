@@ -25,7 +25,6 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
     inputRef.current?.focus()
   }, [])
 
-  // Detect keyboard on mobile via visualViewport
   useEffect(() => {
     const vv = window.visualViewport
     if (!vv) return
@@ -69,6 +68,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
             berat: produk.berat,
           },
           toko: {
+            id: toko.id,        // ← untuk query TokoInfo di GAS
             nama: toko.nama,
             deskripsi: toko.deskripsi,
           },
