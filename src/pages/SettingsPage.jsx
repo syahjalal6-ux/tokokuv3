@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
-import { Save, Store, User } from 'lucide-react'
+import { Save, Store, User, Bot } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { Alert } from '../components/ui/index.jsx'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
-import { tokoApi } from '../lib/api.js'
+import { tokoApi, tokoInfoApi } from '../lib/api.js'
 import { validateWA, getStorefrontUrl, isPro } from '../lib/utils.js'
 import toast from 'react-hot-toast'
 
@@ -23,6 +23,7 @@ export default function SettingsPage() {
 
   const TABS = [
     { key: 'toko', label: 'Info Toko', icon: Store },
+    { key: 'asisten', label: 'Asisten AI', icon: Bot },
     { key: 'profil', label: 'Profil', icon: User },
   ]
 
@@ -49,9 +50,113 @@ export default function SettingsPage() {
 
       <div style={{ maxWidth: 600 }}>
         {tab === 'toko' && <TokoSettings token={token} toko={toko} setToko={setToko} pro={pro} />}
+        {tab === 'asisten' && <AsistenSettings token={token} toko={toko} />}
         {tab === 'profil' && <ProfilSettings user={user} />}
       </div>
     </DashboardLayout>
+  )
+}
+
+function AsistenSettings({ token, toko }) {
+  const [form, setForm] = useState({ faq: '', garansi: '', policy: '', infoLain: '' })
+  const [loading, setLoading] = useState(false)
+  const [fetching, setFetching] = useState(true)
+
+  useEffect(() => {
+    if (!token || !toko) return
+    tokoInfoApi.get(token).then(res => {
+      if (res.data) setForm({
+        faq: res.data.faq || '',
+        garansi: res.data.garansi || '',
+        policy: res.data.policy || '',
+        infoLain: res.data.infoLain || '',
+      })
+    }).catch(() => {}).finally(() => setFetching(false))
+  }, [token, toko])
+
+  const set = (field, val) => setForm(f => ({ ...f, [field]: val }))
+
+  const handleSave = async () => {
+    setLoading(true)
+    try {
+      await tokoInfoApi.update(token, form)
+      toast.success('Data asisten AI disimpan!')
+    } catch (err) {
+      toast.error(err.message || 'Gagal menyimpan')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (!toko) return (
+    <Alert type="warning" title="Belum ada toko">
+      Buat toko dari <a href="/dashboard" style={{ color: 'var(--warning)', fontWeight: 700 }}>halaman dashboard</a>.
+    </Alert>
+  )
+
+  if (fetching) return <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Memuat...</p>
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="glass-card" style={{ padding: '28px' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '8px', fontSize: '1rem' }}>
+          Bank Data Asisten AI
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.825rem', marginBottom: '20px' }}>
+          Data ini digunakan AI untuk menjawab pertanyaan pembeli di halaman produk.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="form-group">
+            <label className="form-label">FAQ</label>
+            <textarea
+              className="form-input form-textarea"
+              rows={4}
+              placeholder="cth: Q: Apakah ada diskon? A: Ada, untuk pembelian di atas 3 pcs."
+              value={form.faq}
+              onChange={e => set('faq', e.target.value)}
+            />
+            <span className="form-hint">Pertanyaan dan jawaban umum dari pembeli</span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Garansi</label>
+            <textarea
+              className="form-input form-textarea"
+              rows={3}
+              placeholder="cth: Garansi 7 hari barang rusak atau tidak sesuai foto."
+              value={form.garansi}
+              onChange={e => set('garansi', e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Kebijakan Toko</label>
+            <textarea
+              className="form-input form-textarea"
+              rows={3}
+              placeholder="cth: Tidak menerima retur kecuali barang cacat produksi."
+              value={form.policy}
+              onChange={e => set('policy', e.target.value)}
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Informasi Lain</label>
+            <textarea
+              className="form-input form-textarea"
+              rows={3}
+              placeholder="cth: Pengiriman setiap hari Senin-Sabtu jam 10.00-15.00."
+              value={form.infoLain}
+              onChange={e => set('infoLain', e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <button onClick={handleSave} className="btn btn-primary" disabled={loading} style={{ width: 'fit-content' }}>
+        {loading ? <><span className="spinner" style={{ width: 14, height: 14 }} /> Menyimpan...</> : <><Save size={15} /> Simpan Perubahan</>}
+      </button>
+    </div>
   )
 }
 
