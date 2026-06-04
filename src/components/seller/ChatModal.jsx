@@ -3,19 +3,23 @@ import { X, Send, Bot, User, Loader, ShoppingBag } from 'lucide-react'
 
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNFrArQcqL7BUh_uv3z2tNG0OoYI0EXZhsFGTrt0IfmxKTG4ascHDbUJ8CSjCXPnT1/exec'
 
-export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
+export default function ChatModal({ produk, toko, tema, onClose, onCheckout, semuaProduk = [] }) {
+  const isUmum = !produk
+
   const [messages, setMessages] = useState([
     {
       role: 'assistant',
-      content: `Halo! Saya asisten toko **${toko.nama}**. Ada yang ingin kamu tanyakan tentang **${produk.nama}**?`,
+      content: isUmum
+        ? `Halo! Saya asisten toko **${toko.nama}**. Tanya apa saja tentang toko atau produk kami 😊`
+        : `Halo! Saya asisten toko **${toko.nama}**. Ada yang ingin kamu tanyakan tentang **${produk.nama}**?`,
     }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [keyboardHeight, setKeyboardHeight] = useState(0)
+  const [vpHeight, setVpHeight] = useState(window.visualViewport?.height || window.innerHeight)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
-  const sold = produk.stok === 0
+  const sold = produk ? produk.stok === 0 : false
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -30,15 +34,18 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
     if (!vv) return
 
     const onResize = () => {
-      const diff = window.innerHeight - vv.height
-      setKeyboardHeight(diff > 0 ? diff : 0)
+      setVpHeight(vv.height)
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }, 100)
+      }, 50)
     }
 
     vv.addEventListener('resize', onResize)
-    return () => vv.removeEventListener('resize', onResize)
+    vv.addEventListener('scroll', onResize)
+    return () => {
+      vv.removeEventListener('resize', onResize)
+      vv.removeEventListener('scroll', onResize)
+    }
   }, [])
 
   const sendMessage = async () => {
@@ -58,7 +65,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
         body: JSON.stringify({
           action: 'chat',
           messages: newMessages,
-          produk: {
+          produk: produk ? {
             nama: produk.nama,
             deskripsi: produk.deskripsi,
             harga: produk.harga,
@@ -66,9 +73,17 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
             stok: produk.stok,
             kategori: produk.kategori,
             berat: produk.berat,
-          },
+          } : null,
+          semuaProduk: semuaProduk.map(p => ({
+            nama: p.nama,
+            harga: p.harga,
+            hargaCoret: p.hargaCoret,
+            stok: p.stok,
+            kategori: p.kategori,
+            deskripsi: p.deskripsi ? p.deskripsi.slice(0, 200) : '',
+          })),
           toko: {
-            id: toko.id,        // ← untuk query TokoInfo di GAS
+            id: toko.id,
             nama: toko.nama,
             deskripsi: toko.deskripsi,
           },
@@ -99,7 +114,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
     <div
       onClick={onClose}
       style={{
-        position: 'fixed', inset: 0, zIndex: 500,
+        position: 'fixed', inset: 0, zIndex: 700,
         background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
         display: 'flex', alignItems: 'flex-end',
         animation: 'fadeIn 0.2s ease',
@@ -113,41 +128,43 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
           background: 'var(--bg-secondary)',
           border: '1px solid var(--glass-border)',
           borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
-          maxHeight: '85vh',
+          height: vpHeight,
+          maxHeight: vpHeight,
           display: 'flex', flexDirection: 'column',
           animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          paddingBottom: keyboardHeight,
-          transition: 'padding-bottom 0.15s ease',
+          transition: 'height 0.15s ease',
+          overflow: 'hidden',
         }}
       >
-        <style>{`@keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }`}</style>
+        <style>{`
+          @keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+          @keyframes spin { to { transform: rotate(360deg) } }
+        `}</style>
 
         {/* Header */}
         <div style={{
-          padding: '16px 20px',
+          padding: '14px 16px',
           borderBottom: '1px solid var(--glass-border)',
-          display: 'flex', alignItems: 'center', gap: 12,
+          display: 'flex', alignItems: 'center', gap: 10,
           flexShrink: 0,
         }}>
           <div style={{
-            width: 36, height: 36, borderRadius: 'var(--radius-full)',
+            width: 34, height: 34, borderRadius: 'var(--radius-full)',
             background: tema.gradient,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
-            <Bot size={18} color="#fff" />
+            <Bot size={16} color="#fff" />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontWeight: 700, fontSize: '0.9rem' }}>Asisten {toko.nama}</p>
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Tanya soal {produk.nama}</p>
+            <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>Asisten {toko.nama}</p>
+            <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>
+              {isUmum ? 'Tanya apa saja tentang toko ini' : `Tanya soal ${produk.nama}`}
+            </p>
           </div>
           <button
             onClick={onClose}
-            style={{
-              background: 'transparent', border: 'none',
-              color: 'var(--text-tertiary)', cursor: 'pointer',
-              display: 'flex', padding: 4,
-            }}
+            style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', padding: 4 }}
           >
             <X size={18} />
           </button>
@@ -155,9 +172,11 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
 
         {/* Messages */}
         <div style={{
-          flex: 1, overflowY: 'auto',
-          padding: '20px 16px',
-          display: 'flex', flexDirection: 'column', gap: 12,
+          flex: 1,
+          overflowY: 'auto',
+          padding: '14px',
+          display: 'flex', flexDirection: 'column', gap: 10,
+          minHeight: 0,
         }}>
           {messages.map((msg, i) => (
             <div
@@ -165,32 +184,32 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
               style={{
                 display: 'flex',
                 flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
-                alignItems: 'flex-end', gap: 8,
+                alignItems: 'flex-end', gap: 7,
               }}
             >
               <div style={{
-                width: 28, height: 28, borderRadius: 'var(--radius-full)',
+                width: 26, height: 26, borderRadius: 'var(--radius-full)',
                 background: msg.role === 'user' ? tema.gradient : 'var(--surface)',
                 border: '1px solid var(--glass-border)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,
               }}>
                 {msg.role === 'user'
-                  ? <User size={13} color="#fff" />
-                  : <Bot size={13} color={tema.accent} />
+                  ? <User size={12} color="#fff" />
+                  : <Bot size={12} color={tema.accent} />
                 }
               </div>
               <div style={{
-                maxWidth: '75%',
-                padding: '10px 14px',
+                maxWidth: '78%',
+                padding: '9px 12px',
                 borderRadius: msg.role === 'user'
                   ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)'
                   : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
                 background: msg.role === 'user' ? tema.gradient : 'var(--surface)',
                 border: msg.role === 'user' ? 'none' : '1px solid var(--glass-border)',
                 color: msg.role === 'user' ? '#fff' : 'var(--text-primary)',
-                fontSize: '0.875rem',
-                lineHeight: 1.6,
+                fontSize: '0.845rem',
+                lineHeight: 1.55,
                 whiteSpace: 'pre-wrap',
               }}>
                 {msg.content}
@@ -199,22 +218,13 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
           ))}
 
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-              <div style={{
-                width: 28, height: 28, borderRadius: 'var(--radius-full)',
-                background: 'var(--surface)', border: '1px solid var(--glass-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-              }}>
-                <Bot size={13} color={tema.accent} />
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 7 }}>
+              <div style={{ width: 26, height: 26, borderRadius: 'var(--radius-full)', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Bot size={12} color={tema.accent} />
               </div>
-              <div style={{
-                padding: '10px 14px',
-                background: 'var(--surface)', border: '1px solid var(--glass-border)',
-                borderRadius: 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
-                display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                <Loader size={14} color={tema.accent} style={{ animation: 'spin 0.7s linear infinite' }} />
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Mengetik...</span>
+              <div style={{ padding: '9px 12px', background: 'var(--surface)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Loader size={13} color={tema.accent} style={{ animation: 'spin 0.7s linear infinite' }} />
+                <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Mengetik...</span>
               </div>
             </div>
           )}
@@ -222,32 +232,33 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
           <div ref={bottomRef} />
         </div>
 
-        {/* Checkout CTA + Input */}
+        {/* Bottom: tombol beli + input */}
         <div style={{
-          padding: '10px 16px',
+          padding: '8px 14px 10px',
           borderTop: '1px solid var(--glass-border)',
           flexShrink: 0,
+          background: 'var(--bg-secondary)',
         }}>
-          <button
-            onClick={() => !sold && onCheckout(produk)}
-            disabled={sold}
-            style={{
-              width: '100%',
-              padding: '10px',
-              background: sold ? 'var(--surface)' : tema.gradient,
-              border: 'none',
-              borderRadius: 'var(--radius-lg)',
-              color: '#fff',
-              fontWeight: 700, fontSize: '0.85rem',
-              cursor: sold ? 'not-allowed' : 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: sold ? 'none' : `0 4px 16px ${tema.accent}44`,
-              marginBottom: 10,
-            }}
-          >
-            <ShoppingBag size={15} />
-            {sold ? 'Stok Habis' : 'Lanjut Beli via WhatsApp'}
-          </button>
+          {!isUmum && (
+            <button
+              onClick={() => !sold && onCheckout(produk)}
+              disabled={sold}
+              style={{
+                width: '100%', padding: '9px',
+                background: sold ? 'var(--surface)' : tema.gradient,
+                border: 'none', borderRadius: 'var(--radius-lg)',
+                color: sold ? 'var(--text-tertiary)' : '#fff',
+                fontWeight: 700, fontSize: '0.82rem',
+                cursor: sold ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                boxShadow: sold ? 'none' : `0 3px 12px ${tema.accent}44`,
+                marginBottom: 8,
+              }}
+            >
+              <ShoppingBag size={14} />
+              {sold ? 'Stok Habis' : 'Lanjut Beli via WhatsApp'}
+            </button>
+          )}
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
             <textarea
@@ -260,7 +271,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
               rows={1}
               style={{
                 flex: 1,
-                padding: '10px 14px',
+                padding: '9px 12px',
                 background: 'var(--surface)',
                 border: '1px solid var(--glass-border)',
                 borderRadius: 'var(--radius-lg)',
@@ -270,7 +281,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
                 outline: 'none',
                 fontFamily: 'inherit',
                 lineHeight: 1.5,
-                maxHeight: 100,
+                maxHeight: 80,
                 overflowY: 'auto',
               }}
             />
@@ -278,17 +289,16 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout }) {
               onClick={sendMessage}
               disabled={!input.trim() || loading}
               style={{
-                width: 40, height: 40, borderRadius: 'var(--radius-lg)',
+                width: 38, height: 38, borderRadius: 'var(--radius-lg)',
                 background: !input.trim() || loading ? 'var(--surface)' : tema.gradient,
                 border: '1px solid var(--glass-border)',
                 cursor: !input.trim() || loading ? 'not-allowed' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: !input.trim() || loading ? 'var(--text-tertiary)' : '#fff',
-                flexShrink: 0,
-                transition: 'all 0.2s',
+                flexShrink: 0, transition: 'all 0.2s',
               }}
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </div>
         </div>
