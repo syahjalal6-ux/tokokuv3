@@ -125,7 +125,7 @@ export default function ProdukPage() {
           </div>
 
           {isLoading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 45vw), 1fr))', gap: '16px' }}>
               {Array(6).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
@@ -140,7 +140,7 @@ export default function ProdukPage() {
               )}
             />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 45vw), 1fr))', gap: '16px' }}>
               {filtered.map(p => (
                 <ProductCard
                   key={p.id}
