@@ -1,12 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, Package, MessageCircle, Zap, Check, Store, BarChart2, Shield, Star, ChevronDown } from 'lucide-react'
+import { 
+  ArrowRight, Package, MessageCircle, Zap, Check, Store, 
+  BarChart2, Shield, Star, ChevronDown, Music, Megaphone, Bot 
+} from 'lucide-react'
 import { PLAN_FEATURES, CONFIG } from '../lib/config.js'
 
+// 1. UPDATE DATA UTAMA FITUR
 const FEATURES = [
   { icon: Store, title: 'Toko Online Instan', desc: 'Buat toko dalam hitungan menit, tanpa coding. Langsung online dan siap menerima pesanan.' },
   { icon: MessageCircle, title: 'Checkout via WhatsApp', desc: 'Buyer langsung chat WA kamu. Tidak perlu payment gateway rumit.' },
-  { icon: Package, title: 'Manajemen Produk', desc: 'Upload foto, atur harga, stok, dan kategori dengan mudah.' },
+  { icon: Package, title: 'Manajemen Produk', desc: 'Upload maksimal 2 foto produk, atur harga, stok, dan kategori dengan mudah.' },
+  { icon: Music, title: 'Musik Toko', desc: 'Pasang latar musik di tokomu untuk memberikan pengalaman belanja yang lebih hidup dan unik.' },
+  { icon: Megaphone, title: 'Pengumuman Toko', desc: 'Tampilkan banner pengumuman, info diskon, atau jadwal operasional toko di bagian atas.' },
+  { icon: Bot, title: 'Asisten AI', desc: 'Bantuan AI cerdas untuk generate deskripsi produk otomatis atau rekomendasi jualan.' },
   { icon: BarChart2, title: 'Analytics (Pro)', desc: 'Pantau performa toko, produk terlaris, dan tren penjualan.' },
   { icon: Shield, title: 'Aman & Terpercaya', desc: 'Login dengan Google, data tersimpan aman di infrastruktur Google.' },
   { icon: Zap, title: 'Gratis Selamanya', desc: 'Paket gratis tanpa batas waktu. Upgrade kalau butuh lebih.' },
@@ -128,7 +135,6 @@ export default function LandingPage() {
             Start. Sell. Scale.
           </p>
 
-          {/* CHANGE 1: warna putih */}
           <p style={{
             fontFamily: PJS,
             fontSize: 'clamp(1rem, 2vw, 1.15rem)',
@@ -275,27 +281,31 @@ export default function LandingPage() {
             <p style={{ fontFamily: PJS, color: 'var(--text-secondary)' }}>Mulai gratis, upgrade kalau butuh lebih.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', maxWidth: 720, margin: '0 auto' }}>
-            {/* Free */}
+            
+            {/* Free Plan */}
             <div className="glass-card" style={{ padding: '32px' }}>
               <span className="badge badge-free" style={{ marginBottom: 16 }}>Gratis</span>
               <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 0</p>
               <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>Selamanya</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
-                {/* CHANGE 2: subdomain text updated */}
-                {PLAN_FEATURES.free.features.map(f => (
+                {[
+                  'Maksimal 10 Produk',
+                  'Upload Maksimal 2 Foto per Produk',
+                  'Fitur Musik Toko',
+                  'Fitur Pengumuman Toko',
+                  'Asisten AI (Basic)',
+                  'Subdomain exorav2/namatoko/..'
+                ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                      {f.includes('tokoku.vercel.app/toko/slug')
-                        ? f.replace('tokoku.vercel.app/toko/slug', 'exorav2/namatoko/..')
-                        : f}
-                    </span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
                   </div>
                 ))}
               </div>
               <Link to="/login" className="btn btn-secondary" style={{ width: '100%' }}>Mulai Gratis</Link>
             </div>
-            {/* Pro */}
+
+            {/* Pro Plan */}
             <div style={{
               background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.12) 100%)',
               border: '1px solid rgba(167,139,250,0.3)',
@@ -308,7 +318,14 @@ export default function LandingPage() {
               <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 49.000</p>
               <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>per bulan</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
-                {PLAN_FEATURES.pro.features.map(f => (
+                {[
+                  'Semua Fitur Paket Gratis',
+                  'Unlimited Produk & Unlimited Foto',
+                  'Asisten AI (Full Features)',
+                  'Statistik & Analytics Penjualan',
+                  'Badge Toko PRO / Terverifikasi',
+                  'Prioritas Support Admin'
+                ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
                     <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
@@ -319,6 +336,7 @@ export default function LandingPage() {
                 Coba Pro Sekarang <ArrowRight size={14} />
               </Link>
             </div>
+
           </div>
         </div>
       </section>
@@ -337,10 +355,8 @@ export default function LandingPage() {
                     <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />
                   ))}
                 </div>
-                {/* CHANGE 4: teks komentar putih */}
                 <p style={{ fontFamily: PJS, color: '#ffffff', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 16, fontStyle: 'italic' }}>"{t.text}"</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  {/* CHANGE 3: avatar pakai foto */}
                   <img src={t.img} alt={t.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                   <div>
                     <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700 }}>{t.name}</p>
