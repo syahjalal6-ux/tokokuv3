@@ -161,7 +161,15 @@ function AsistenSettings({ token, toko }) {
 }
 
 function TokoSettings({ token, toko, setToko, pro }) {
-  const [form, setForm] = useState({ nama: '', deskripsi: '', wa: '', customDomain: '', tema: 'default', musik: '' })
+  const [form, setForm] = useState({
+    nama: '',
+    deskripsi: '',
+    wa: '',
+    customDomain: '',
+    tema: 'default',
+    musik: '',
+    pengumuman: '',
+  })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
 
@@ -174,6 +182,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
         customDomain: toko.customDomain || '',
         tema: toko.tema || 'default',
         musik: toko.musik || '',
+        pengumuman: toko.pengumuman || '',
       })
     }
   }, [toko])
@@ -214,6 +223,8 @@ function TokoSettings({ token, toko, setToko, pro }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+
+      {/* Informasi Toko */}
       <div className="glass-card" style={{ padding: '28px' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '20px', fontSize: '1rem' }}>
           Informasi Toko
@@ -256,6 +267,28 @@ function TokoSettings({ token, toko, setToko, pro }) {
         </div>
       </div>
 
+      {/* Pengumuman Toko */}
+      <div className="glass-card" style={{ padding: '28px' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '8px', fontSize: '1rem' }}>
+          📢 Pengumuman Toko
+        </h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.825rem', marginBottom: '16px' }}>
+          Tampil di bagian atas halaman toko kamu. Kosongkan jika tidak ingin ada pengumuman.
+        </p>
+        <div className="form-group">
+          <textarea
+            className="form-input form-textarea"
+            rows={3}
+            placeholder="cth: Promo akhir tahun! Diskon 20% untuk semua produk s/d 31 Desember 🎉"
+            value={form.pengumuman}
+            onChange={e => set('pengumuman', e.target.value)}
+            maxLength={150}
+          />
+          <span className="form-hint">{form.pengumuman.length}/150 karakter</span>
+        </div>
+      </div>
+
+      {/* Custom Domain */}
       <div className="glass-card" style={{ padding: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Custom Domain</h3>
@@ -277,6 +310,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
         )}
       </div>
 
+      {/* Tema Toko */}
       <div className="glass-card" style={{ padding: '28px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Tema Toko</h3>
