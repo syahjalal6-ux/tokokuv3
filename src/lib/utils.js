@@ -102,7 +102,7 @@ Mohon konfirmasi ketersediaan ya! 🙏`
 
 // Generate pesan upgrade pro ke admin
 export function generateUpgradeMessage(user, toko) {
-  return `Halo Admin TokoKu, saya ingin upgrade ke Pro:
+  return `Halo Admin Exora, saya ingin upgrade ke Pro:
 
 👤 Nama: ${user.name}
 📧 Email: ${user.email}
