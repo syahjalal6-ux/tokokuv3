@@ -13,7 +13,7 @@ const FEATURES = [
   { icon: Package, title: 'Manajemen Produk', desc: 'Upload maksimal 2 foto produk, atur harga, stok, dan kategori dengan mudah.' },
   { icon: Music, title: 'Musik Toko', desc: 'Pasang latar musik di tokomu untuk memberikan pengalaman belanja yang lebih hidup dan unik.' },
   { icon: Megaphone, title: 'Pengumuman Toko', desc: 'Tampilkan banner pengumuman, info diskon, atau jadwal operasional toko di bagian atas.' },
-  { icon: Bot, title: 'Asisten AI', desc: 'Bantuan AI cerdas untuk generate deskripsi produk otomatis atau rekomendasi jualan.' },
+  { icon: Bot, title: 'Asisten AI', desc: 'AI menjawab pertanyaan pembeli otomatis 24/7. Isi bank data toko sekali, AI sisanya.' }, // UPDATE DESKRIPSI DI SINI
   { icon: BarChart2, title: 'Analytics (Pro)', desc: 'Pantau performa toko, produk terlaris, dan tren penjualan.' },
   { icon: Shield, title: 'Aman & Terpercaya', desc: 'Login dengan Google, data tersimpan aman di infrastruktur Google.' },
   { icon: Zap, title: 'Gratis Selamanya', desc: 'Paket gratis tanpa batas waktu. Upgrade kalau butuh lebih.' },
@@ -28,6 +28,7 @@ const TESTIMONIALS = [
 const FAQ = [
   { q: 'Apakah benar-benar gratis?', a: 'Ya! Paket gratis tidak ada batas waktu. Kamu bisa buka toko dan jual hingga 10 produk tanpa biaya apapun.' },
   { q: 'Bagaimana cara checkout pembeli?', a: 'Pembeli klik tombol "Beli via WhatsApp" di toko kamu, lalu akan diarahkan ke chat WA kamu dengan pesan otomatis berisi detail pesanan.' },
+  { q: 'Asisten AI itu apa?', a: 'Fitur cerdas yang otomatis menjawab pertanyaan calon pembeli mengenai produk atau tokomu selama 24/7 berdasarkan bank data yang sudah kamu siapkan.' }, // TAMBAHAN FAQ BARU
   { q: 'Foto produk disimpan di mana?', a: 'Foto disimpan di Google Drive (milik pengelola platform), sehingga kamu tidak perlu punya hosting sendiri.' },
   { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.PRO_PRICE}.` },
 ]
@@ -293,7 +294,7 @@ export default function LandingPage() {
                   'Upload Maksimal 2 Foto per Produk',
                   'Fitur Musik Toko',
                   'Fitur Pengumuman Toko',
-                  'Asisten AI (Basic)',
+                  'Asisten AI (basic)', // UPDATE DI SINI
                   'Subdomain exorav2/namatoko/..'
                 ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
@@ -321,7 +322,7 @@ export default function LandingPage() {
                 {[
                   'Semua Fitur Paket Gratis',
                   'Unlimited Produk & Unlimited Foto',
-                  'Asisten AI (Full Features)',
+                  'Asisten AI full', // UPDATE DI SINI
                   'Statistik & Analytics Penjualan',
                   'Badge Toko PRO / Terverifikasi',
                   'Prioritas Support Admin'
@@ -382,7 +383,7 @@ export default function LandingPage() {
                   onClick={() => setOpenFaq(openFaq === i ? null : i)}
                   style={{
                     width: '100%', padding: '18px 20px',
-                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    display: 'flex', alignItems: 'center', justifyBetween: 'space-between',
                     background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
                     fontFamily: PJS, fontWeight: 600, fontSize: '0.95rem', textAlign: 'left', gap: '12px',
                   }}
