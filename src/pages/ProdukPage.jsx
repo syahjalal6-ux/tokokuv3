@@ -20,6 +20,12 @@ function parseFotos(foto) {
   }
 }
 
+const gridStyle = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(2, 1fr)',
+  gap: '16px',
+}
+
 export default function ProdukPage() {
   const { user, token } = useAuthStore()
   const { toko } = useTokoStore()
@@ -125,7 +131,7 @@ export default function ProdukPage() {
           </div>
 
           {isLoading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 45vw), 1fr))', gap: '16px' }}>
+            <div style={gridStyle}>
               {Array(6).fill(0).map((_, i) => <ProductSkeleton key={i} />)}
             </div>
           ) : filtered.length === 0 ? (
@@ -140,7 +146,7 @@ export default function ProdukPage() {
               )}
             />
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(220px, 45vw), 1fr))', gap: '16px' }}>
+            <div style={gridStyle}>
               {filtered.map(p => (
                 <ProductCard
                   key={p.id}
