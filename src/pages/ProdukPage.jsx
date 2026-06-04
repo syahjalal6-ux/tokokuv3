@@ -185,7 +185,7 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
 
   return (
     <div className="glass-card" style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
+      <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
         {thumbUrl ? (
           <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
