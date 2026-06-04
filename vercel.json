@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/toko/:slug/manifest.json", "destination": "/api/manifest?slug=:slug" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
