@@ -160,9 +160,7 @@ function RatingSection({ produkId, tokoId, tema }) {
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  useEffect(() => {
-    loadRatings()
-  }, [produkId])
+  useEffect(() => { loadRatings() }, [produkId])
 
   const loadRatings = async () => {
     try {
@@ -202,11 +200,7 @@ function RatingSection({ produkId, tokoId, tema }) {
           )}
         </div>
         {!submitted && (
-          <button
-            onClick={() => setShowForm(s => !s)}
-            className="btn btn-sm btn-secondary"
-            style={{ fontSize: '0.75rem' }}
-          >
+          <button onClick={() => setShowForm(s => !s)} className="btn btn-sm btn-secondary" style={{ fontSize: '0.75rem' }}>
             + Tulis Ulasan
           </button>
         )}
@@ -258,9 +252,7 @@ function RatingSection({ produkId, tokoId, tema }) {
                 </div>
                 <StarRating value={Number(r.rating)} size={13} />
               </div>
-              {r.komentar && (
-                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>{r.komentar}</p>
-              )}
+              {r.komentar && <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>{r.komentar}</p>}
             </div>
           ))}
         </div>
@@ -279,7 +271,7 @@ export default function StorefrontPage() {
   const [filterKat, setFilterKat] = useState('all')
   const [selectedProduk, setSelectedProduk] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false) // false = tutup, null = chat umum, object = chat produk
 
   useEffect(() => { loadStorefront() }, [slug])
 
@@ -321,7 +313,6 @@ export default function StorefrontPage() {
     )
   }
 
-  // Cek toko nonaktif
   if (toko.aktif === false || toko.aktif === 'FALSE') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24, textAlign: 'center' }}>
@@ -349,7 +340,6 @@ export default function StorefrontPage() {
         padding: '20px 16px 16px',
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
-          {/* Mobile-first header layout */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <div style={{
               width: 52, height: 52, borderRadius: '14px', flexShrink: 0,
@@ -378,28 +368,21 @@ export default function StorefrontPage() {
                 {produk.length} produk tersedia
               </p>
             </div>
-            {toko.wa && (
-              <a
-                href={generateWALink(toko.wa)}
-                target="_blank" rel="noreferrer"
-                className="btn btn-sm"
-                style={{ background: '#25d366', color: '#fff', border: 'none', boxShadow: '0 4px 12px rgba(37,211,102,0.3)', flexShrink: 0, padding: '7px 12px' }}
-              >
-                <MessageCircle size={13} />
-                <span style={{ display: 'none' }} className="show-desktop">Chat Penjual</span>
-              </a>
-            )}
+            {/* ← DIREVISI: dari <a href WA> jadi button buka ChatModal umum */}
+            <button
+              onClick={() => setChatOpen(null)}
+              className="btn btn-sm"
+              style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${tema.accent}44`, flexShrink: 0, padding: '7px 12px' }}
+            >
+              <MessageCircle size={13} />
+            </button>
           </div>
 
-          {/* Pengumuman toko */}
           {toko.pengumuman && (
             <div style={{
-              marginTop: 12,
-              padding: '8px 12px',
-              background: `${tema.accent}15`,
-              border: `1px solid ${tema.accent}33`,
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5,
+              marginTop: 12, padding: '8px 12px',
+              background: `${tema.accent}15`, border: `1px solid ${tema.accent}33`,
+              borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5,
             }}>
               📢 {toko.pengumuman}
             </div>
@@ -408,7 +391,6 @@ export default function StorefrontPage() {
       </div>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 80px' }}>
-        {/* Search */}
         <div style={{ marginBottom: '16px' }}>
           <div style={{ position: 'relative' }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
@@ -422,7 +404,6 @@ export default function StorefrontPage() {
           </div>
         </div>
 
-        {/* Kategori filter */}
         {kategoriList.length > 1 && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: '16px', paddingBottom: 4, scrollbarWidth: 'none' }}>
             <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? tema.accent + '22' : 'var(--surface)', color: filterKat === 'all' ? tema.accent : 'var(--text-secondary)', border: `1px solid ${filterKat === 'all' ? tema.accent + '44' : 'var(--glass-border)'}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
@@ -432,24 +413,21 @@ export default function StorefrontPage() {
           </div>
         )}
 
-        {/* Product grid — 2 col mobile, auto-fill desktop */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
             <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>{search ? 'Produk tidak ditemukan' : 'Belum ada produk'}</p>
           </div>
         ) : (
-          <>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-              <style>{`
-                @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr) !important; } }
-                @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr) !important; } }
-              `}</style>
-              {filtered.map(p => (
-                <ProdukCard key={p.id} produk={p} tema={tema} onClick={() => setSelectedProduk(p)} />
-              ))}
-            </div>
-          </>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+            <style>{`
+              @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+              @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr) !important; } }
+            `}</style>
+            {filtered.map(p => (
+              <ProdukCard key={p.id} produk={p} tema={tema} onClick={() => setSelectedProduk(p)} />
+            ))}
+          </div>
         )}
       </div>
 
@@ -468,13 +446,20 @@ export default function StorefrontPage() {
         <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} onClose={() => setCheckoutOpen(false)} />
       )}
 
-      {chatOpen && (
-        <ChatModal produk={chatOpen} toko={toko} tema={tema} onClose={() => setChatOpen(false)} onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }} />
+      {/* ← DIREVISI: chatOpen !== false untuk handle null (chat umum) vs object (chat produk) */}
+      {chatOpen !== false && (
+        <ChatModal
+          produk={chatOpen || null}
+          toko={toko}
+          tema={tema}
+          onClose={() => setChatOpen(false)}
+          onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }}
+          semuaProduk={produk}
+        />
       )}
 
       {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} />}
 
-      {/* Bottom bar */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
         background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(16px)',
@@ -572,19 +557,11 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
           )}
           {p.deskripsi && <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 12, whiteSpace: 'pre-line' }}>{p.deskripsi}</p>}
           {p.berat && <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginBottom: 8 }}>Berat: {p.berat}g</p>}
-
           <RatingSection produkId={p.id} tokoId={toko.id} tema={tema} />
           <div style={{ height: 20 }} />
         </div>
 
-        {/* Bottom action bar — TikTok style */}
-        <div style={{
-          padding: '12px 16px',
-          borderTop: '1px solid var(--glass-border)',
-          display: 'flex', gap: 10, alignItems: 'center',
-          background: 'var(--bg-secondary)',
-        }}>
-          {/* Chat icon button */}
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: 10, alignItems: 'center', background: 'var(--bg-secondary)' }}>
           <button
             onClick={() => onChat(p)}
             className="btn btn-secondary btn-icon"
@@ -593,7 +570,6 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
           >
             <MessageCircle size={18} />
           </button>
-          {/* Beli Sekarang — dominant */}
           <button
             onClick={() => !sold && onCheckout(p)}
             disabled={sold}
