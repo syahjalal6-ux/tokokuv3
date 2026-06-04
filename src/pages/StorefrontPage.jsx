@@ -271,9 +271,29 @@ export default function StorefrontPage() {
   const [filterKat, setFilterKat] = useState('all')
   const [selectedProduk, setSelectedProduk] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
-  const [chatOpen, setChatOpen] = useState(false) // false = tutup, null = chat umum, object = chat produk
+  const [chatOpen, setChatOpen] = useState(false)
 
-  useEffect(() => { loadStorefront() }, [slug])
+  useEffect(() => {
+    // Inject manifest dinamis per toko
+    const existing = document.querySelector('link[rel="manifest"]')
+    if (existing) existing.remove()
+    const link = document.createElement('link')
+    link.rel = 'manifest'
+    link.href = `/toko/${slug}/manifest.json`
+    document.head.appendChild(link)
+
+    loadStorefront()
+
+    return () => {
+      // Restore manifest global waktu leave halaman toko
+      const l = document.querySelector('link[rel="manifest"]')
+      if (l) l.remove()
+      const restore = document.createElement('link')
+      restore.rel = 'manifest'
+      restore.href = '/manifest.json'
+      document.head.appendChild(restore)
+    }
+  }, [slug])
 
   const loadStorefront = async () => {
     setLoading(true)
@@ -368,7 +388,6 @@ export default function StorefrontPage() {
                 {produk.length} produk tersedia
               </p>
             </div>
-            {/* ← DIREVISI: dari <a href WA> jadi button buka ChatModal umum */}
             <button
               onClick={() => setChatOpen(null)}
               className="btn btn-sm"
@@ -446,7 +465,6 @@ export default function StorefrontPage() {
         <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} onClose={() => setCheckoutOpen(false)} />
       )}
 
-      {/* ← DIREVISI: chatOpen !== false untuk handle null (chat umum) vs object (chat produk) */}
       {chatOpen !== false && (
         <ChatModal
           produk={chatOpen || null}
