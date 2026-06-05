@@ -274,7 +274,6 @@ export default function StorefrontPage() {
   const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
-    // Inject manifest dinamis per toko
     const existing = document.querySelector('link[rel="manifest"]')
     if (existing) existing.remove()
     const link = document.createElement('link')
@@ -285,7 +284,6 @@ export default function StorefrontPage() {
     loadStorefront()
 
     return () => {
-      // Restore manifest global waktu leave halaman toko
       const l = document.querySelector('link[rel="manifest"]')
       if (l) l.remove()
       const restore = document.createElement('link')
@@ -352,6 +350,12 @@ export default function StorefrontPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', paddingBottom: 56 }}>
+      <style>{`
+        .produk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1000px) { .produk-grid { grid-template-columns: repeat(5, 1fr); } }
+      `}</style>
 
       {/* Header */}
       <div style={{
@@ -438,11 +442,7 @@ export default function StorefrontPage() {
             <p style={{ fontFamily: 'var(--font-display)', fontWeight: 600 }}>{search ? 'Produk tidak ditemukan' : 'Belum ada produk'}</p>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-            <style>{`
-              @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr) !important; } }
-              @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr) !important; } }
-            `}</style>
+          <div className="produk-grid">
             {filtered.map(p => (
               <ProdukCard key={p.id} produk={p} tema={tema} onClick={() => setSelectedProduk(p)} />
             ))}
@@ -508,9 +508,9 @@ function ProdukCard({ produk: p, tema, onClick }) {
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${tema.accent}44` }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }}
     >
-      <div style={{ position: 'relative', aspectRatio: '1', overflow: 'hidden', background: 'var(--surface)' }}>
+      <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: 'var(--surface)' }}>
         {thumbUrl ? (
-          <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', padding: '4px', background: 'var(--surface)' }} />
+          <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
         ) : (
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}><Package size={32} /></div>
         )}
@@ -719,8 +719,8 @@ function StorefrontSkeleton() {
         </div>
       </div>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-          {Array(6).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ aspectRatio: '1', borderRadius: 'var(--radius-xl)' }} />)}
+        <div className="produk-grid">
+          {Array(6).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: 'var(--radius-xl)' }} />)}
         </div>
       </div>
     </div>
