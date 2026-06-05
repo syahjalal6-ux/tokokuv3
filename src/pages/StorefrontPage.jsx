@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send } from 'lucide-react'
-import { tokoApi, produkApi, ratingApi } from '../lib/api.js'
+import { tokoApi, produkApi, ratingApi, pesananApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
 
@@ -97,13 +97,26 @@ function MusicPlayer({ musikUrl, tema }) {
             <span style={{ fontSize: '0.72rem', fontWeight: 700, color: tema.accent }}>MUSIK TOKO</span>
             <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', padding: 2 }}><X size={13} /></button>
           </div>
-          <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
+          {/* Audio only — hide video, play audio via iframe */}
+          <div style={{ height: 0, overflow: 'hidden' }}>
             <iframe
               src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
               title="Musik Toko" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen onLoad={() => setPlaying(true)}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+              style={{ width: 1, height: 1, border: 'none', position: 'absolute' }}
             />
+          </div>
+          <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%', background: tema.gradient,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Music size={16} color="#fff" />
+            </div>
+            <div>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Musik Toko</p>
+              <p style={{ fontSize: '0.68rem', color: playing ? tema.accent : 'var(--text-tertiary)' }}>{playing ? '▶ Sedang diputar' : 'Memuat...'}</p>
+            </div>
           </div>
         </div>
       )}
@@ -617,6 +630,7 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
   const thumbUrl = fotos[0] || null
   const [form, setForm] = useState({ nama: '', wa: '', alamat: '', catatan: '', qty: 1 })
   const [errors, setErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
 
   const set = (field, val) => {
     setForm(f => ({ ...f, [field]: val }))
@@ -635,8 +649,28 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
     return Object.keys(e).length === 0
   }
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!validate()) return
+    setSubmitting(true)
+    try {
+      await pesananApi.create({
+        tokoId: toko.id,
+        produkId: p.id,
+        produkNama: p.nama,
+        harga: p.harga,
+        qty: form.qty,
+        total: p.harga * form.qty,
+        buyerNama: form.nama,
+        buyerWa: form.wa,
+        buyerAlamat: form.alamat,
+        catatan: form.catatan,
+      })
+    } catch (err) {
+      console.error('Gagal simpan pesanan:', err.message)
+      // tetap lanjut ke WA meski gagal simpan
+    } finally {
+      setSubmitting(false)
+    }
     const message = generateCheckoutMessage(p, toko, form)
     const link = generateWALink(toko.wa, message)
     window.open(link, '_blank')
@@ -694,8 +728,12 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: tema.accent }}>{formatRupiah(p.harga * form.qty)}</span>
           </div>
 
-          <button onClick={handleCheckout} style={{ width: '100%', height: 48, background: tema.gradient, color: '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: `0 4px 24px ${tema.accent}44` }}>
-            <MessageCircle size={17} /> Lanjut ke WhatsApp Penjual
+          <button
+            onClick={handleCheckout}
+            disabled={submitting}
+            style={{ width: '100%', height: 48, background: submitting ? 'var(--surface)' : tema.gradient, color: submitting ? 'var(--text-tertiary)' : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${tema.accent}44` }}
+          >
+            <MessageCircle size={17} /> {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
           </button>
           <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>
             Kamu akan diarahkan ke WhatsApp penjual dengan detail pesanan otomatis
