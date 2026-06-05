@@ -27,7 +27,7 @@ function hitungDiskon(harga, hargaCoret) {
 
 const gridStyle = {
   display: 'grid',
-  gridTemplateColumns: 'repeat(2, 1fr)',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
   gap: '12px',
 }
 
@@ -233,7 +233,7 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
           </div>
         )}
 
-        {/* STOK HABIS — only if no diskon */}
+        {/* STOK HABIS */}
         {p.stok === 0 && !diskon && (
           <div style={{ position: 'absolute', top: 8, left: 8 }}>
             <span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Habis</span>
@@ -263,7 +263,7 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
           </div>
         )}
 
-        {/* ACTION OVERLAY BUTTON (top right) */}
+        {/* ACTION MENU BUTTON */}
         <div style={{ position: 'absolute', top: 8, right: 8 }}>
           <button
             onClick={() => setShowActions(v => !v)}
@@ -294,23 +294,14 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
               }}
               onMouseLeave={() => setShowActions(false)}
             >
-              <button
-                onClick={() => { onToggle(); setShowActions(false) }}
-                style={menuItemStyle}
-              >
+              <button onClick={() => { onToggle(); setShowActions(false) }} style={menuItemStyle}>
                 {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
                 {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
               </button>
-              <button
-                onClick={() => { onEdit(); setShowActions(false) }}
-                style={menuItemStyle}
-              >
+              <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
                 <Edit2 size={13} /> Edit
               </button>
-              <button
-                onClick={() => { onDelete(); setShowActions(false) }}
-                style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}
-              >
+              <button onClick={() => { onDelete(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}>
                 <Trash2 size={13} /> Hapus
               </button>
             </div>
@@ -326,7 +317,7 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
         {p.kategori && (
           <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginBottom: 5 }}>{p.kategori}</p>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
           <p style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '0.88rem' }}>{formatRupiah(p.harga)}</p>
           {p.hargaCoret && (
             <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>
