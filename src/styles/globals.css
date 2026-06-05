@@ -548,3 +548,8 @@ input, textarea, select {
 @media (max-width: 480px) {
   .hide-sm { display: none !important; }
 }
+
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
