@@ -10,7 +10,7 @@ import { PLAN_FEATURES, CONFIG } from '../lib/config.js'
 const FEATURES = [
   { icon: Store, title: 'Toko Online Instan', desc: 'Buat toko dalam hitungan menit, tanpa coding. Langsung online dan siap menerima pesanan.' },
   { icon: MessageCircle, title: 'Checkout via WhatsApp', desc: 'Buyer langsung chat WA kamu. Tidak perlu payment gateway rumit.' },
-  { icon: Package, title: 'Manajemen Produk', desc: 'Upload maksimal 2 foto produk, atur harga, stok, dan kategori dengan mudah.' },
+  { icon: Package, title: 'Manajemen Produk', desc: 'Upload maksimal 5 foto produk, atur harga, stok, dan kategori dengan mudah.' },
   { icon: Music, title: 'Musik Toko', desc: 'Pasang latar musik di tokomu untuk memberikan pengalaman belanja yang lebih hidup dan unik.' },
   { icon: Megaphone, title: 'Pengumuman Toko', desc: 'Tampilkan banner pengumuman, info diskon, atau jadwal operasional toko di bagian atas.' },
   { icon: Bot, title: 'Asisten AI', desc: 'AI menjawab pertanyaan pembeli otomatis 24/7. Isi bank data toko sekali, AI sisanya.' }, // UPDATE DESKRIPSI DI SINI
@@ -26,7 +26,7 @@ const TESTIMONIALS = [
 ]
 
 const FAQ = [
-  { q: 'Apakah benar-benar gratis?', a: 'Ya! Paket gratis tidak ada batas waktu. Kamu bisa buka toko dan jual hingga 10 produk tanpa biaya apapun.' },
+  { q: 'Apakah benar-benar gratis?', a: 'Ya! Paket gratis tidak ada batas waktu. Kamu bisa buka toko dan jual hingga 25 produk tanpa biaya apapun.' },
   { q: 'Bagaimana cara checkout pembeli?', a: 'Pembeli klik tombol "Beli via WhatsApp" di toko kamu, lalu akan diarahkan ke chat WA kamu dengan pesan otomatis berisi detail pesanan.' },
   { q: 'Asisten AI itu apa?', a: 'Fitur cerdas yang otomatis menjawab pertanyaan calon pembeli mengenai produk atau tokomu selama 24/7 berdasarkan bank data yang sudah kamu siapkan.' }, // TAMBAHAN FAQ BARU
   { q: 'Foto produk disimpan di mana?', a: 'Foto disimpan di Google Drive (milik pengelola platform), sehingga kamu tidak perlu punya hosting sendiri.' },
