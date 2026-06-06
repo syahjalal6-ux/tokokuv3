@@ -61,65 +61,56 @@ function StarRating({ value, onChange, size = 20 }) {
 }
 
 function MusicPlayer({ musikUrl, tema }) {
-  const [open, setOpen] = useState(false)
   const [playing, setPlaying] = useState(false)
+  const iframeRef = useRef(null)
   const videoId = getYouTubeId(musikUrl)
   if (!videoId) return null
+
+  const handleToggle = () => {
+    setPlaying(p => !p)
+  }
+
   return (
     <>
+      {/* Hidden iframe — always mounted when playing */}
+      {playing && (
+        <div style={{ position: 'fixed', width: 0, height: 0, overflow: 'hidden', zIndex: -1 }}>
+          <iframe
+            ref={iframeRef}
+            src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
+            title="Musik Toko"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            style={{ width: 1, height: 1, border: 'none' }}
+          />
+        </div>
+      )}
+
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={handleToggle}
+        title={playing ? 'Pause musik' : 'Play musik'}
         style={{
-          position: 'fixed', bottom: 80, right: 16, zIndex: 200,
-          width: 44, height: 44, borderRadius: 'var(--radius-full)',
+          position: 'fixed', bottom: 48, left: 16, zIndex: 200,
+          width: 40, height: 40, borderRadius: 'var(--radius-full)',
           background: playing ? tema.gradient : 'rgba(10,10,15,0.85)',
           backdropFilter: 'blur(16px)',
           border: `1px solid ${playing ? tema.accent + '66' : 'var(--glass-border)'}`,
-          boxShadow: playing ? `0 4px 24px ${tema.accent}55` : '0 4px 16px rgba(0,0,0,0.4)',
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+          boxShadow: playing ? `0 4px 24px ${tema.accent}66` : '0 4px 16px rgba(0,0,0,0.4)',
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: playing ? '#fff' : 'var(--text-secondary)',
           transition: 'all 0.3s ease',
         }}
       >
-        <Music size={16} />
-        <style>{`
-          @keyframes playerSlideIn { from { opacity:0; transform:translateY(12px) scale(0.95) } to { opacity:1; transform:translateY(0) scale(1) } }
-          @keyframes slideUp { from { transform:translateY(100%); opacity:0 } to { transform:translateY(0); opacity:1 } }
-        `}</style>
+        <Music size={15} />
+        {playing && (
+          <style>{`
+            @keyframes musicPulse {
+              0%, 100% { box-shadow: 0 4px 24px ${tema.accent}66; }
+              50% { box-shadow: 0 4px 32px ${tema.accent}99; }
+            }
+          `}</style>
+        )}
       </button>
-      {open && (
-        <div style={{
-          position: 'fixed', bottom: 136, right: 16, zIndex: 200, width: 280,
-          background: 'rgba(10,10,15,0.92)', backdropFilter: 'blur(24px)',
-          border: `1px solid ${tema.accent}33`, borderRadius: 'var(--radius-xl)',
-          overflow: 'hidden', animation: 'playerSlideIn 0.25s ease',
-        }}>
-          <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${tema.accent}22` }}>
-            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: tema.accent }}>MUSIK TOKO</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', padding: 2 }}><X size={13} /></button>
-          </div>
-          {/* Audio only — hide video, play audio via iframe */}
-          <div style={{ height: 0, overflow: 'hidden' }}>
-            <iframe
-              src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
-              title="Musik Toko" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen onLoad={() => setPlaying(true)}
-              style={{ width: 1, height: 1, border: 'none', position: 'absolute' }}
-            />
-          </div>
-          <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 36, height: 36, borderRadius: '50%', background: tema.gradient,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}>
-              <Music size={16} color="#fff" />
-            </div>
-            <div>
-              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2 }}>Musik Toko</p>
-              <p style={{ fontSize: '0.68rem', color: playing ? tema.accent : 'var(--text-tertiary)' }}>{playing ? '▶ Sedang diputar' : 'Memuat...'}</p>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   )
 }
@@ -368,6 +359,8 @@ export default function StorefrontPage() {
         @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr); } }
         @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr); } }
         @media (min-width: 1000px) { .produk-grid { grid-template-columns: repeat(5, 1fr); } }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
       `}</style>
 
       {/* Header */}
@@ -663,17 +656,17 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
         buyerNama: form.nama,
         buyerWa: form.wa,
         buyerAlamat: form.alamat,
-        catatan: form.catatan,
+        catatan: form.catatan || '',
       })
+      const message = generateCheckoutMessage(p, toko, form)
+      const link = generateWALink(toko.wa, message)
+      window.open(link, '_blank')
+      onClose()
     } catch (err) {
-      console.error('Gagal simpan pesanan:', err.message)
-      // tetap lanjut ke WA meski gagal simpan
+      alert('Gagal menyimpan pesanan: ' + err.message)
     } finally {
       setSubmitting(false)
     }
-    const message = generateCheckoutMessage(p, toko, form)
-    const link = generateWALink(toko.wa, message)
-    window.open(link, '_blank')
   }
 
   return (
@@ -733,7 +726,8 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
             disabled={submitting}
             style={{ width: '100%', height: 48, background: submitting ? 'var(--surface)' : tema.gradient, color: submitting ? 'var(--text-tertiary)' : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${tema.accent}44` }}
           >
-            <MessageCircle size={17} /> {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
+            <MessageCircle size={17} />
+            {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
           </button>
           <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.72rem' }}>
             Kamu akan diarahkan ke WhatsApp penjual dengan detail pesanan otomatis
@@ -747,6 +741,12 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
 function StorefrontSkeleton() {
   return (
     <div style={{ minHeight: '100vh' }}>
+      <style>{`
+        .produk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr); } }
+        @media (min-width: 1000px) { .produk-grid { grid-template-columns: repeat(5, 1fr); } }
+      `}</style>
       <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--glass-border)' }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="skeleton" style={{ width: 52, height: 52, borderRadius: '14px', flexShrink: 0 }} />
