@@ -20,10 +20,10 @@ export default function UpgradePage() {
           <div className="glass-card" style={{ padding: '48px 32px' }}>
             <div style={{ fontSize: '3rem', marginBottom: '16px' }}>⭐</div>
             <h2 className="text-heading" style={{ marginBottom: 12 }}>Kamu sudah Pro!</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6, textAlign: 'left' }}>
               Kamu sudah menikmati semua fitur Pro. Terima kasih sudah mendukung Exora!
             </p>
-            <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: 24 }}>
+            <p style={{ fontSize: '0.82rem', color: 'var(--text-tertiary)', marginBottom: 24, textAlign: 'left' }}>
               Pro aktif hingga:{' '}
               <strong style={{ color: 'var(--text-secondary)' }}>
                 {user?.planExpiry ? new Date(user.planExpiry).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : '-'}
@@ -61,9 +61,9 @@ export default function UpgradePage() {
             </span>
           </div>
           <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 12 }}>
-            Bisnis kamu layak yang terbaik
+            Bisnis kamu layak mendapat yang terbaik
           </h1>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7, fontSize: 'clamp(0.85rem, 2vw, 1rem)' }}>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7, fontSize: 'clamp(0.85rem, 2vw, 1rem)', textAlign: 'left' }}>
             Satu langkah kecil ke Pro, tapi dampaknya besar untuk bisnismu.
           </p>
         </div>
@@ -79,19 +79,18 @@ export default function UpgradePage() {
             </p>
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 20 }}>Selamanya gratis</p>
             
-            {/* Tata Letak List Fitur Free */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 24 }}>
               {[
                 'Maksimal 25 Produk',
-                'Upload Maksimal 5 Foto per Produk',
+                'Upload Maksimal 2 Foto per Produk',
                 'Fitur Musik Toko',
                 'Fitur Pengumuman Toko',
                 'Asisten AI (basic)',
-                'Subdomain exorav2.vercel.app/namatoko/..'
+                'Subdomain exora.app/toko/namamu',
               ].map(f => (
                 <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                   <Check size={14} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{f}</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4, textAlign: 'left' }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -121,7 +120,6 @@ export default function UpgradePage() {
             </p>
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 20 }}>per bulan</p>
             
-            {/* Tata Letak List Fitur Pro */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 24 }}>
               {[
                 'Semua Fitur Paket Gratis',
@@ -129,11 +127,11 @@ export default function UpgradePage() {
                 'Asisten AI full',
                 'Statistik & Analytics Penjualan',
                 'Badge Toko PRO / Terverifikasi',
-                'Prioritas Support Admin'
+                'Prioritas Support Admin',
               ].map(f => (
                 <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                   <Check size={14} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
-                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{f}</span>
+                  <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.4, textAlign: 'left' }}>{f}</span>
                 </div>
               ))}
             </div>
@@ -167,7 +165,7 @@ export default function UpgradePage() {
                   {s.step}
                 </div>
                 <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>{s.title}</p>
-                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', lineHeight: 1.5 }}>{s.desc}</p>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', lineHeight: 1.5, textAlign: 'left' }}>{s.desc}</p>
               </div>
             ))}
           </div>
