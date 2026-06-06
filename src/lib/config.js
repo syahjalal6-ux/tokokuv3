@@ -22,7 +22,7 @@ export const CONFIG = {
   FREE_PRODUCT_LIMIT: 10,
 
   // Harga pro (untuk ditampilkan di UI)
-  PRO_PRICE: 'Rp 49.000/bulan',
+  PRO_PRICE: 'Rp 19.000/bulan',
 }
 
 export const PLAN_FEATURES = {
