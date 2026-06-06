@@ -19,7 +19,7 @@ export const CONFIG = {
   APP_URL: import.meta.env.VITE_APP_URL || 'https://exorav2.vercel.app',
 
   // Batas produk untuk free plan
-  FREE_PRODUCT_LIMIT: 10,
+  FREE_PRODUCT_LIMIT: 25,
 
   // Harga pro (untuk ditampilkan di UI)
   PRO_PRICE: 'Rp 19.000/bulan',
