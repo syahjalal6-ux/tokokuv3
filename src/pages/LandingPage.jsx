@@ -316,7 +316,7 @@ export default function LandingPage() {
             }}>
               <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
               <span className="badge badge-pro" style={{ marginBottom: 16 }}>⭐ Pro</span>
-              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 49.000</p>
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.4rem', marginBottom: 4 }}>Rp 19.000</p>
               <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 24 }}>per bulan</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 28 }}>
                 {[
