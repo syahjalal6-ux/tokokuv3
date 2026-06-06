@@ -82,8 +82,8 @@ export default function UpgradePage() {
             {/* Tata Letak List Fitur Free */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 24 }}>
               {[
-                'Maksimal 10 Produk',
-                'Upload Maksimal 2 Foto per Produk',
+                'Maksimal 25 Produk',
+                'Upload Maksimal 5 Foto per Produk',
                 'Fitur Musik Toko',
                 'Fitur Pengumuman Toko',
                 'Asisten AI (basic)',
