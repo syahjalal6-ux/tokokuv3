@@ -19,6 +19,31 @@ const ExoraIcon = () => (
   </svg>
 )
 
+function PulseDots() {
+  return (
+    <>
+      <style>{`
+        @keyframes pulseDot {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-8px); opacity: 1; }
+        }
+        .pulse-dot {
+          width: 8px; height: 8px; border-radius: 50%;
+          background: linear-gradient(135deg, #5b8af5, #7c6af7);
+          animation: pulseDot 1.2s ease-in-out infinite;
+        }
+        .pulse-dot:nth-child(2) { animation-delay: 0.2s; }
+        .pulse-dot:nth-child(3) { animation-delay: 0.4s; }
+      `}</style>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center' }}>
+        <div className="pulse-dot" />
+        <div className="pulse-dot" />
+        <div className="pulse-dot" />
+      </div>
+    </>
+  )
+}
+
 export default function LoginPage() {
   const navigate = useNavigate()
   const { loginWithGoogle } = useAuthStore()
@@ -105,14 +130,14 @@ export default function LoginPage() {
           <h1 style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.6rem', marginBottom: 8 }}>
             Masuk ke exora
           </h1>
-          <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 36, lineHeight: 1.6 }}>
+          <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 36, lineHeight: 1.6, textAlign: 'center' }}>
             Login dengan akun Google untuk mulai membuka toko online kamu
           </p>
 
-          {/* Google button */}
+          {/* Google button / Loading */}
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', padding: '16px' }}>
-              <div className="spinner" />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', padding: '16px' }}>
+              <PulseDots />
               <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Memproses login...</p>
             </div>
           ) : (
@@ -123,7 +148,7 @@ export default function LoginPage() {
 
           <div className="divider" style={{ margin: '28px 0' }} />
 
-          <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.78rem', lineHeight: 1.6 }}>
+          <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.78rem', lineHeight: 1.6, textAlign: 'center' }}>
             Dengan melanjutkan, kamu menyetujui syarat penggunaan exora.
             Data kamu aman dan tidak disebarkan.
           </p>
