@@ -64,16 +64,11 @@ export default function LandingPage() {
   return (
     <div style={{ minHeight: '100vh', fontFamily: PJS }}>
       <style>{`
-        .landing-body-text {
-          text-align: justify;
-          text-align-last: left;
-          -webkit-hyphens: auto;
-          hyphens: auto;
-        }
+        .landing-body-text { text-align: left; }
         .landing-center { text-align: center; }
         @media (max-width: 600px) {
           .section-pad { padding-top: 48px !important; padding-bottom: 48px !important; }
-          .hero-pad { padding-top: 110px !important; padding-bottom: 48px !important; }
+          .hero-pad { padding-top: 110px !important; padding-bottom: 24px !important; }
           .cta-pad { padding: 36px 20px !important; }
           .heading-sm { font-size: 1.5rem !important; }
           .heading-display { font-size: 1.7rem !important; white-space: normal !important; }
@@ -115,10 +110,9 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="hero-pad" style={{ paddingTop: 140, paddingBottom: 64, textAlign: 'center', position: 'relative' }}>
+      <section className="hero-pad" style={{ paddingTop: 140, paddingBottom: 24, textAlign: 'center', position: 'relative' }}>
         <div className="container-sm" style={{ animation: 'fadeIn 0.7s ease' }}>
 
-          {/* Badge — 2 baris: GRATIS • TANPA CODING / LANGSUNG ONLINE */}
           <div style={{
             display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
             padding: '8px 18px', borderRadius: 'var(--radius-full)',
@@ -180,7 +174,7 @@ export default function LandingPage() {
         </div>
 
         {/* Browser Mockup */}
-        <div style={{ marginTop: 56, padding: '0 16px' }}>
+        <div style={{ marginTop: 24, padding: '0 16px' }}>
           <div style={{
             maxWidth: 800, margin: '0 auto',
             background: 'linear-gradient(135deg, rgba(91,138,245,0.15) 0%, rgba(167,139,250,0.1) 100%)',
@@ -241,7 +235,7 @@ export default function LandingPage() {
             <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 8 }}>
               Semua yang kamu butuhkan
             </h2>
-            <p className="landing-body-text" style={{ fontFamily: PJS, color: 'var(--text-secondary)', textAlign: 'center' }}>
+            <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', textAlign: 'center' }}>
               Fitur lengkap, gratis, tanpa ribet.
             </p>
           </div>
@@ -291,7 +285,7 @@ export default function LandingPage() {
                 ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span className="landing-body-text" style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', textAlign: 'left' }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -347,7 +341,7 @@ export default function LandingPage() {
                 ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span className="landing-body-text" style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)' }}>{f}</span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', textAlign: 'left' }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -447,7 +441,7 @@ export default function LandingPage() {
             }}>
               Mulai jualan sekarang
             </h2>
-            <p className="landing-body-text" style={{
+            <p style={{
               fontFamily: PJS, color: 'var(--text-secondary)', marginBottom: 28,
               maxWidth: 340, margin: '0 auto 28px',
               textAlign: 'center',
