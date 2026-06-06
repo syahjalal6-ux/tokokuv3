@@ -60,10 +60,16 @@ export default function UpgradePage() {
               UPGRADE KE PRO
             </span>
           </div>
-          <h1 className="text-display gradient-text" style={{ fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 12 }}>
+          <h1 className="text-display gradient-text" style={{
+            fontSize: 'clamp(1.1rem, 4vw, 2.2rem)',
+            marginBottom: 12,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          }}>
             Bisnis kamu layak mendapat yang terbaik
           </h1>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7, fontSize: 'clamp(0.85rem, 2vw, 1rem)', textAlign: 'left' }}>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7, fontSize: 'clamp(0.85rem, 2vw, 1rem)', textAlign: 'center' }}>
             Satu langkah kecil ke Pro, tapi dampaknya besar untuk bisnismu.
           </p>
         </div>
@@ -165,7 +171,7 @@ export default function UpgradePage() {
                   {s.step}
                 </div>
                 <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 4 }}>{s.title}</p>
-                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', lineHeight: 1.5, textAlign: 'left' }}>{s.desc}</p>
+                <p style={{ color: 'var(--text-tertiary)', fontSize: '0.75rem', lineHeight: 1.5, textAlign: 'center' }}>{s.desc}</p>
               </div>
             ))}
           </div>
