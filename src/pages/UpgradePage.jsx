@@ -67,7 +67,7 @@ export default function UpgradePage() {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
           }}>
-            Bisnis kamu layak mendapat yang terbaik
+            Waktunya bisnis kamu naik level
           </h1>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 440, margin: '0 auto', lineHeight: 1.7, fontSize: 'clamp(0.85rem, 2vw, 1rem)', textAlign: 'center' }}>
             Satu langkah kecil ke Pro, tapi dampaknya besar untuk bisnismu.
