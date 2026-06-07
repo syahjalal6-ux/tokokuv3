@@ -14,6 +14,7 @@ import UpgradePage from './pages/UpgradePage.jsx'
 import StorefrontPage from './pages/StorefrontPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
+import AnalyticsPage from './pages/AnalyticsPage.jsx'
 
 const ExoraIcon = () => (
   <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,12 +36,14 @@ function PrivateRoute({ children }) {
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return children
 }
+
 function PublicRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuthStore()
   if (isLoading) return <AppLoader />
   if (isAuthenticated) return <Navigate to="/dashboard" replace />
   return children
 }
+
 function AppLoader() {
   return (
     <div style={{
@@ -62,11 +65,13 @@ function AppLoader() {
     </div>
   )
 }
+
 export default function App() {
   const init = useAuthStore(s => s.init)
   useEffect(() => {
     init()
   }, [init])
+
   return (
     <BrowserRouter>
       <div className="bg-mesh">
@@ -92,16 +97,21 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+
         {/* Storefront publik */}
         <Route path="/toko/:slug" element={<StorefrontPage />} />
+
         {/* Private (seller) */}
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
         <Route path="/dashboard/produk" element={<PrivateRoute><ProdukPage /></PrivateRoute>} />
         <Route path="/dashboard/pesanan" element={<PrivateRoute><PesananPage /></PrivateRoute>} />
+        <Route path="/dashboard/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
         <Route path="/dashboard/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
         <Route path="/dashboard/upgrade" element={<PrivateRoute><UpgradePage /></PrivateRoute>} />
+
         {/* Admin */}
         <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
+
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
