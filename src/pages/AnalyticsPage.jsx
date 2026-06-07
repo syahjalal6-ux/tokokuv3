@@ -370,9 +370,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
   )
 }
 
-// CHART_HEIGHT harus sama antara bar container dan posisi tooltip
-const CHART_HEIGHT = 140
-
 function BarChartCustom({ data, maxVal, globalMax }) {
   const [tooltip, setTooltip] = useState(null)
   if (!data || data.length === 0) return null
@@ -382,44 +379,52 @@ function BarChartCustom({ data, maxVal, globalMax }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-      {/* Wrapper bars + tooltip — position relative agar tooltip bisa absolute di tengah */}
+      {/* Bar area + tooltip overlay */}
       <div style={{ position: 'relative' }}>
 
-        {/* Tooltip — ditaruh di tengah chart secara vertikal & horizontal mengikuti bar */}
+        {/* Tooltip popup — fade in + scale, posisi tengah chart */}
         {tooltip !== null && (
-          <div style={{
-            position: 'absolute',
-            // Tengah vertikal dari chart bar area
-            top: '50%',
-            transform: 'translateY(-50%)',
-            // Tengah horizontal mengikuti bar yang dipilih
-            left: `calc(${(tooltip + 0.5) / data.length * 100}%)`,
-            marginLeft: '-48px',
-            background: 'var(--surface-active)',
-            border: '1px solid var(--glass-border-hover)',
-            borderRadius: 'var(--radius-md)',
-            padding: '6px 10px',
-            whiteSpace: 'nowrap',
-            zIndex: 10,
-            pointerEvents: 'none',
-            minWidth: 96,
-            textAlign: 'center',
-          }}>
-            <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>
+          <div
+            key={tooltip}
+            style={{
+              position: 'absolute',
+              top: '50%',
+              left: `clamp(60px, calc(${(tooltip + 0.5) / data.length * 100}%), calc(100% - 60px))`,
+              transform: 'translate(-50%, -50%)',
+              background: 'linear-gradient(135deg, rgba(30,32,48,0.98) 0%, rgba(20,22,36,0.98) 100%)',
+              border: '1px solid rgba(167,139,250,0.35)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '10px 14px',
+              whiteSpace: 'nowrap',
+              zIndex: 20,
+              pointerEvents: 'none',
+              textAlign: 'center',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(167,139,250,0.1)',
+              animation: 'tooltipPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+            }}
+          >
+            <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               {data[tooltip]?.label}
             </p>
-            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: maxVal > 0 && data[tooltip]?.total === maxVal ? 'var(--warning)' : 'var(--text-primary)' }}>
+            <p style={{
+              fontSize: '0.92rem', fontWeight: 800,
+              fontFamily: 'var(--font-display)',
+              color: maxVal > 0 && data[tooltip]?.total === maxVal && data[tooltip]?.total > 0
+                ? '#fbbf24'
+                : 'var(--text-primary)',
+            }}>
               {formatRupiah(data[tooltip]?.total || 0)}
             </p>
           </div>
         )}
 
         {/* Bars */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: CHART_HEIGHT }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140 }}>
           {data.map((d, i) => {
             const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
             const isHighest = maxVal > 0 && d.total === maxVal && d.total > 0
             const isEmpty = d.total === 0
+            const isActive = tooltip === i
             return (
               <div
                 key={i}
@@ -434,9 +439,9 @@ function BarChartCustom({ data, maxVal, globalMax }) {
                     position: 'absolute',
                     bottom: `${Math.max(pct, 2)}%`,
                     left: '50%', transform: 'translateX(-50%) translateY(-4px)',
-                    background: 'var(--warning)', borderRadius: '50%',
+                    background: '#fbbf24', borderRadius: '50%',
                     width: 6, height: 6,
-                    boxShadow: '0 0 6px rgba(251,191,36,0.6)',
+                    boxShadow: '0 0 8px rgba(251,191,36,0.7)',
                   }} />
                 )}
                 {/* Bar */}
@@ -449,8 +454,9 @@ function BarChartCustom({ data, maxVal, globalMax }) {
                       ? 'rgba(91,138,245,0.1)'
                       : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
                   borderRadius: '3px 3px 0 0',
-                  transition: 'height 0.5s ease',
-                  boxShadow: isHighest ? '0 0 8px rgba(251,191,36,0.35)' : 'none',
+                  transition: 'height 0.5s ease, opacity 0.15s ease',
+                  opacity: tooltip !== null && !isActive ? 0.45 : 1,
+                  boxShadow: isHighest ? '0 0 10px rgba(251,191,36,0.4)' : 'none',
                 }} />
               </div>
             )
@@ -458,7 +464,15 @@ function BarChartCustom({ data, maxVal, globalMax }) {
         </div>
       </div>
 
-      {/* X-axis labels — tepat di bawah bar */}
+      {/* CSS animation keyframes via style tag */}
+      <style>{`
+        @keyframes tooltipPop {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
+          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+      `}</style>
+
+      {/* X-axis labels */}
       <div style={{ display: 'flex', gap: 4 }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
@@ -470,6 +484,7 @@ function BarChartCustom({ data, maxVal, globalMax }) {
               display: 'block',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
+              transition: 'color 0.15s, font-weight 0.15s',
             }}>
               {d.label}
             </span>
@@ -477,17 +492,22 @@ function BarChartCustom({ data, maxVal, globalMax }) {
         ))}
       </div>
 
-      {/* Stats bawah */}
-      <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
-        <div>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Tertinggi</p>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--warning)' }}>{formatRupiah(maxVal)}</p>
+      {/* Divider */}
+      <div style={{ height: 1, background: 'var(--glass-border)', margin: '8px 0 4px' }} />
+
+      {/* Stats bawah — dengan spacing yang cukup */}
+      <div style={{ display: 'flex', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tertinggi</p>
+          <p style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fbbf24', fontFamily: 'var(--font-display)' }}>{formatRupiah(maxVal)}</p>
         </div>
-        <div>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Total Periode</p>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent)' }}>{formatRupiah(totalPeriod)}</p>
+        <div style={{ width: 1, background: 'var(--glass-border)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Periode</p>
+          <p style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>{formatRupiah(totalPeriod)}</p>
         </div>
       </div>
+
     </div>
   )
 }
