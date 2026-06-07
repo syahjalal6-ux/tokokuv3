@@ -183,6 +183,16 @@ function shortenMonthLabel(label = '') {
   return monthMap[word] || label.slice(0, 3)
 }
 
+// Status pesanan config — semua pakai rgba hardcoded, konsisten
+const STATUS_PESANAN = [
+  { key: 'pesananPending',    label: 'Menunggu',    color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',   border: 'rgba(245,158,11,0.18)'   },
+  { key: 'pesananConfirmed',  label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)',  border: 'rgba(91,138,245,0.18)'   },
+  { key: 'pesananProcessing', label: 'Diproses',    color: '#a78bfa', bg: 'rgba(167,139,250,0.08)',  border: 'rgba(167,139,250,0.18)'  },
+  { key: 'pesananShipped',    label: 'Dikirim',     color: '#38bdf8', bg: 'rgba(56,189,248,0.08)',   border: 'rgba(56,189,248,0.18)'   },
+  { key: 'pesananSelesai',    label: 'Selesai',     color: '#34d399', bg: 'rgba(52,211,153,0.08)',   border: 'rgba(52,211,153,0.18)'   },
+  { key: 'pesananCancelled',  label: 'Dibatalkan',  color: '#f87171', bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.18)'  },
+]
+
 function AnalyticsContent({ data, period, setPeriod }) {
   const {
     totalProduk = 0, produkAktif = 0,
@@ -343,26 +353,36 @@ function AnalyticsContent({ data, period, setPeriod }) {
       <div className="glass-card" style={{ padding: '20px' }}>
         <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>Status Pesanan</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {[
-            { label: 'Menunggu', value: data.pesananPending || 0, color: 'var(--warning)' },
-            { label: 'Dikonfirmasi', value: data.pesananConfirmed || 0, color: 'var(--accent)' },
-            { label: 'Diproses', value: data.pesananProcessing || 0, color: 'var(--accent-3)' },
-            { label: 'Dikirim', value: data.pesananShipped || 0, color: '#38bdf8' },
-            { label: 'Selesai', value: data.pesananSelesai || 0, color: 'var(--success)' },
-            { label: 'Dibatalkan', value: data.pesananCancelled || 0, color: 'var(--danger)' },
-          ].map(s => (
-            <div key={s.label} style={{
-              padding: '12px', borderRadius: 'var(--radius-lg)',
-              background: `${s.color}10`, border: `1px solid ${s.color}20`,
-              display: 'flex', flexDirection: 'column', gap: 2,
-            }}>
-              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</p>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: s.color }}>{s.value}</p>
-              {totalPesanan > 0 && (
-                <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>{Math.round((s.value / totalPesanan) * 100)}%</p>
-              )}
-            </div>
-          ))}
+          {STATUS_PESANAN.map(s => {
+            const value = data[s.key] || 0
+            return (
+              <div key={s.key} style={{
+                padding: '12px',
+                borderRadius: 'var(--radius-lg)',
+                background: s.bg,
+                border: `1px solid ${s.border}`,
+                display: 'flex', flexDirection: 'column', gap: 2,
+              }}>
+                <p style={{
+                  fontSize: '0.65rem', color: 'var(--text-tertiary)',
+                  fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
+                }}>
+                  {s.label}
+                </p>
+                <p style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 800,
+                  fontSize: '1.3rem', color: s.color,
+                }}>
+                  {value}
+                </p>
+                {totalPesanan > 0 && (
+                  <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
+                    {Math.round((value / totalPesanan) * 100)}%
+                  </p>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 
@@ -371,7 +391,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
 }
 
 function BarChartCustom({ data, maxVal, globalMax }) {
-  // Selected bar index (click-based, not hover)
   const [selected, setSelected] = useState(null)
 
   if (!data || data.length === 0) return null
@@ -384,7 +403,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
     setSelected(prev => prev === i ? null : i)
   }
 
-  // Reset selection when data changes (period/offset change)
   useEffect(() => { setSelected(null) }, [data])
 
   return (
@@ -408,7 +426,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
               }}
               onClick={() => handleBarClick(i)}
             >
-              {/* Dot tertinggi */}
               {isHighest && (
                 <div style={{
                   position: 'absolute',
@@ -419,7 +436,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
                   boxShadow: '0 0 8px rgba(251,191,36,0.7)',
                 }} />
               )}
-              {/* Bar */}
               <div style={{
                 width: '100%', minWidth: 4,
                 height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
@@ -429,7 +445,7 @@ function BarChartCustom({ data, maxVal, globalMax }) {
                     ? 'rgba(91,138,245,0.1)'
                     : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
                 borderRadius: '3px 3px 0 0',
-                transition: 'height 0.5s ease, opacity 0.15s ease, outline 0.1s ease',
+                transition: 'height 0.5s ease, opacity 0.15s ease',
                 opacity: selected !== null && !isActive ? 0.4 : 1,
                 boxShadow: isHighest ? '0 0 10px rgba(251,191,36,0.4)' : 'none',
                 outline: isActive ? '2px solid rgba(167,139,250,0.6)' : 'none',
@@ -520,56 +536,36 @@ function BarChartCustom({ data, maxVal, globalMax }) {
       {/* Stats bawah — 2 kolom equal width */}
       <div style={{ display: 'flex', gap: 0 }}>
         <div style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
+          flex: 1, minWidth: 0,
+          display: 'flex', flexDirection: 'column', gap: 3,
           paddingRight: 12,
         }}>
-          <p style={{
-            fontSize: '0.68rem', color: 'var(--text-tertiary)',
-            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-          }}>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Tertinggi
           </p>
           <p style={{
-            fontWeight: 800,
-            fontFamily: 'var(--font-display)',
-            color: '#fbbf24',
-            // Dynamic font size: shorten if value string is long
+            fontWeight: 800, fontFamily: 'var(--font-display)', color: '#fbbf24',
             fontSize: formatRupiah(maxVal).length > 12 ? '0.75rem' : '0.88rem',
-            wordBreak: 'break-all',
-            lineHeight: 1.2,
+            wordBreak: 'break-all', lineHeight: 1.2,
           }}>
             {formatRupiah(maxVal)}
           </p>
         </div>
 
-        {/* Divider vertikal */}
         <div style={{ width: 1, background: 'var(--glass-border)', flexShrink: 0 }} />
 
         <div style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
+          flex: 1, minWidth: 0,
+          display: 'flex', flexDirection: 'column', gap: 3,
           paddingLeft: 12,
         }}>
-          <p style={{
-            fontSize: '0.68rem', color: 'var(--text-tertiary)',
-            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-          }}>
+          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Total Periode
           </p>
           <p style={{
-            fontWeight: 800,
-            fontFamily: 'var(--font-display)',
-            color: 'var(--accent)',
+            fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--accent)',
             fontSize: formatRupiah(totalPeriod).length > 12 ? '0.75rem' : '0.88rem',
-            wordBreak: 'break-all',
-            lineHeight: 1.2,
+            wordBreak: 'break-all', lineHeight: 1.2,
           }}>
             {formatRupiah(totalPeriod)}
           </p>
