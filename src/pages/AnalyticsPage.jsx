@@ -45,12 +45,7 @@ function AnalyticsGate() {
             Pantau performa toko kamu: revenue, produk terlaris, tren pesanan, dan lebih banyak lagi.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
-            {[
-              'Grafik revenue mingguan & bulanan',
-              'Produk terlaris',
-              'Statistik pesanan lengkap',
-              'Export data ke Excel',
-            ].map(f => (
+            {['Grafik revenue mingguan & bulanan','Produk terlaris','Statistik pesanan lengkap','Export data ke Excel'].map(f => (
               <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
                 {f}
@@ -375,59 +370,102 @@ function AnalyticsContent({ data, period, setPeriod }) {
   )
 }
 
+// CHART_HEIGHT harus sama antara bar container dan posisi tooltip
+const CHART_HEIGHT = 140
+
 function BarChartCustom({ data, maxVal, globalMax }) {
+  const [tooltip, setTooltip] = useState(null)
   if (!data || data.length === 0) return null
+
   const totalPeriod = data.reduce((s, d) => s + (d.total || 0), 0)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-      {/* Bars */}
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140 }}>
-        {data.map((d, i) => {
-          const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
-          const isHighest = maxVal > 0 && d.total === maxVal && d.total > 0
-          const isEmpty = d.total === 0
-          return (
-            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', position: 'relative' }}>
-              {/* Dot tertinggi */}
-              {isHighest && (
+      {/* Wrapper bars + tooltip — position relative agar tooltip bisa absolute di tengah */}
+      <div style={{ position: 'relative' }}>
+
+        {/* Tooltip — ditaruh di tengah chart secara vertikal & horizontal mengikuti bar */}
+        {tooltip !== null && (
+          <div style={{
+            position: 'absolute',
+            // Tengah vertikal dari chart bar area
+            top: '50%',
+            transform: 'translateY(-50%)',
+            // Tengah horizontal mengikuti bar yang dipilih
+            left: `calc(${(tooltip + 0.5) / data.length * 100}%)`,
+            marginLeft: '-48px',
+            background: 'var(--surface-active)',
+            border: '1px solid var(--glass-border-hover)',
+            borderRadius: 'var(--radius-md)',
+            padding: '6px 10px',
+            whiteSpace: 'nowrap',
+            zIndex: 10,
+            pointerEvents: 'none',
+            minWidth: 96,
+            textAlign: 'center',
+          }}>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>
+              {data[tooltip]?.label}
+            </p>
+            <p style={{ fontSize: '0.78rem', fontWeight: 700, color: maxVal > 0 && data[tooltip]?.total === maxVal ? 'var(--warning)' : 'var(--text-primary)' }}>
+              {formatRupiah(data[tooltip]?.total || 0)}
+            </p>
+          </div>
+        )}
+
+        {/* Bars */}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: CHART_HEIGHT }}>
+          {data.map((d, i) => {
+            const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
+            const isHighest = maxVal > 0 && d.total === maxVal && d.total > 0
+            const isEmpty = d.total === 0
+            return (
+              <div
+                key={i}
+                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', position: 'relative', cursor: 'pointer' }}
+                onMouseEnter={() => setTooltip(i)}
+                onMouseLeave={() => setTooltip(null)}
+                onTouchStart={(e) => { e.preventDefault(); setTooltip(tooltip === i ? null : i) }}
+              >
+                {/* Dot tertinggi */}
+                {isHighest && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: `${Math.max(pct, 2)}%`,
+                    left: '50%', transform: 'translateX(-50%) translateY(-4px)',
+                    background: 'var(--warning)', borderRadius: '50%',
+                    width: 6, height: 6,
+                    boxShadow: '0 0 6px rgba(251,191,36,0.6)',
+                  }} />
+                )}
+                {/* Bar */}
                 <div style={{
-                  position: 'absolute', top: `${100 - Math.max(pct, 2)}%`,
-                  left: '50%', transform: 'translate(-50%, -6px)',
-                  background: 'var(--warning)', borderRadius: '50%',
-                  width: 6, height: 6,
-                  boxShadow: '0 0 6px rgba(251,191,36,0.6)',
+                  width: '100%', minWidth: 4,
+                  height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
+                  background: isHighest
+                    ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
+                    : isEmpty
+                      ? 'rgba(91,138,245,0.1)'
+                      : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
+                  borderRadius: '3px 3px 0 0',
+                  transition: 'height 0.5s ease',
+                  boxShadow: isHighest ? '0 0 8px rgba(251,191,36,0.35)' : 'none',
                 }} />
-              )}
-              {/* Bar */}
-              <div style={{
-                width: '100%', minWidth: 4,
-                height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
-                background: isHighest
-                  ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
-                  : isEmpty
-                    ? 'rgba(91,138,245,0.1)'
-                    : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
-                borderRadius: '3px 3px 0 0',
-                transition: 'height 0.5s ease',
-                boxShadow: isHighest ? '0 0 8px rgba(251,191,36,0.35)' : 'none',
-              }} />
-            </div>
-          )
-        })}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* Garis pemisah tipis */}
-      <div style={{ height: 1, background: 'var(--glass-border)', margin: '8px 0' }} />
-
-      {/* X-axis labels — di tengah antara bar dan stats */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+      {/* X-axis labels — tepat di bawah bar */}
+      <div style={{ display: 'flex', gap: 4 }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
             <span style={{
               fontSize: '0.6rem',
-              color: 'var(--text-secondary)',
+              color: tooltip === i ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: tooltip === i ? 700 : 400,
               whiteSpace: 'nowrap',
               display: 'block',
               overflow: 'hidden',
@@ -440,7 +478,7 @@ function BarChartCustom({ data, maxVal, globalMax }) {
       </div>
 
       {/* Stats bawah */}
-      <div style={{ display: 'flex', gap: 16, paddingTop: 4, borderTop: '1px solid var(--glass-border)' }}>
+      <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
         <div>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Tertinggi</p>
           <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--warning)' }}>{formatRupiah(maxVal)}</p>
