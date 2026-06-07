@@ -91,7 +91,6 @@ function AnalyticsDashboard({ token }) {
     try {
       const wb = XLSX.utils.book_new()
 
-      // Sheet 1: Ringkasan
       const ringkasan = [
         ['Ringkasan Analytics'],
         [''],
@@ -103,19 +102,16 @@ function AnalyticsDashboard({ token }) {
       ]
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ringkasan), 'Ringkasan')
 
-      // Sheet 2: Top Produk
       if (data.topProduk?.length > 0) {
         const topRows = [['Produk', 'Qty Terjual'], ...data.topProduk.map(p => [p.nama, p.qty])]
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(topRows), 'Top Produk')
       }
 
-      // Sheet 3: Revenue Harian
       if (data.revenueHarian?.length > 0) {
         const harianRows = [['Tanggal', 'Revenue'], ...data.revenueHarian.map(d => [d.label, d.total])]
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(harianRows), 'Revenue Harian')
       }
 
-      // Sheet 4: Revenue Bulanan
       if (data.revenueBulanan?.length > 0) {
         const bulananRows = [['Bulan', 'Revenue'], ...data.revenueBulanan.map(d => [d.label, d.total])]
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bulananRows), 'Revenue Bulanan')
@@ -147,7 +143,9 @@ function AnalyticsDashboard({ token }) {
         </div>
       }
     >
-      {loading ? <AnalyticsSkeleton /> : data ? <AnalyticsContent data={data} period={period} setPeriod={setPeriod} /> : (
+      {loading ? <AnalyticsSkeleton /> : data ? (
+        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} />
+      ) : (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
           <BarChart2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
           <p>Belum ada data analytics</p>
@@ -170,96 +168,95 @@ function AnalyticsContent({ data, period, setPeriod }) {
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.total || 0)) : 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* KPI cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
-        <KpiCard label="Total Revenue" value={formatRupiah(totalRevenue)} icon={<DollarSign size={16} />} color="var(--success)" sub="dari pesanan selesai" />
-        <KpiCard label="Total Pesanan" value={totalPesanan} icon={<ShoppingBag size={16} />} color="var(--accent)" sub={`${pesananPending} menunggu konfirmasi`} />
-        <KpiCard label="Pesanan Selesai" value={pesananSelesai} icon={<TrendingUp size={16} />} color="var(--warning)" sub={`${conversionRate}% conversion rate`} />
-        <KpiCard label="Produk Aktif" value={`${produkAktif}/${totalProduk}`} icon={<Package size={16} />} color="var(--accent-3)" sub="produk ditampilkan" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+        <KpiCard label="Total Revenue" value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" />
+        <KpiCard label="Total Pesanan" value={totalPesanan} icon={<ShoppingBag size={15} />} color="var(--accent)" sub={`${pesananPending} menunggu`} />
+        <KpiCard label="Pesanan Selesai" value={pesananSelesai} icon={<TrendingUp size={15} />} color="var(--warning)" sub={`${conversionRate}% conversion`} />
+        <KpiCard label="Produk Aktif" value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" />
       </div>
 
-      {/* Revenue chart + top produk */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>Revenue</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{period === 'hari' ? '30 hari terakhir' : '12 bulan terakhir'}</p>
-            </div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              {['hari', 'bulan'].map(p => (
-                <button key={p} onClick={() => setPeriod(p)} className="btn btn-sm" style={{
-                  borderRadius: 'var(--radius-full)', fontSize: '0.72rem', padding: '4px 10px',
-                  background: period === p ? 'var(--surface-active)' : 'var(--surface)',
-                  color: period === p ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  border: `1px solid ${period === p ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
-                }}>
-                  {p === 'hari' ? 'Harian' : 'Bulanan'}
-                </button>
-              ))}
-            </div>
+      {/* Revenue chart */}
+      <div className="glass-card" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+          <div>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>Revenue</h3>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{period === 'hari' ? '30 hari terakhir' : '12 bulan terakhir'}</p>
           </div>
-          {chartData.length > 0 ? (
-            <BarChartCustom data={chartData} maxVal={maxRevenue} />
-          ) : (
-            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
-              <BarChart2 size={32} style={{ opacity: 0.3 }} />
-              <p style={{ fontSize: '0.82rem' }}>Belum ada data revenue</p>
-            </div>
-          )}
+          <div style={{ display: 'flex', gap: 4 }}>
+            {['hari', 'bulan'].map(p => (
+              <button key={p} onClick={() => setPeriod(p)} className="btn btn-sm" style={{
+                borderRadius: 'var(--radius-full)', fontSize: '0.72rem', padding: '4px 10px',
+                background: period === p ? 'var(--surface-active)' : 'var(--surface)',
+                color: period === p ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                border: `1px solid ${period === p ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
+              }}>
+                {p === 'hari' ? 'Harian' : 'Bulanan'}
+              </button>
+            ))}
+          </div>
         </div>
+        {chartData.length > 0 ? (
+          <BarChartCustom data={chartData} maxVal={maxRevenue} />
+        ) : (
+          <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
+            <BarChart2 size={32} style={{ opacity: 0.3 }} />
+            <p style={{ fontSize: '0.82rem' }}>Belum ada data revenue</p>
+          </div>
+        )}
+      </div>
 
-        <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
-            <Award size={16} color="var(--warning)" />
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem' }}>Produk Terlaris</h3>
-          </div>
-          {topProduk.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {topProduk.map((p, i) => {
-                const maxQty = topProduk[0].qty
-                const pct = Math.round((p.qty / maxQty) * 100)
-                return (
-                  <div key={i}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{
-                          width: 20, height: 20, borderRadius: '50%',
-                          background: i === 0 ? 'var(--accent-gradient)' : 'var(--surface)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '0.65rem', fontWeight: 800,
-                          color: i === 0 ? '#fff' : 'var(--text-tertiary)', flexShrink: 0,
-                        }}>{i + 1}</span>
-                        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.nama}</span>
-                      </div>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>×{p.qty}</span>
-                    </div>
-                    <div style={{ height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', width: `${pct}%`,
-                        background: i === 0 ? 'var(--accent-gradient)' : 'rgba(91,138,245,0.4)',
-                        borderRadius: 2, transition: 'width 0.6s ease',
-                      }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)' }}>
-              <Award size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
-              <p style={{ fontSize: '0.82rem' }}>Belum ada data</p>
-            </div>
-          )}
+      {/* Top produk */}
+      <div className="glass-card" style={{ padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <Award size={16} color="var(--warning)" />
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem' }}>Produk Terlaris</h3>
         </div>
+        {topProduk.length > 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {topProduk.map((p, i) => {
+              const maxQty = topProduk[0].qty
+              const pct = Math.round((p.qty / maxQty) * 100)
+              return (
+                <div key={i}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        width: 20, height: 20, borderRadius: '50%',
+                        background: i === 0 ? 'var(--accent-gradient)' : 'var(--surface)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.65rem', fontWeight: 800,
+                        color: i === 0 ? '#fff' : 'var(--text-tertiary)', flexShrink: 0,
+                      }}>{i + 1}</span>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.nama}</span>
+                    </div>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>×{p.qty}</span>
+                  </div>
+                  <div style={{ height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
+                    <div style={{
+                      height: '100%', width: `${pct}%`,
+                      background: i === 0 ? 'var(--accent-gradient)' : 'rgba(91,138,245,0.4)',
+                      borderRadius: 2, transition: 'width 0.6s ease',
+                    }} />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)' }}>
+            <Award size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+            <p style={{ fontSize: '0.82rem' }}>Belum ada data</p>
+          </div>
+        )}
       </div>
 
       {/* Status Pesanan */}
-      <div className="glass-card" style={{ padding: '24px' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 18 }}>Status Pesanan</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+      <div className="glass-card" style={{ padding: '20px' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>Status Pesanan</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {[
             { label: 'Menunggu', value: data.pesananPending || 0, color: 'var(--warning)' },
             { label: 'Dikonfirmasi', value: data.pesananConfirmed || 0, color: 'var(--accent)' },
@@ -269,19 +266,20 @@ function AnalyticsContent({ data, period, setPeriod }) {
             { label: 'Dibatalkan', value: data.pesananCancelled || 0, color: 'var(--danger)' },
           ].map(s => (
             <div key={s.label} style={{
-              padding: '14px 16px', borderRadius: 'var(--radius-lg)',
+              padding: '12px', borderRadius: 'var(--radius-lg)',
               background: `${s.color}10`, border: `1px solid ${s.color}20`,
-              display: 'flex', flexDirection: 'column', gap: 4,
+              display: 'flex', flexDirection: 'column', gap: 2,
             }}>
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</p>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.4rem', color: s.color }}>{s.value}</p>
+              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s.label}</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: s.color }}>{s.value}</p>
               {totalPesanan > 0 && (
-                <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>{Math.round((s.value / totalPesanan) * 100)}% dari total</p>
+                <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>{Math.round((s.value / totalPesanan) * 100)}%</p>
               )}
             </div>
           ))}
         </div>
       </div>
+
     </div>
   )
 }
@@ -290,13 +288,13 @@ function BarChartCustom({ data, maxVal }) {
   if (!data || data.length === 0) return null
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 160 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140 }}>
         {data.map((d, i) => {
           const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
           return (
             <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }} title={`${d.label}: ${formatRupiah(d.total)}`}>
               <div style={{
-                width: '100%', minWidth: 4,
+                width: '100%', minWidth: 3,
                 height: `${Math.max(pct, 2)}%`,
                 background: i === data.length - 1 ? 'var(--accent-gradient)' : `rgba(91,138,245,${0.25 + (pct / 100) * 0.45})`,
                 borderRadius: '3px 3px 0 0', transition: 'height 0.5s ease', cursor: 'pointer',
@@ -308,12 +306,12 @@ function BarChartCustom({ data, maxVal }) {
           )
         })}
       </div>
-      <div style={{ display: 'flex', gap: 4 }}>
+      <div style={{ display: 'flex', gap: 3 }}>
         {data.map((d, i) => {
-          const showLabel = data.length <= 12 || i % Math.ceil(data.length / 10) === 0 || i === data.length - 1
+          const showLabel = data.length <= 12 || i % Math.ceil(data.length / 8) === 0 || i === data.length - 1
           return (
             <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
-              {showLabel && <span style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{d.label}</span>}
+              {showLabel && <span style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{d.label}</span>}
             </div>
           )
         })}
@@ -334,27 +332,26 @@ function BarChartCustom({ data, maxVal }) {
 
 function KpiCard({ label, value, icon, color, sub }) {
   return (
-    <div className="glass-card" style={{ padding: '18px 20px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <p style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
-        <div style={{ width: 32, height: 32, borderRadius: 'var(--radius-md)', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>{icon}</div>
+    <div className="glass-card" style={{ padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
+        <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-md)', background: `${color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color }}>{icon}</div>
       </div>
-      <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.6rem', lineHeight: 1, color }}>{value}</p>
-      {sub && <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 6 }}>{sub}</p>}
+      <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.4rem', lineHeight: 1, color }}>{value}</p>
+      {sub && <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginTop: 5 }}>{sub}</p>}
     </div>
   )
 }
 
 function AnalyticsSkeleton() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
-        {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 90, borderRadius: 'var(--radius-xl)' }} />)}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+        {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)' }} />)}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
-        <div className="skeleton" style={{ height: 280, borderRadius: 'var(--radius-xl)' }} />
-        <div className="skeleton" style={{ height: 280, borderRadius: 'var(--radius-xl)' }} />
-      </div>
+      <div className="skeleton" style={{ height: 240, borderRadius: 'var(--radius-xl)' }} />
+      <div className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-xl)' }} />
+      <div className="skeleton" style={{ height: 180, borderRadius: 'var(--radius-xl)' }} />
     </div>
   )
 }
