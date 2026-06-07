@@ -371,106 +371,74 @@ function AnalyticsContent({ data, period, setPeriod }) {
 }
 
 function BarChartCustom({ data, maxVal, globalMax }) {
-  const [tooltip, setTooltip] = useState(null)
+  // Selected bar index (click-based, not hover)
+  const [selected, setSelected] = useState(null)
+
   if (!data || data.length === 0) return null
 
   const totalPeriod = data.reduce((s, d) => s + (d.total || 0), 0)
+  const selectedItem = selected !== null ? data[selected] : null
+  const isHighestSelected = selectedItem && maxVal > 0 && selectedItem.total === maxVal && selectedItem.total > 0
+
+  const handleBarClick = (i) => {
+    setSelected(prev => prev === i ? null : i)
+  }
+
+  // Reset selection when data changes (period/offset change)
+  useEffect(() => { setSelected(null) }, [data])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 
-      {/* Bar area + tooltip overlay */}
-      <div style={{ position: 'relative' }}>
+      {/* Bars */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140 }}>
+        {data.map((d, i) => {
+          const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
+          const isHighest = maxVal > 0 && d.total === maxVal && d.total > 0
+          const isEmpty = d.total === 0
+          const isActive = selected === i
 
-        {/* Tooltip popup — fade in + scale, posisi tengah chart */}
-        {tooltip !== null && (
-          <div
-            key={tooltip}
-            style={{
-              position: 'absolute',
-              top: '50%',
-              left: `clamp(60px, calc(${(tooltip + 0.5) / data.length * 100}%), calc(100% - 60px))`,
-              transform: 'translate(-50%, -50%)',
-              background: 'linear-gradient(135deg, rgba(30,32,48,0.98) 0%, rgba(20,22,36,0.98) 100%)',
-              border: '1px solid rgba(167,139,250,0.35)',
-              borderRadius: 'var(--radius-lg)',
-              padding: '10px 14px',
-              whiteSpace: 'nowrap',
-              zIndex: 20,
-              pointerEvents: 'none',
-              textAlign: 'center',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(167,139,250,0.1)',
-              animation: 'tooltipPop 0.18s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-            }}
-          >
-            <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', marginBottom: 4, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              {data[tooltip]?.label}
-            </p>
-            <p style={{
-              fontSize: '0.92rem', fontWeight: 800,
-              fontFamily: 'var(--font-display)',
-              color: maxVal > 0 && data[tooltip]?.total === maxVal && data[tooltip]?.total > 0
-                ? '#fbbf24'
-                : 'var(--text-primary)',
-            }}>
-              {formatRupiah(data[tooltip]?.total || 0)}
-            </p>
-          </div>
-        )}
-
-        {/* Bars */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140 }}>
-          {data.map((d, i) => {
-            const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
-            const isHighest = maxVal > 0 && d.total === maxVal && d.total > 0
-            const isEmpty = d.total === 0
-            const isActive = tooltip === i
-            return (
-              <div
-                key={i}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', position: 'relative', cursor: 'pointer' }}
-                onMouseEnter={() => setTooltip(i)}
-                onMouseLeave={() => setTooltip(null)}
-                onTouchStart={(e) => { e.preventDefault(); setTooltip(tooltip === i ? null : i) }}
-              >
-                {/* Dot tertinggi */}
-                {isHighest && (
-                  <div style={{
-                    position: 'absolute',
-                    bottom: `${Math.max(pct, 2)}%`,
-                    left: '50%', transform: 'translateX(-50%) translateY(-4px)',
-                    background: '#fbbf24', borderRadius: '50%',
-                    width: 6, height: 6,
-                    boxShadow: '0 0 8px rgba(251,191,36,0.7)',
-                  }} />
-                )}
-                {/* Bar */}
+          return (
+            <div
+              key={i}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', height: '100%', justifyContent: 'flex-end',
+                position: 'relative', cursor: 'pointer',
+              }}
+              onClick={() => handleBarClick(i)}
+            >
+              {/* Dot tertinggi */}
+              {isHighest && (
                 <div style={{
-                  width: '100%', minWidth: 4,
-                  height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
-                  background: isHighest
-                    ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
-                    : isEmpty
-                      ? 'rgba(91,138,245,0.1)'
-                      : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
-                  borderRadius: '3px 3px 0 0',
-                  transition: 'height 0.5s ease, opacity 0.15s ease',
-                  opacity: tooltip !== null && !isActive ? 0.45 : 1,
-                  boxShadow: isHighest ? '0 0 10px rgba(251,191,36,0.4)' : 'none',
+                  position: 'absolute',
+                  bottom: `${Math.max(pct, 2)}%`,
+                  left: '50%', transform: 'translateX(-50%) translateY(-4px)',
+                  background: '#fbbf24', borderRadius: '50%',
+                  width: 6, height: 6,
+                  boxShadow: '0 0 8px rgba(251,191,36,0.7)',
                 }} />
-              </div>
-            )
-          })}
-        </div>
+              )}
+              {/* Bar */}
+              <div style={{
+                width: '100%', minWidth: 4,
+                height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
+                background: isHighest
+                  ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
+                  : isEmpty
+                    ? 'rgba(91,138,245,0.1)'
+                    : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
+                borderRadius: '3px 3px 0 0',
+                transition: 'height 0.5s ease, opacity 0.15s ease, outline 0.1s ease',
+                opacity: selected !== null && !isActive ? 0.4 : 1,
+                boxShadow: isHighest ? '0 0 10px rgba(251,191,36,0.4)' : 'none',
+                outline: isActive ? '2px solid rgba(167,139,250,0.6)' : 'none',
+                outlineOffset: '2px',
+              }} />
+            </div>
+          )
+        })}
       </div>
-
-      {/* CSS animation keyframes via style tag */}
-      <style>{`
-        @keyframes tooltipPop {
-          from { opacity: 0; transform: translate(-50%, -50%) scale(0.88); }
-          to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        }
-      `}</style>
 
       {/* X-axis labels */}
       <div style={{ display: 'flex', gap: 4 }}>
@@ -478,8 +446,8 @@ function BarChartCustom({ data, maxVal, globalMax }) {
           <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
             <span style={{
               fontSize: '0.6rem',
-              color: tooltip === i ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontWeight: tooltip === i ? 700 : 400,
+              color: selected === i ? 'var(--text-primary)' : 'var(--text-secondary)',
+              fontWeight: selected === i ? 700 : 400,
               whiteSpace: 'nowrap',
               display: 'block',
               overflow: 'hidden',
@@ -492,19 +460,119 @@ function BarChartCustom({ data, maxVal, globalMax }) {
         ))}
       </div>
 
-      {/* Divider */}
-      <div style={{ height: 1, background: 'var(--glass-border)', margin: '8px 0 4px' }} />
+      {/* Selected bar detail card */}
+      <div style={{
+        overflow: 'hidden',
+        maxHeight: selectedItem ? 80 : 0,
+        opacity: selectedItem ? 1 : 0,
+        transition: 'max-height 0.25s ease, opacity 0.2s ease',
+      }}>
+        {selectedItem && (
+          <div style={{
+            marginTop: 4,
+            padding: '12px 16px',
+            background: 'linear-gradient(135deg, rgba(30,32,48,0.95) 0%, rgba(20,22,36,0.95) 100%)',
+            border: '1px solid rgba(167,139,250,0.25)',
+            borderRadius: 'var(--radius-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {selectedItem.label}
+              </p>
+              <p style={{
+                fontFamily: 'var(--font-display)',
+                fontWeight: 800,
+                fontSize: '1rem',
+                color: isHighestSelected ? '#fbbf24' : 'var(--text-primary)',
+              }}>
+                {formatRupiah(selectedItem.total || 0)}
+              </p>
+            </div>
+            {isHighestSelected && (
+              <div style={{
+                fontSize: '0.62rem', fontWeight: 700,
+                color: '#fbbf24',
+                background: 'rgba(251,191,36,0.12)',
+                border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: 'var(--radius-full)',
+                padding: '3px 8px',
+                letterSpacing: '0.04em',
+                textTransform: 'uppercase',
+              }}>
+                Tertinggi
+              </div>
+            )}
+            {!isHighestSelected && maxVal > 0 && selectedItem.total > 0 && (
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+                {Math.round((selectedItem.total / maxVal) * 100)}% dari tertinggi
+              </p>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Stats bawah — dengan spacing yang cukup */}
-      <div style={{ display: 'flex', gap: 24 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tertinggi</p>
-          <p style={{ fontSize: '0.88rem', fontWeight: 800, color: '#fbbf24', fontFamily: 'var(--font-display)' }}>{formatRupiah(maxVal)}</p>
+      {/* Divider */}
+      <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
+
+      {/* Stats bawah — 2 kolom equal width */}
+      <div style={{ display: 'flex', gap: 0 }}>
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          paddingRight: 12,
+        }}>
+          <p style={{
+            fontSize: '0.68rem', color: 'var(--text-tertiary)',
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>
+            Tertinggi
+          </p>
+          <p style={{
+            fontWeight: 800,
+            fontFamily: 'var(--font-display)',
+            color: '#fbbf24',
+            // Dynamic font size: shorten if value string is long
+            fontSize: formatRupiah(maxVal).length > 12 ? '0.75rem' : '0.88rem',
+            wordBreak: 'break-all',
+            lineHeight: 1.2,
+          }}>
+            {formatRupiah(maxVal)}
+          </p>
         </div>
-        <div style={{ width: 1, background: 'var(--glass-border)' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Periode</p>
-          <p style={{ fontSize: '0.88rem', fontWeight: 800, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>{formatRupiah(totalPeriod)}</p>
+
+        {/* Divider vertikal */}
+        <div style={{ width: 1, background: 'var(--glass-border)', flexShrink: 0 }} />
+
+        <div style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          paddingLeft: 12,
+        }}>
+          <p style={{
+            fontSize: '0.68rem', color: 'var(--text-tertiary)',
+            fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
+          }}>
+            Total Periode
+          </p>
+          <p style={{
+            fontWeight: 800,
+            fontFamily: 'var(--font-display)',
+            color: 'var(--accent)',
+            fontSize: formatRupiah(totalPeriod).length > 12 ? '0.75rem' : '0.88rem',
+            wordBreak: 'break-all',
+            lineHeight: 1.2,
+          }}>
+            {formatRupiah(totalPeriod)}
+          </p>
         </div>
       </div>
 
