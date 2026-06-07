@@ -17,25 +17,31 @@ const STATUS_TABS = [
   { key: 'cancelled', label: 'Dibatalkan' },
 ]
 
+const STATUS_KETERANGAN = {
+  pending: 'Pesanan kamu sudah kami terima, segera kami proses ya!',
+  confirmed: 'Pesanan kamu sudah kami konfirmasi, sedang diproses!',
+  processing: 'Pesanan kamu sedang kami proses, mohon ditunggu ya!',
+  shipped: 'Pesanan kamu sudah dikirim, segera cek resi pengiriman ya!',
+  done: 'Pesanan kamu sudah selesai, terima kasih sudah berbelanja!',
+  cancelled: 'Mohon maaf, pesanan kamu dibatalkan. Silakan hubungi kami untuk info lebih lanjut.',
+}
+
 function generatePesananWAMessage(p) {
-  const statusLabel = PESANAN_STATUS[p.status]?.label || p.status
-  const keterangan = {
-    pending: 'Pesanan kamu sudah kami terima, segera kami proses ya! 🙏',
-    confirmed: 'Pesanan kamu sudah kami konfirmasi, sedang diproses! 🙏',
-    processing: 'Pesanan kamu sedang kami proses, mohon ditunggu ya! 🙏',
-    shipped: 'Pesanan kamu sudah dikirim, segera cek resi pengiriman ya! 🚚',
-    done: 'Pesanan kamu sudah selesai, terima kasih sudah berbelanja! 🎉',
-    cancelled: 'Mohon maaf, pesanan kamu dibatalkan. Silakan hubungi kami untuk info lebih lanjut.',
-  }
-  return `Halo ${p.buyerNama}, berikut info pesanan kamu:
-
-🛍️ *${p.produkNama}*
-📦 Qty: ${p.qty}
-💰 Total: ${formatRupiah(p.total)}
-📍 Alamat: ${p.buyerAlamat}${p.catatan ? '\n📝 Catatan: ' + p.catatan : ''}
-
-Status: *${statusLabel}*
-${keterangan[p.status] || ''}`
+  const statusLabel = PESANAN_STATUS[p.status] ? PESANAN_STATUS[p.status].label : p.status
+  const keterangan = STATUS_KETERANGAN[p.status] || ''
+  const lines = [
+    'Halo ' + p.buyerNama + ', berikut info pesanan kamu:',
+    '',
+    '*' + p.produkNama + '*',
+    'Qty: ' + p.qty,
+    'Total: ' + formatRupiah(p.total),
+    'Alamat: ' + p.buyerAlamat,
+  ]
+  if (p.catatan) lines.push('Catatan: ' + p.catatan)
+  lines.push('')
+  lines.push('Status: *' + statusLabel + '*')
+  if (keterangan) lines.push(keterangan)
+  return lines.join('\n')
 }
 
 function exportToExcel(pesanan) {
@@ -50,8 +56,10 @@ function exportToExcel(pesanan) {
     'Catatan', 'Produk', 'Total', 'Status'
   ])
 
-  pesanan.forEach(p => {
-    const produkList = (p.items || []).map(i => `${i.nama} x${i.qty}`).join('; ') || `${p.produkNama} x${p.qty}`
+  pesanan.forEach(function(p) {
+    const produkList = p.items && p.items.length
+      ? p.items.map(function(i) { return i.nama + ' x' + i.qty }).join('; ')
+      : (p.produkNama + ' x' + p.qty)
     rows.push([
       p.id || '',
       formatDateTime(p.createdAt),
@@ -61,20 +69,22 @@ function exportToExcel(pesanan) {
       p.catatan || '',
       produkList,
       p.total || 0,
-      PESANAN_STATUS[p.status]?.label || p.status || '',
+      PESANAN_STATUS[p.status] ? PESANAN_STATUS[p.status].label : (p.status || ''),
     ])
   })
 
-  const csv = rows.map(row =>
-    row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
-  ).join('\n')
+  const csv = rows.map(function(row) {
+    return row.map(function(cell) {
+      return '"' + String(cell).replace(/"/g, '""') + '"'
+    }).join(',')
+  }).join('\n')
 
   const BOM = '\uFEFF'
   const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `pesanan-${new Date().toISOString().slice(0, 10)}.csv`
+  a.download = 'pesanan-' + new Date().toISOString().slice(0, 10) + '.csv'
   a.click()
   URL.revokeObjectURL(url)
   toast.success('Data berhasil diekspor!')
@@ -117,7 +127,7 @@ export default function PesananPage() {
 
   const filtered = pesanan.filter(p => {
     const matchTab = activeTab === 'all' || p.status === activeTab
-    const matchSearch = !search || p.buyerNama?.toLowerCase().includes(search.toLowerCase()) || p.id?.includes(search)
+    const matchSearch = !search || (p.buyerNama && p.buyerNama.toLowerCase().includes(search.toLowerCase())) || (p.id && p.id.includes(search))
     return matchTab && matchSearch
   })
 
@@ -134,11 +144,10 @@ export default function PesananPage() {
   return (
     <DashboardLayout
       title="Pesanan"
-      subtitle={`${pesanan.filter(p => p.status === 'pending').length} menunggu konfirmasi`}
+      subtitle={pesanan.filter(p => p.status === 'pending').length + ' menunggu konfirmasi'}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-        {/* Tabs + Export */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: 4, flex: 1 }}>
             {STATUS_TABS.map(t => {
@@ -152,7 +161,7 @@ export default function PesananPage() {
                     flexShrink: 0,
                     background: activeTab === t.key ? 'var(--surface-active)' : 'var(--surface)',
                     color: activeTab === t.key ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    border: `1px solid ${activeTab === t.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
+                    border: '1px solid ' + (activeTab === t.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'),
                     borderRadius: 'var(--radius-full)',
                     gap: 6,
                   }}
@@ -182,7 +191,6 @@ export default function PesananPage() {
           </button>
         </div>
 
-        {/* Search */}
         <div style={{ position: 'relative', maxWidth: 400 }}>
           <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
           <input
@@ -194,7 +202,6 @@ export default function PesananPage() {
           />
         </div>
 
-        {/* Pesanan list */}
         {isLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {Array(5).fill(0).map((_, i) => (
@@ -204,7 +211,7 @@ export default function PesananPage() {
         ) : filtered.length === 0 ? (
           <EmptyState
             icon={<ShoppingBag size={28} />}
-            title={search ? 'Pesanan tidak ditemukan' : activeTab !== 'all' ? `Tidak ada pesanan ${STATUS_TABS.find(t => t.key === activeTab)?.label}` : 'Belum ada pesanan'}
+            title={search ? 'Pesanan tidak ditemukan' : activeTab !== 'all' ? 'Tidak ada pesanan ' + (STATUS_TABS.find(t => t.key === activeTab) || {}).label : 'Belum ada pesanan'}
             description={activeTab === 'all' ? 'Pesanan dari pembeli akan muncul di sini' : 'Coba tab lain'}
           />
         ) : (
@@ -223,16 +230,20 @@ function PesananCard({ pesanan: p, onStatusChange }) {
   const [expanded, setExpanded] = useState(false)
   const statusCfg = PESANAN_STATUS[p.status] || PESANAN_STATUS.pending
 
+  const dotColor = statusCfg.color === 'success' ? 'var(--success)'
+    : statusCfg.color === 'warning' ? 'var(--warning)'
+    : statusCfg.color === 'danger' ? 'var(--danger)'
+    : 'var(--accent)'
+
+  const waMessage = generatePesananWAMessage(p)
+
   return (
     <div className="glass-card" style={{ padding: '16px 20px', borderRadius: 'var(--radius-lg)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
         <div style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 7,
-          background: statusCfg.color === 'success' ? 'var(--success)'
-            : statusCfg.color === 'warning' ? 'var(--warning)'
-            : statusCfg.color === 'danger' ? 'var(--danger)'
-            : 'var(--accent)',
-          boxShadow: `0 0 6px ${statusCfg.color === 'success' ? 'var(--success)' : statusCfg.color === 'warning' ? 'var(--warning)' : 'var(--accent)'}`,
+          background: dotColor,
+          boxShadow: '0 0 6px ' + dotColor,
         }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -242,11 +253,11 @@ function PesananCard({ pesanan: p, onStatusChange }) {
                 {p.buyerNama || 'Pembeli'}
               </p>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                #{p.id?.slice(-8)} · {formatDateTime(p.createdAt)}
+                {'#' + (p.id ? p.id.slice(-8) : '-') + ' · ' + formatDateTime(p.createdAt)}
               </p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <span className={`badge badge-${statusCfg.color}`}>{statusCfg.label}</span>
+              <span className={'badge badge-' + statusCfg.color}>{statusCfg.label}</span>
               <button onClick={() => setExpanded(!expanded)} className="btn btn-ghost btn-icon btn-sm">
                 <ChevronDown size={15} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>
@@ -256,7 +267,7 @@ function PesananCard({ pesanan: p, onStatusChange }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: 8, flexWrap: 'wrap' }}>
             <p style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '0.95rem' }}>{formatRupiah(p.total)}</p>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
-              {p.produkNama ? `${p.produkNama} ×${p.qty}` : `${p.items?.length || 0} item`}
+              {p.produkNama ? (p.produkNama + ' x' + p.qty) : ((p.items ? p.items.length : 0) + ' item')}
             </p>
           </div>
         </div>
@@ -265,22 +276,17 @@ function PesananCard({ pesanan: p, onStatusChange }) {
       {expanded && (
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--glass-border)' }}>
 
-          {/* Items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 16 }}>
             {p.items && p.items.length > 0 ? (
               p.items.map((item, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {item.foto && (
-                      <img
-                        src={item.foto}
-                        alt={item.nama}
-                        style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}
-                      />
+                      <img src={item.foto} alt={item.nama} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />
                     )}
                     <div>
                       <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>{item.nama}</p>
-                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>× {item.qty}</p>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{'x ' + item.qty}</p>
                     </div>
                   </div>
                   <p style={{ fontSize: '0.82rem', fontWeight: 700, flexShrink: 0 }}>{formatRupiah(item.harga * item.qty)}</p>
@@ -290,30 +296,42 @@ function PesananCard({ pesanan: p, onStatusChange }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>{p.produkNama}</p>
-                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>× {p.qty}</p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{'x ' + p.qty}</p>
                 </div>
                 <p style={{ fontSize: '0.82rem', fontWeight: 700 }}>{formatRupiah(p.total)}</p>
               </div>
             ) : null}
           </div>
 
-          {/* Buyer info */}
           <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: 14, fontSize: '0.82rem' }}>
-            <p style={{ marginBottom: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>Nama:</span> {p.buyerNama}</p>
-            <p style={{ marginBottom: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>WA:</span> {p.buyerWa}</p>
-            {p.buyerAlamat && <p style={{ marginBottom: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>Alamat:</span> {p.buyerAlamat}</p>}
-            {p.catatan && <p style={{ marginBottom: 0 }}><span style={{ color: 'var(--text-tertiary)' }}>Catatan:</span> {p.catatan}</p>}
+            <p style={{ marginBottom: 4 }}>
+              <span style={{ color: 'var(--text-tertiary)' }}>Nama: </span>{p.buyerNama}
+            </p>
+            <p style={{ marginBottom: 4 }}>
+              <span style={{ color: 'var(--text-tertiary)' }}>WA: </span>{p.buyerWa}
+            </p>
+            {p.buyerAlamat && (
+              <p style={{ marginBottom: 4 }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Alamat: </span>{p.buyerAlamat}
+              </p>
+            )}
+            {p.catatan && (
+              <p style={{ marginBottom: 0 }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Catatan: </span>{p.catatan}
+              </p>
+            )}
           </div>
 
-          {/* Actions */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             
-              href={generateWALink(p.buyerWa, generatePesananWAMessage(p))}
+              href={generateWALink(p.buyerWa, waMessage)}
               target="_blank"
               rel="noreferrer"
               className="btn btn-secondary btn-sm"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              <MessageCircle size={13} /> Hubungi via WA
+              <MessageCircle size={13} />
+              Hubungi via WA
             </a>
 
             {p.status !== 'done' && p.status !== 'cancelled' && (
@@ -334,11 +352,7 @@ function PesananCard({ pesanan: p, onStatusChange }) {
                 onChange={e => onStatusChange(p.id, e.target.value)}
               >
                 {Object.entries(PESANAN_STATUS).map(([key, val]) => (
-                  <option
-                    key={key}
-                    value={key}
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                  >
+                  <option key={key} value={key} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
                     {val.label}
                   </option>
                 ))}
