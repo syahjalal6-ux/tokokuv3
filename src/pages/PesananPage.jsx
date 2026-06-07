@@ -17,6 +17,22 @@ const STATUS_TABS = [
   { key: 'cancelled', label: 'Dibatalkan' },
 ]
 
+function generatePesananWAMessage(p) {
+  const statusLabel = PESANAN_STATUS[p.status]?.label || p.status
+  return `Halo ${p.buyerNama}, pesanan kamu di toko kami:
+
+🛍️ *${p.produkNama}*
+📦 Qty: ${p.qty}
+💰 Total: ${formatRupiah(p.total)}
+
+📍 Alamat: ${p.buyerAlamat}
+${p.catatan ? `📝 Catatan: ${p.catatan}` : ''}
+
+Status pesanan: *${statusLabel}*
+
+${p.status === 'confirmed' ? 'Pesanan kamu sudah kami konfirmasi, sedang diproses ya! 🙏' : ''}${p.status === 'processing' ? 'Pesanan kamu sedang kami proses, mohon ditunggu ya! 🙏' : ''}${p.status === 'shipped' ? 'Pesanan kamu sudah dikirim, segera cek resi pengiriman ya! 🚚' : ''}${p.status === 'done' ? 'Pesanan kamu sudah selesai, terima kasih sudah berbelanja! 🎉' : ''}${p.status === 'cancelled' ? 'Mohon maaf, pesanan kamu dibatalkan. Silakan hubungi kami untuk info lebih lanjut.' : ''}${p.status === 'pending' ? 'Pesanan kamu sudah kami terima, segera kami proses ya! 🙏' : ''}`
+}
+
 function exportToExcel(pesanan) {
   if (!pesanan.length) {
     toast.error('Tidak ada data untuk diekspor')
@@ -24,15 +40,13 @@ function exportToExcel(pesanan) {
   }
 
   const rows = []
-
-  // Header
   rows.push([
     'ID Pesanan', 'Tanggal', 'Nama Pembeli', 'WA Pembeli', 'Alamat',
     'Catatan', 'Produk', 'Total', 'Status'
   ])
 
   pesanan.forEach(p => {
-    const produkList = (p.items || []).map(i => `${i.nama} x${i.qty}`).join('; ')
+    const produkList = (p.items || []).map(i => `${i.nama} x${i.qty}`).join('; ') || `${p.produkNama} x${p.qty}`
     rows.push([
       p.id || '',
       formatDateTime(p.createdAt),
@@ -46,7 +60,6 @@ function exportToExcel(pesanan) {
     ])
   })
 
-  // Build CSV
   const csv = rows.map(row =>
     row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
   ).join('\n')
@@ -153,7 +166,6 @@ export default function PesananPage() {
             })}
           </div>
 
-          {/* Export button */}
           <button
             onClick={() => exportToExcel(filtered)}
             className="btn btn-secondary btn-sm"
@@ -209,7 +221,6 @@ function PesananCard({ pesanan: p, onStatusChange }) {
   return (
     <div className="glass-card" style={{ padding: '16px 20px', borderRadius: 'var(--radius-lg)' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-        {/* Status indicator */}
         <div style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 7,
           background: statusCfg.color === 'success' ? 'var(--success)'
@@ -219,7 +230,6 @@ function PesananCard({ pesanan: p, onStatusChange }) {
           boxShadow: `0 0 6px ${statusCfg.color === 'success' ? 'var(--success)' : statusCfg.color === 'warning' ? 'var(--warning)' : 'var(--accent)'}`,
         }} />
 
-        {/* Content */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
             <div>
@@ -238,20 +248,20 @@ function PesananCard({ pesanan: p, onStatusChange }) {
             </div>
           </div>
 
-          {/* Summary */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: 8, flexWrap: 'wrap' }}>
             <p style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '0.95rem' }}>{formatRupiah(p.total)}</p>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>{p.items?.length || 0} item</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
+              {p.produkNama ? `${p.produkNama} ×${p.qty}` : `${p.items?.length || 0} item`}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Expanded detail */}
       {expanded && (
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--glass-border)' }}>
-          {/* Items */}
+          {/* Items — fallback ke produkNama jika items kosong */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 16 }}>
-            {(p.items || []).map((item, i) => (
+            {p.items?.length > 0 ? p.items.map((item, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {item.foto && <img src={item.foto} alt={item.nama} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />}
@@ -262,7 +272,15 @@ function PesananCard({ pesanan: p, onStatusChange }) {
                 </div>
                 <p style={{ fontSize: '0.82rem', fontWeight: 700, flexShrink: 0 }}>{formatRupiah(item.harga * item.qty)}</p>
               </div>
-            ))}
+            )) : p.produkNama ? (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>{p.produkNama}</p>
+                  <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>× {p.qty}</p>
+                </div>
+                <p style={{ fontSize: '0.82rem', fontWeight: 700 }}>{formatRupiah(p.total)}</p>
+              </div>
+            ) : null}
           </div>
 
           {/* Buyer info */}
@@ -274,9 +292,9 @@ function PesananCard({ pesanan: p, onStatusChange }) {
           </div>
 
           {/* Actions */}
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <a
-              href={generateWALink(p.buyerWa, `Halo ${p.buyerNama}, pesanan #${p.id?.slice(-8)} kamu...`)}
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+            
+              href={generateWALink(p.buyerWa, generatePesananWAMessage(p))}
               target="_blank" rel="noreferrer"
               className="btn btn-secondary btn-sm"
             >
@@ -286,12 +304,19 @@ function PesananCard({ pesanan: p, onStatusChange }) {
             {p.status !== 'done' && p.status !== 'cancelled' && (
               <select
                 className="form-input form-select"
-                style={{ width: 'auto', fontSize: '0.78rem', padding: '6px 32px 6px 10px', height: 34 }}
+                style={{
+                  width: 'auto', fontSize: '0.78rem', padding: '6px 32px 6px 10px', height: 34,
+                  background: 'var(--surface)', color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)',
+                  cursor: 'pointer',
+                }}
                 value={p.status}
                 onChange={e => onStatusChange(p.id, e.target.value)}
               >
                 {Object.entries(PESANAN_STATUS).map(([key, val]) => (
-                  <option key={key} value={key}>{val.label}</option>
+                  <option key={key} value={key} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                    {val.label}
+                  </option>
                 ))}
               </select>
             )}
