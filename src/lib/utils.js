@@ -2,13 +2,15 @@ import { CONFIG } from './config.js'
 
 // Format harga ke Rupiah
 export function formatRupiah(amount) {
-  if (!amount && amount !== 0) return '-'
+  if (amount === null || amount === undefined || amount === '') return '-'
+  const num = Number(amount)
+  if (isNaN(num)) return '-'
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount)
+  }).format(num)
 }
 
 // Format tanggal
