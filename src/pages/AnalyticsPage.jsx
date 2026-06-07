@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import {
   TrendingUp, Package, ShoppingBag, DollarSign,
-  BarChart2, Award, RefreshCw, Download, Zap
+  BarChart2, Award, RefreshCw, Download, Zap,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
@@ -45,7 +46,7 @@ function AnalyticsGate() {
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
             {[
-              'Grafik revenue harian & bulanan',
+              'Grafik revenue mingguan & bulanan',
               'Produk terlaris',
               'Statistik pesanan lengkap',
               'Export data ke Excel',
@@ -68,7 +69,7 @@ function AnalyticsGate() {
 function AnalyticsDashboard({ token }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [period, setPeriod] = useState('bulan')
+  const [period, setPeriod] = useState('minggu')
   const [exporting, setExporting] = useState(false)
 
   useEffect(() => { load() }, [token])
@@ -107,9 +108,9 @@ function AnalyticsDashboard({ token }) {
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(topRows), 'Top Produk')
       }
 
-      if (data.revenueHarian?.length > 0) {
-        const harianRows = [['Tanggal', 'Revenue'], ...data.revenueHarian.map(d => [d.label, d.total])]
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(harianRows), 'Revenue Harian')
+      if (data.revenueMinggu?.length > 0) {
+        const mingguRows = [['Minggu', 'Revenue'], ...data.revenueMinggu.map(d => [d.label, d.total])]
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mingguRows), 'Revenue Mingguan')
       }
 
       if (data.revenueBulanan?.length > 0) {
@@ -155,6 +156,59 @@ function AnalyticsDashboard({ token }) {
   )
 }
 
+// ─── Helper: group revenueHarian → per minggu ───────────────────────────────
+function groupByWeek(revenueHarian = []) {
+  if (!revenueHarian.length) return []
+  const weeks = {}
+  revenueHarian.forEach(d => {
+    // d.label format: "DD MMM" atau "YYYY-MM-DD"
+    // Kita parse tanggal lalu tentukan nomor minggu dalam bulan
+    const dateStr = d.date || d.label // gunakan d.date jika ada
+    const date = new Date(dateStr)
+    if (isNaN(date)) {
+      // fallback: kelompokkan per 7 item
+      return
+    }
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const weekOfMonth = Math.ceil(date.getDate() / 7)
+    const key = `${year}-${month}-W${weekOfMonth}`
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    if (!weeks[key]) {
+      weeks[key] = {
+        label: `W${weekOfMonth} ${monthNames[month]}`,
+        total: 0,
+        key,
+      }
+    }
+    weeks[key].total += d.total || 0
+  })
+  return Object.values(weeks)
+}
+
+// ─── Helper: shorten monthly label ──────────────────────────────────────────
+function shortenMonthLabel(label = '') {
+  // Jika label format "January 2024" atau "Jan 2024" → "Jan"
+  // Jika "2024-01" → "Jan"
+  const monthMap = {
+    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr',
+    may: 'Mei', june: 'Jun', july: 'Jul', august: 'Agu',
+    september: 'Sep', october: 'Okt', november: 'Nov', december: 'Des',
+    jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr',
+    mei: 'Mei', jun: 'Jun', jul: 'Jul', agu: 'Agu',
+    sep: 'Sep', okt: 'Okt', nov: 'Nov', des: 'Des',
+  }
+  // Try YYYY-MM format
+  const isoMatch = label.match(/^(\d{4})-(\d{2})/)
+  if (isoMatch) {
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+    return months[parseInt(isoMatch[2]) - 1] || label
+  }
+  // Try "Month Year" or "Month"
+  const word = label.split(/[\s,]/)[0].toLowerCase()
+  return monthMap[word] || label.slice(0, 3)
+}
+
 function AnalyticsContent({ data, period, setPeriod }) {
   const {
     totalProduk = 0, produkAktif = 0,
@@ -164,8 +218,55 @@ function AnalyticsContent({ data, period, setPeriod }) {
   } = data
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
-  const chartData = period === 'hari' ? revenueHarian : revenueBulanan
+
+  // Build chart data berdasarkan period
+  const rawChartData = useMemo(() => {
+    if (period === 'minggu') {
+      // Coba groupByWeek dulu, fallback ke revenueHarian per 7
+      const grouped = groupByWeek(revenueHarian)
+      if (grouped.length > 0) return grouped
+      // Fallback: ambil setiap 7 hari
+      const result = []
+      for (let i = 0; i < revenueHarian.length; i += 7) {
+        const chunk = revenueHarian.slice(i, i + 7)
+        const total = chunk.reduce((s, d) => s + (d.total || 0), 0)
+        result.push({ label: chunk[0]?.label || `W${result.length + 1}`, total })
+      }
+      return result
+    }
+    // Bulanan: shorten label
+    return (revenueBulanan || []).map(d => ({
+      ...d,
+      label: shortenMonthLabel(d.label),
+    }))
+  }, [period, revenueHarian, revenueBulanan])
+
+  // Filter rentang: index offset
+  const WINDOW = period === 'minggu' ? 8 : 6 // tampilkan max 8 minggu atau 6 bulan
+  const [offset, setOffset] = useState(0)
+
+  // Reset offset kalau period berubah
+  useEffect(() => { setOffset(0) }, [period])
+
+  const totalItems = rawChartData.length
+  const maxOffset = Math.max(0, totalItems - WINDOW)
+
+  // Slice data sesuai window & offset (dari akhir)
+  const chartData = useMemo(() => {
+    const start = Math.max(0, totalItems - WINDOW - offset)
+    const end = totalItems - offset
+    return rawChartData.slice(start, end)
+  }, [rawChartData, offset, WINDOW, totalItems])
+
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.total || 0)) : 0
+  const maxRevenueAll = rawChartData.length > 0 ? Math.max(...rawChartData.map(d => d.total || 0)) : 0
+
+  const canGoBack = offset < maxOffset
+  const canGoForward = offset > 0
+
+  const periodLabel = period === 'minggu'
+    ? `${WINDOW} minggu terakhir`
+    : `${WINDOW} bulan terakhir`
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -180,26 +281,67 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
       {/* Revenue chart */}
       <div className="glass-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
           <div>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>Revenue</h3>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{period === 'hari' ? '30 hari terakhir' : '12 bulan terakhir'}</p>
+            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{periodLabel}</p>
           </div>
+          {/* Toggle Mingguan | Bulanan */}
           <div style={{ display: 'flex', gap: 4 }}>
-            {['hari', 'bulan'].map(p => (
-              <button key={p} onClick={() => setPeriod(p)} className="btn btn-sm" style={{
+            {[
+              { key: 'minggu', label: 'Mingguan' },
+              { key: 'bulan', label: 'Bulanan' },
+            ].map(p => (
+              <button key={p.key} onClick={() => setPeriod(p.key)} className="btn btn-sm" style={{
                 borderRadius: 'var(--radius-full)', fontSize: '0.72rem', padding: '4px 10px',
-                background: period === p ? 'var(--surface-active)' : 'var(--surface)',
-                color: period === p ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                border: `1px solid ${period === p ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
+                background: period === p.key ? 'var(--surface-active)' : 'var(--surface)',
+                color: period === p.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                border: `1px solid ${period === p.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
               }}>
-                {p === 'hari' ? 'Harian' : 'Bulanan'}
+                {p.label}
               </button>
             ))}
           </div>
         </div>
+
+        {/* Navigator filter rentang */}
+        {totalItems > WINDOW && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
+            <button
+              onClick={() => setOffset(o => Math.min(o + 1, maxOffset))}
+              disabled={!canGoBack}
+              style={{
+                width: 26, height: 26, borderRadius: 'var(--radius-md)',
+                background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: canGoBack ? 'pointer' : 'not-allowed',
+                opacity: canGoBack ? 1 : 0.3, color: 'var(--text-secondary)',
+              }}
+            >
+              <ChevronLeft size={13} />
+            </button>
+            <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+              {chartData[0]?.label} – {chartData[chartData.length - 1]?.label}
+            </span>
+            <button
+              onClick={() => setOffset(o => Math.max(o - 1, 0))}
+              disabled={!canGoForward}
+              style={{
+                width: 26, height: 26, borderRadius: 'var(--radius-md)',
+                background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: canGoForward ? 'pointer' : 'not-allowed',
+                opacity: canGoForward ? 1 : 0.3, color: 'var(--text-secondary)',
+              }}
+            >
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        )}
+
         {chartData.length > 0 ? (
-          <BarChartCustom data={chartData} maxVal={maxRevenue} />
+          <BarChartCustom data={chartData} maxVal={maxRevenue} globalMax={maxRevenueAll} />
         ) : (
           <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
             <BarChart2 size={32} style={{ opacity: 0.3 }} />
@@ -284,46 +426,100 @@ function AnalyticsContent({ data, period, setPeriod }) {
   )
 }
 
-function BarChartCustom({ data, maxVal }) {
+function BarChartCustom({ data, maxVal, globalMax }) {
+  const [tooltip, setTooltip] = useState(null)
   if (!data || data.length === 0) return null
+
+  const totalPeriod = data.reduce((s, d) => s + (d.total || 0), 0)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 140 }}>
+      {/* Bars */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140, position: 'relative' }}>
         {data.map((d, i) => {
           const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
+          const isHighest = maxVal > 0 && d.total === maxVal
+          const isEmpty = d.total === 0
+
           return (
-            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' }} title={`${d.label}: ${formatRupiah(d.total)}`}>
+            <div
+              key={i}
+              style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', position: 'relative' }}
+              onMouseEnter={() => setTooltip(i)}
+              onMouseLeave={() => setTooltip(null)}
+              onTouchStart={() => setTooltip(tooltip === i ? null : i)}
+            >
+              {/* Tooltip */}
+              {tooltip === i && (
+                <div style={{
+                  position: 'absolute', bottom: '105%', left: '50%', transform: 'translateX(-50%)',
+                  background: 'var(--surface-active)', border: '1px solid var(--glass-border-hover)',
+                  borderRadius: 'var(--radius-md)', padding: '5px 8px', whiteSpace: 'nowrap', zIndex: 10,
+                  pointerEvents: 'none',
+                }}>
+                  <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', marginBottom: 2 }}>{d.label}</p>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: isHighest ? 'var(--warning)' : 'var(--text-primary)' }}>
+                    {formatRupiah(d.total)}
+                  </p>
+                </div>
+              )}
+
+              {/* Highlight badge tertinggi */}
+              {isHighest && !isEmpty && (
+                <div style={{
+                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                  background: 'var(--warning)', borderRadius: 'var(--radius-full)',
+                  width: 6, height: 6,
+                }} />
+              )}
+
+              {/* Bar */}
               <div style={{
-                width: '100%', minWidth: 3,
-                height: `${Math.max(pct, 2)}%`,
-                background: i === data.length - 1 ? 'var(--accent-gradient)' : `rgba(91,138,245,${0.25 + (pct / 100) * 0.45})`,
-                borderRadius: '3px 3px 0 0', transition: 'height 0.5s ease', cursor: 'pointer',
-              }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              />
+                width: '100%', minWidth: 4,
+                height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
+                background: isHighest
+                  ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
+                  : isEmpty
+                    ? 'rgba(91,138,245,0.1)'
+                    : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
+                borderRadius: '3px 3px 0 0',
+                transition: 'height 0.5s ease',
+                cursor: 'pointer',
+                boxShadow: isHighest ? '0 0 8px rgba(251,191,36,0.4)' : 'none',
+              }} />
             </div>
           )
         })}
       </div>
-      <div style={{ display: 'flex', gap: 3 }}>
-        {data.map((d, i) => {
-          const showLabel = data.length <= 12 || i % Math.ceil(data.length / 8) === 0 || i === data.length - 1
-          return (
-            <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
-              {showLabel && <span style={{ fontSize: '0.58rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{d.label}</span>}
-            </div>
-          )
-        })}
+
+      {/* X-axis labels */}
+      <div style={{ display: 'flex', gap: 4 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
+            <span style={{
+              fontSize: '0.6rem',
+              color: tooltip === i ? 'var(--text-primary)' : 'var(--text-secondary)',
+              whiteSpace: 'nowrap',
+              display: 'block',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              fontWeight: tooltip === i ? 700 : 400,
+            }}>
+              {d.label}
+            </span>
+          </div>
+        ))}
       </div>
+
+      {/* Stats bawah */}
       <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
         <div>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Tertinggi</p>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--success)' }}>{formatRupiah(maxVal)}</p>
+          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--warning)' }}>{formatRupiah(maxVal)}</p>
         </div>
         <div>
           <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Total Periode</p>
-          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent)' }}>{formatRupiah(data.reduce((s, d) => s + (d.total || 0), 0))}</p>
+          <p style={{ fontSize: '0.82rem', fontWeight: 700, color: 'var(--accent)' }}>{formatRupiah(totalPeriod)}</p>
         </div>
       </div>
     </div>
