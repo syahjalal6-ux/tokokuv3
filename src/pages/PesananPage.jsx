@@ -323,7 +323,7 @@ function PesananCard({ pesanan: p, onStatusChange }) {
           </div>
 
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-            
+            <a
               href={generateWALink(p.buyerWa, waMessage)}
               target="_blank"
               rel="noreferrer"
