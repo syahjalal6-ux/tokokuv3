@@ -19,18 +19,23 @@ const STATUS_TABS = [
 
 function generatePesananWAMessage(p) {
   const statusLabel = PESANAN_STATUS[p.status]?.label || p.status
-  return `Halo ${p.buyerNama}, pesanan kamu di toko kami:
+  const keterangan = {
+    pending: 'Pesanan kamu sudah kami terima, segera kami proses ya! 🙏',
+    confirmed: 'Pesanan kamu sudah kami konfirmasi, sedang diproses! 🙏',
+    processing: 'Pesanan kamu sedang kami proses, mohon ditunggu ya! 🙏',
+    shipped: 'Pesanan kamu sudah dikirim, segera cek resi pengiriman ya! 🚚',
+    done: 'Pesanan kamu sudah selesai, terima kasih sudah berbelanja! 🎉',
+    cancelled: 'Mohon maaf, pesanan kamu dibatalkan. Silakan hubungi kami untuk info lebih lanjut.',
+  }
+  return `Halo ${p.buyerNama}, berikut info pesanan kamu:
 
 🛍️ *${p.produkNama}*
 📦 Qty: ${p.qty}
 💰 Total: ${formatRupiah(p.total)}
+📍 Alamat: ${p.buyerAlamat}${p.catatan ? '\n📝 Catatan: ' + p.catatan : ''}
 
-📍 Alamat: ${p.buyerAlamat}
-${p.catatan ? `📝 Catatan: ${p.catatan}` : ''}
-
-Status pesanan: *${statusLabel}*
-
-${p.status === 'confirmed' ? 'Pesanan kamu sudah kami konfirmasi, sedang diproses ya! 🙏' : ''}${p.status === 'processing' ? 'Pesanan kamu sedang kami proses, mohon ditunggu ya! 🙏' : ''}${p.status === 'shipped' ? 'Pesanan kamu sudah dikirim, segera cek resi pengiriman ya! 🚚' : ''}${p.status === 'done' ? 'Pesanan kamu sudah selesai, terima kasih sudah berbelanja! 🎉' : ''}${p.status === 'cancelled' ? 'Mohon maaf, pesanan kamu dibatalkan. Silakan hubungi kami untuk info lebih lanjut.' : ''}${p.status === 'pending' ? 'Pesanan kamu sudah kami terima, segera kami proses ya! 🙏' : ''}`
+Status: *${statusLabel}*
+${keterangan[p.status] || ''}`
 }
 
 function exportToExcel(pesanan) {
@@ -259,20 +264,29 @@ function PesananCard({ pesanan: p, onStatusChange }) {
 
       {expanded && (
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--glass-border)' }}>
-          {/* Items — fallback ke produkNama jika items kosong */}
+
+          {/* Items */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 16 }}>
-            {p.items?.length > 0 ? p.items.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {item.foto && <img src={item.foto} alt={item.nama} style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }} />}
-                  <div>
-                    <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>{item.nama}</p>
-                    <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>× {item.qty}</p>
+            {p.items && p.items.length > 0 ? (
+              p.items.map((item, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.foto && (
+                      <img
+                        src={item.foto}
+                        alt={item.nama}
+                        style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}
+                      />
+                    )}
+                    <div>
+                      <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>{item.nama}</p>
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>× {item.qty}</p>
+                    </div>
                   </div>
+                  <p style={{ fontSize: '0.82rem', fontWeight: 700, flexShrink: 0 }}>{formatRupiah(item.harga * item.qty)}</p>
                 </div>
-                <p style={{ fontSize: '0.82rem', fontWeight: 700, flexShrink: 0 }}>{formatRupiah(item.harga * item.qty)}</p>
-              </div>
-            )) : p.produkNama ? (
+              ))
+            ) : p.produkNama ? (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <p style={{ fontSize: '0.82rem', fontWeight: 600 }}>{p.produkNama}</p>
@@ -285,17 +299,18 @@ function PesananCard({ pesanan: p, onStatusChange }) {
 
           {/* Buyer info */}
           <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: 14, fontSize: '0.82rem' }}>
-            <p><span style={{ color: 'var(--text-tertiary)' }}>Nama:</span> {p.buyerNama}</p>
-            <p><span style={{ color: 'var(--text-tertiary)' }}>WA:</span> {p.buyerWa}</p>
-            {p.buyerAlamat && <p><span style={{ color: 'var(--text-tertiary)' }}>Alamat:</span> {p.buyerAlamat}</p>}
-            {p.catatan && <p><span style={{ color: 'var(--text-tertiary)' }}>Catatan:</span> {p.catatan}</p>}
+            <p style={{ marginBottom: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>Nama:</span> {p.buyerNama}</p>
+            <p style={{ marginBottom: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>WA:</span> {p.buyerWa}</p>
+            {p.buyerAlamat && <p style={{ marginBottom: 4 }}><span style={{ color: 'var(--text-tertiary)' }}>Alamat:</span> {p.buyerAlamat}</p>}
+            {p.catatan && <p style={{ marginBottom: 0 }}><span style={{ color: 'var(--text-tertiary)' }}>Catatan:</span> {p.catatan}</p>}
           </div>
 
           {/* Actions */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
             
               href={generateWALink(p.buyerWa, generatePesananWAMessage(p))}
-              target="_blank" rel="noreferrer"
+              target="_blank"
+              rel="noreferrer"
               className="btn btn-secondary btn-sm"
             >
               <MessageCircle size={13} /> Hubungi via WA
@@ -305,22 +320,32 @@ function PesananCard({ pesanan: p, onStatusChange }) {
               <select
                 className="form-input form-select"
                 style={{
-                  width: 'auto', fontSize: '0.78rem', padding: '6px 32px 6px 10px', height: 34,
-                  background: 'var(--surface)', color: 'var(--text-primary)',
-                  border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-md)',
+                  width: 'auto',
+                  fontSize: '0.78rem',
+                  padding: '6px 32px 6px 10px',
+                  height: 34,
+                  background: 'var(--surface)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--glass-border)',
+                  borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                 }}
                 value={p.status}
                 onChange={e => onStatusChange(p.id, e.target.value)}
               >
                 {Object.entries(PESANAN_STATUS).map(([key, val]) => (
-                  <option key={key} value={key} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>
+                  <option
+                    key={key}
+                    value={key}
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                  >
                     {val.label}
                   </option>
                 ))}
               </select>
             )}
           </div>
+
         </div>
       )}
     </div>
