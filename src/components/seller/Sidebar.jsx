@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Settings,
   Zap, ExternalLink, LogOut, Menu, X,
-  Store
+  Store, BarChart2
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
 import { getInitials, isPro } from '../../lib/utils.js'
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, exact: true },
   { to: '/dashboard/produk', label: 'Produk', icon: Package },
   { to: '/dashboard/pesanan', label: 'Pesanan', icon: ShoppingBag },
+  { to: '/dashboard/analytics', label: 'Analitik', icon: BarChart2 },
   { to: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
 ]
 
