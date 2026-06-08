@@ -28,6 +28,10 @@ export default function DashboardPage() {
   const navigate = useNavigate()
   const pro = isPro(user)
 
+  const sisaHari = pro && user?.planExpiry
+    ? Math.ceil((new Date(user.planExpiry) - new Date()) / 86400000)
+    : null
+
   useEffect(() => {
     if (token) {
       setTokoLoading(true)
@@ -68,6 +72,7 @@ export default function DashboardPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
+          {/* Banner: Free → ajak upgrade */}
           {!pro && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(91,138,245,0.1) 0%, rgba(167,139,250,0.1) 100%)',
@@ -89,6 +94,46 @@ export default function DashboardPage() {
               <Link to="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
                 Upgrade Sekarang <ArrowRight size={13} />
               </Link>
+            </div>
+          )}
+
+          {/* Banner: Pro mau expire ≤ 7 hari */}
+          {pro && sisaHari !== null && sisaHari <= 7 && (
+            <div style={{
+              background: sisaHari <= 0 ? 'var(--danger-bg)' : 'var(--warning-bg)',
+              border: '1px solid ' + (sisaHari <= 0 ? 'rgba(248,113,113,0.3)' : 'rgba(251,191,36,0.3)'),
+              borderRadius: 'var(--radius-xl)',
+              padding: '18px 24px',
+              display: 'flex', alignItems: 'center', gap: '16px',
+              flexWrap: 'wrap',
+            }}>
+              <AlertCircle size={20} color={sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'} style={{ flexShrink: 0 }} />
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <p style={{
+                  fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2,
+                  color: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
+                }}>
+                  {sisaHari <= 0 ? 'Paket Pro kamu sudah expired' : `Paket Pro berakhir dalam ${sisaHari} hari`}
+                </p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                  {sisaHari <= 0
+                    ? 'Perpanjang sekarang agar toko dan fitur Pro tetap aktif.'
+                    : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
+                </p>
+              </div>
+              <a
+                href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-sm"
+                style={{
+                  flexShrink: 0,
+                  background: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
+                  color: '#fff',
+                }}
+              >
+                Perpanjang Sekarang <ArrowRight size={13} />
+              </a>
             </div>
           )}
 
