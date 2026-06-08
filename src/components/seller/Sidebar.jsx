@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Settings,
   Zap, ExternalLink, LogOut, Menu, X,
-  Store, BarChart2
+  Store, BarChart2, Sun, Moon
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
 import { getInitials, isPro } from '../../lib/utils.js'
@@ -35,11 +35,23 @@ const ExoraIcon = ({ size = 26 }) => (
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const { user, logout } = useAuthStore()
   const { toko, clear: clearToko } = useTokoStore()
   const navigate = useNavigate()
 
   const pro = isPro(user)
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.documentElement.setAttribute('data-theme', 'light')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+    }
+    localStorage.setItem('theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
   const handleLogout = async () => {
     try {
@@ -85,7 +97,7 @@ export default function Sidebar() {
 
       {/* Toko info */}
       {toko && (
-        <a
+        
           href={`/toko/${toko.slug}`}
           target="_blank"
           rel="noreferrer"
@@ -195,6 +207,17 @@ export default function Sidebar() {
             </div>
           </div>
         </div>
+
+        {/* Theme toggle */}
+        <button onClick={toggleTheme} className="btn btn-ghost" style={{
+          width: '100%', justifyContent: 'flex-start', gap: '10px',
+          padding: '8px 12px', borderRadius: 'var(--radius-md)',
+          fontFamily: PJS, fontSize: '0.85rem',
+          color: 'var(--text-tertiary)',
+        }}>
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
+        </button>
 
         <button onClick={handleLogout} className="btn btn-ghost" style={{
           width: '100%', justifyContent: 'flex-start', gap: '10px',
