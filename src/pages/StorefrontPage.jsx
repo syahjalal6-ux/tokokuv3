@@ -72,7 +72,6 @@ function MusicPlayer({ musikUrl, tema }) {
 
   return (
     <>
-      {/* Hidden iframe — always mounted when playing */}
       {playing && (
         <div style={{ position: 'fixed', width: 0, height: 0, overflow: 'hidden', zIndex: -1 }}>
           <iframe
@@ -338,9 +337,7 @@ export default function StorefrontPage() {
   if (toko.aktif === false || toko.aktif === 'FALSE') {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24, textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: '18px', background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '26px', color: '#fff' }}>
-          {toko.nama?.[0]?.toUpperCase()}
-        </div>
+        <TokoAvatar toko={toko} tema={tema} size={64} radius={18} fontSize={26} />
         <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>{toko.nama}</h2>
         <p style={{ color: 'var(--text-secondary)', maxWidth: 320 }}>Toko ini sedang tidak aktif sementara. Silakan cek kembali nanti.</p>
         {toko.wa && (
@@ -371,15 +368,7 @@ export default function StorefrontPage() {
       }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: '14px', flexShrink: 0,
-              background: tema.gradient,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '22px', color: '#fff',
-              boxShadow: `0 0 20px ${tema.accent}44`,
-            }}>
-              {toko.nama?.[0]?.toUpperCase()}
-            </div>
+            <TokoAvatar toko={toko} tema={tema} size={52} radius={14} fontSize={22} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
                 <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1rem, 5vw, 1.4rem)', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
@@ -493,6 +482,42 @@ export default function StorefrontPage() {
       }}>
         Powered by <a href="/" style={{ color: '#3B82F6', fontWeight: 700 }}>Exora</a>
       </div>
+    </div>
+  )
+}
+
+// ================================================
+// TOKO AVATAR — logo kalau ada, fallback huruf pertama
+// ================================================
+function TokoAvatar({ toko, tema, size = 52, radius = 14, fontSize = 22 }) {
+  if (toko.logo) {
+    return (
+      <img
+        src={toko.logo}
+        alt={toko.nama}
+        style={{
+          width: size, height: size,
+          borderRadius: radius,
+          objectFit: 'cover',
+          flexShrink: 0,
+          border: '1px solid var(--glass-border)',
+          boxShadow: `0 0 20px ${tema.accent}44`,
+        }}
+      />
+    )
+  }
+  return (
+    <div style={{
+      width: size, height: size,
+      borderRadius: radius,
+      flexShrink: 0,
+      background: tema.gradient,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: 'var(--font-display)', fontWeight: 900,
+      fontSize, color: '#fff',
+      boxShadow: `0 0 20px ${tema.accent}44`,
+    }}>
+      {toko.nama?.[0]?.toUpperCase()}
     </div>
   )
 }
