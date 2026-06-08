@@ -141,11 +141,3 @@ export const ratingApi = {
   add: (data) => request('addRating', data),
   get: (params) => request('getRating', params),
 }
-
-export const adminApi = {
-  getUsers: () => request('adminGetUsers', {}),
-  getStats: () => request('adminGetStats', {}),
-  grantPro: (targetUserId, months) => request('adminGrantPro', { targetUserId, months }),
-  revokePro: (targetUserId) => request('adminRevokePro', { targetUserId }),
-  deleteUser: (targetUserId) => request('adminDeleteUser', { targetUserId }),
-}
