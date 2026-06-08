@@ -33,6 +33,12 @@ const ExoraIcon = ({ size = 26 }) => (
   </svg>
 )
 
+function getProExpiry(planExpiry) {
+  if (!planExpiry) return null
+  const sisaHari = Math.ceil((new Date(planExpiry) - new Date()) / 86400000)
+  return sisaHari
+}
+
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
@@ -41,6 +47,7 @@ export default function Sidebar() {
   const navigate = useNavigate()
 
   const pro = isPro(user)
+  const sisaHari = pro ? getProExpiry(user?.planExpiry) : null
 
   useEffect(() => {
     if (theme === 'light') {
@@ -62,6 +69,52 @@ export default function Sidebar() {
     } catch {
       toast.error('Gagal logout')
     }
+  }
+
+  const ProExpiryBadge = () => {
+    if (!pro || sisaHari === null) return null
+
+    if (sisaHari <= 0) {
+      return (
+        <span style={{
+          fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700,
+          color: 'var(--danger)',
+        }}>
+          Expired
+        </span>
+      )
+    }
+
+    if (sisaHari <= 7) {
+      return (
+        <span style={{
+          fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700,
+          color: 'var(--danger)',
+        }}>
+          • ⚠️ {sisaHari}h lagi
+        </span>
+      )
+    }
+
+    if (sisaHari <= 30) {
+      return (
+        <span style={{
+          fontFamily: PJS, fontSize: '0.6rem', fontWeight: 600,
+          color: 'var(--warning)',
+        }}>
+          • {sisaHari}h lagi
+        </span>
+      )
+    }
+
+    return (
+      <span style={{
+        fontFamily: PJS, fontSize: '0.6rem', fontWeight: 500,
+        color: 'var(--text-tertiary)',
+      }}>
+        • {sisaHari}h lagi
+      </span>
+    )
   }
 
   const SidebarContent = () => (
@@ -200,10 +253,11 @@ export default function Sidebar() {
             <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {user?.name}
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
               <span className={'badge ' + (pro ? 'badge-pro' : 'badge-free')} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
                 {pro ? '⭐ Pro' : 'Free'}
               </span>
+              <ProExpiryBadge />
             </div>
           </div>
         </div>
