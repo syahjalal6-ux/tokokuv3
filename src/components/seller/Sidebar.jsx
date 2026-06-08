@@ -97,8 +97,8 @@ export default function Sidebar() {
 
       {/* Toko info */}
       {toko && (
-        
-          href={"/toko/" + toko.slug}
+        <a
+          href={'/toko/' + toko.slug}
           target="_blank"
           rel="noreferrer"
           style={{
@@ -201,7 +201,7 @@ export default function Sidebar() {
               {user?.name}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <span className={`badge ${pro ? 'badge-pro' : 'badge-free'}`} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
+              <span className={'badge ' + (pro ? 'badge-pro' : 'badge-free')} style={{ fontSize: '0.65rem', padding: '1px 6px' }}>
                 {pro ? '⭐ Pro' : 'Free'}
               </span>
             </div>
