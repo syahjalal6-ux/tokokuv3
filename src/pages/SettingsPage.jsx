@@ -1,11 +1,31 @@
-import React, { useState, useEffect } from 'react'
-import { Save, Store, User, Bot } from 'lucide-react'
+import React, { useState, useEffect, useCallback } from 'react'
+import { Save, Store, User, Bot, Upload, X } from 'lucide-react'
+import { useDropzone } from 'react-dropzone'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { Alert } from '../components/ui/index.jsx'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
 import { tokoApi, tokoInfoApi } from '../lib/api.js'
-import { validateWA, getStorefrontUrl, isPro } from '../lib/utils.js'
+import { validateWA, getStorefrontUrl, isPro, compressImage } from '../lib/utils.js'
 import toast from 'react-hot-toast'
+
+const CLOUDINARY_CLOUD = 'dgplz1pd0'
+const CLOUDINARY_PRESET = 'tokoku'
+
+async function uploadLogoToCloudinary(file) {
+  const compressed = await compressImage(file, 400, 0.85)
+  const formData = new FormData()
+  formData.append('file', compressed)
+  formData.append('upload_preset', CLOUDINARY_PRESET)
+  formData.append('folder', 'tokoku/logos')
+
+  const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, {
+    method: 'POST',
+    body: formData,
+  })
+  if (!res.ok) throw new Error('Upload logo gagal')
+  const data = await res.json()
+  return data.secure_url
+}
 
 export default function SettingsPage() {
   const { user, token } = useAuthStore()
@@ -57,6 +77,125 @@ export default function SettingsPage() {
   )
 }
 
+// ================================================
+// LOGO UPLOAD
+// ================================================
+function LogoUpload({ value, onChange, disabled }) {
+  const [uploading, setUploading] = useState(false)
+
+  const onDrop = useCallback(async (acceptedFiles) => {
+    const file = acceptedFiles[0]
+    if (!file) return
+    setUploading(true)
+    try {
+      const url = await uploadLogoToCloudinary(file)
+      onChange(url)
+      toast.success('Logo berhasil diupload')
+    } catch (err) {
+      toast.error('Gagal upload logo: ' + err.message)
+    } finally {
+      setUploading(false)
+    }
+  }, [onChange])
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.webp'] },
+    maxSize: 5 * 1024 * 1024,
+    multiple: false,
+    disabled: disabled || uploading,
+  })
+
+  const handleRemove = (e) => {
+    e.stopPropagation()
+    onChange('')
+  }
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      {/* Preview */}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        {value ? (
+          <>
+            <img
+              src={value}
+              alt="Logo toko"
+              style={{
+                width: 72, height: 72, borderRadius: 16,
+                objectFit: 'cover',
+                border: '1px solid var(--glass-border)',
+              }}
+            />
+            {!disabled && (
+              <button
+                type="button"
+                onClick={handleRemove}
+                style={{
+                  position: 'absolute', top: -6, right: -6,
+                  width: 20, height: 20,
+                  background: 'var(--danger)',
+                  border: 'none', borderRadius: '50%',
+                  cursor: 'pointer', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                <X size={11} />
+              </button>
+            )}
+          </>
+        ) : (
+          <div style={{
+            width: 72, height: 72, borderRadius: 16,
+            background: 'var(--surface)',
+            border: '1px solid var(--glass-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-tertiary)',
+          }}>
+            <Store size={28} />
+          </div>
+        )}
+      </div>
+
+      {/* Dropzone */}
+      <div
+        {...getRootProps()}
+        style={{
+          flex: 1,
+          padding: '12px 16px',
+          border: `2px dashed ${isDragActive ? 'var(--accent)' : 'var(--glass-border)'}`,
+          borderRadius: 'var(--radius-lg)',
+          background: isDragActive ? 'rgba(91,138,245,0.05)' : 'var(--surface)',
+          cursor: (disabled || uploading) ? 'not-allowed' : 'pointer',
+          opacity: (disabled || uploading) ? 0.6 : 1,
+          transition: 'all var(--transition-fast)',
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}
+      >
+        <input {...getInputProps()} />
+        {uploading ? (
+          <><span className="spinner" style={{ width: 14, height: 14 }} />
+          <span style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>Mengupload...</span></>
+        ) : (
+          <>
+            <Upload size={15} color="var(--text-tertiary)" />
+            <div>
+              <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                {isDragActive ? 'Lepaskan file di sini' : value ? 'Ganti logo' : 'Upload logo toko'}
+              </p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 2 }}>
+                JPG, PNG, WEBP — maks 5MB
+              </p>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ================================================
+// ASISTEN SETTINGS
+// ================================================
 function AsistenSettings({ token, toko }) {
   const [form, setForm] = useState({ faq: '', garansi: '', policy: '', infoLain: '' })
   const [loading, setLoading] = useState(false)
@@ -160,6 +299,9 @@ function AsistenSettings({ token, toko }) {
   )
 }
 
+// ================================================
+// TOKO SETTINGS
+// ================================================
 function TokoSettings({ token, toko, setToko, pro }) {
   const [form, setForm] = useState({
     nama: '',
@@ -169,6 +311,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
     tema: 'default',
     musik: '',
     pengumuman: '',
+    logo: '',
   })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -183,6 +326,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
         tema: toko.tema || 'default',
         musik: toko.musik || '',
         pengumuman: toko.pengumuman || '',
+        logo: toko.logo || '',
       })
     }
   }, [toko])
@@ -223,6 +367,20 @@ function TokoSettings({ token, toko, setToko, pro }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+
+      {/* Logo Toko */}
+      <div className="glass-card" style={{ padding: '28px' }}>
+        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '20px', fontSize: '1rem' }}>
+          Logo Toko
+        </h3>
+        <LogoUpload
+          value={form.logo}
+          onChange={(url) => set('logo', url)}
+        />
+        <span className="form-hint" style={{ marginTop: 10, display: 'block' }}>
+          Tampil sebagai avatar di halaman toko kamu
+        </span>
+      </div>
 
       {/* Informasi Toko */}
       <div className="glass-card" style={{ padding: '28px' }}>
@@ -356,6 +514,9 @@ function TokoSettings({ token, toko, setToko, pro }) {
   )
 }
 
+// ================================================
+// PROFIL SETTINGS
+// ================================================
 function ProfilSettings({ user }) {
   return (
     <div className="glass-card" style={{ padding: '28px' }}>
