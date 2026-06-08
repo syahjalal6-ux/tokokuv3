@@ -44,13 +44,12 @@ export default function DashboardPage() {
   }
 
   const produkAktif = produk.filter(p => p.aktif).length
-  const produkLimit = pro ? '∞' : CONFIG.FREE_PRODUCT_LIMIT
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
 
   return (
     <DashboardLayout
-      title={`Halo, ${user?.name?.split(' ')[0]} 👋`}
-      subtitle={`${new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}`}
+      title={'Halo, ' + (user?.name?.split(' ')[0]) + ' 👋'}
+      subtitle={new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       actions={
         toko && (
           <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
@@ -127,9 +126,9 @@ export default function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
             <StatCard
               label="Total Produk"
-              value={`${produk.length}/${produkLimit}`}
+              value={produk.length}
               icon={<Package size={18} />}
-              trend={`${produkAktif} aktif`}
+              trend={produkAktif + ' aktif'}
             />
             <StatCard
               label="Produk Aktif"
@@ -179,7 +178,7 @@ export default function DashboardPage() {
                 >
                   <div style={{
                     width: 36, height: 36, borderRadius: 'var(--radius-md)',
-                    background: `${a.color}18`,
+                    background: a.color + '18',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: a.color, flexShrink: 0,
                   }}>
@@ -225,7 +224,7 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <p style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '0.875rem' }}>{formatRupiah(p.harga)}</p>
-                        <span className={`badge ${p.aktif ? 'badge-success' : 'badge-free'}`} style={{ fontSize: '0.65rem' }}>
+                        <span className={'badge ' + (p.aktif ? 'badge-success' : 'badge-free')} style={{ fontSize: '0.65rem' }}>
                           {p.aktif ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </div>
@@ -295,7 +294,7 @@ function SetupTokoCard({ token, setToko }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div className="form-group">
             <label className="form-label">Nama Toko *</label>
-            <input className={`form-input ${errors.nama ? 'error' : ''}`} placeholder="cth: Toko Rina Handmade" value={form.nama} onChange={e => set('nama', e.target.value)} maxLength={50} />
+            <input className={'form-input ' + (errors.nama ? 'error' : '')} placeholder="cth: Toko Rina Handmade" value={form.nama} onChange={e => set('nama', e.target.value)} maxLength={50} />
             {errors.nama && <span className="form-error">{errors.nama}</span>}
           </div>
 
@@ -306,7 +305,7 @@ function SetupTokoCard({ token, setToko }) {
                 exora.app/toko/
               </span>
               <input
-                className={`form-input ${errors.slug ? 'error' : ''}`}
+                className={'form-input ' + (errors.slug ? 'error' : '')}
                 style={{ paddingLeft: 110 }}
                 placeholder="nama-toko"
                 value={form.slug}
@@ -320,7 +319,7 @@ function SetupTokoCard({ token, setToko }) {
 
           <div className="form-group">
             <label className="form-label">Nomor WhatsApp *</label>
-            <input className={`form-input ${errors.wa ? 'error' : ''}`} placeholder="cth: 081234567890" value={form.wa} onChange={e => set('wa', e.target.value)} />
+            <input className={'form-input ' + (errors.wa ? 'error' : '')} placeholder="cth: 081234567890" value={form.wa} onChange={e => set('wa', e.target.value)} />
             {errors.wa && <span className="form-error">{errors.wa}</span>}
             <span className="form-hint">Nomor ini yang dihubungi pembeli saat checkout</span>
           </div>
