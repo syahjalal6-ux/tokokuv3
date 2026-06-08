@@ -7,8 +7,24 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../lib/store.js'
 import { formatDate, formatRupiah } from '../lib/utils.js'
-import { adminApi } from '../lib/api.js'
+import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
+
+// =============================================
+// API calls ke GAS — admin endpoints
+// =============================================
+async function adminRequest(action, data = {}) {
+  const { token } = useAuthStore.getState()
+  const res = await fetch(CONFIG.GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    redirect: 'follow',
+    body: JSON.stringify({ action, token, ...data }),
+  })
+  const json = await res.json()
+  if (!json.success) throw new Error(json.message || 'Gagal')
+  return json
+}
 
 const DURATIONS = [
   { label: '1 Bulan', months: 1 },
@@ -28,7 +44,7 @@ export default function AdminPage() {
   const [deletingId, setDeletingId] = useState(null)
   const [expandedId, setExpandedId] = useState(null)
   const [selectedDuration, setSelectedDuration] = useState({})
-  const [confirmDelete, setConfirmDelete] = useState(null) // user object to delete
+  const [confirmDelete, setConfirmDelete] = useState(null)
 
   useEffect(() => {
     loadAll()
@@ -38,8 +54,8 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const [usersRes, statsRes] = await Promise.all([
-        adminApi.getUsers(),
-        adminApi.getStats(),
+        adminRequest('adminGetUsers'),
+        adminRequest('adminGetStats'),
       ])
       setUsers(usersRes.data || [])
       setStats(statsRes.data || null)
@@ -57,11 +73,11 @@ export default function AdminPage() {
     setTogglingId(targetUser.id)
     try {
       if (isPro) {
-        await adminApi.revokePro(targetUser.id)
+        await adminRequest('adminRevokePro', { targetUserId: targetUser.id })
         setUsers(u => u.map(x => x.id === targetUser.id ? { ...x, plan: 'free', planExpiry: null } : x))
         toast.success(`Pro dinonaktifkan untuk ${targetUser.name}`)
       } else {
-        await adminApi.grantPro(targetUser.id, months)
+        await adminRequest('adminGrantPro', { targetUserId: targetUser.id, months })
         const expiry = new Date()
         expiry.setMonth(expiry.getMonth() + months)
         setUsers(u => u.map(x => x.id === targetUser.id ? { ...x, plan: 'pro', planExpiry: expiry.toISOString() } : x))
@@ -78,7 +94,7 @@ export default function AdminPage() {
     if (!confirmDelete) return
     setDeletingId(confirmDelete.id)
     try {
-      await adminApi.deleteUser(confirmDelete.id)
+      await adminRequest('adminDeleteUser', { targetUserId: confirmDelete.id })
       setUsers(u => u.filter(x => x.id !== confirmDelete.id))
       if (expandedId === confirmDelete.id) setExpandedId(null)
       toast.success(`Akun ${confirmDelete.name} berhasil dihapus`)
@@ -312,7 +328,6 @@ function ConfirmDeleteModal({ seller, isDeleting, onConfirm, onCancel }) {
           animation: 'slideUp 0.2s ease',
         }}
       >
-        {/* Icon */}
         <div style={{
           width: 48, height: 48, borderRadius: 'var(--radius-xl)',
           background: 'rgba(248,113,113,0.12)',
@@ -330,7 +345,6 @@ function ConfirmDeleteModal({ seller, isDeleting, onConfirm, onCancel }) {
           Akun <strong>{seller.name}</strong> ({seller.email}) akan dihapus permanen beserta semua data toko, produk, pesanan, dan token-nya.
         </p>
 
-        {/* Warning box */}
         <div style={{
           padding: '10px 14px',
           background: 'rgba(248,113,113,0.08)',
@@ -406,13 +420,11 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
         cursor: 'pointer',
       }} onClick={onExpand}>
 
-        {/* Avatar */}
         {seller.picture
           ? <img src={seller.picture} alt={seller.name} style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
           : <div className="avatar avatar-sm" style={{ flexShrink: 0 }}>{seller.name?.[0]}</div>
         }
 
-        {/* Info */}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <p style={{ fontWeight: 700, fontSize: '0.875rem' }}>{seller.name}</p>
@@ -421,17 +433,14 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
           </div>
           <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: 1 }}>
             {seller.email}
-            {seller.tokoNama && <span style={{ marginLeft: 8, color: 'var(--text-tertiary)' }}>· 🏪 {seller.tokoNama}</span>}
+            {seller.tokoNama && <span style={{ marginLeft: 8 }}>· 🏪 {seller.tokoNama}</span>}
           </p>
         </div>
 
-        {/* Pro expiry / status */}
         <div style={{ textAlign: 'right', flexShrink: 0, marginRight: 8 }}>
           {isPro && (
             <>
-              <p style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 700 }}>
-                {daysLeft} hari lagi
-              </p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--success)', fontWeight: 700 }}>{daysLeft} hari lagi</p>
               <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
                 s/d {formatDate(seller.planExpiry, { day: 'numeric', month: 'short', year: 'numeric' })}
               </p>
@@ -447,7 +456,6 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
           )}
         </div>
 
-        {/* Expand arrow */}
         <ChevronDown
           size={15}
           color="var(--text-tertiary)"
@@ -461,106 +469,99 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
           padding: '16px 18px 18px',
           borderTop: '1px solid var(--glass-border)',
           background: 'rgba(0,0,0,0.15)',
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-
-            {/* Detail info */}
-            <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 5 }}>
+          {/* Detail info */}
+          <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 5 }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <Mail size={12} color="var(--text-tertiary)" />
+              {seller.email}
+            </div>
+            {seller.tokoSlug && (
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                <Mail size={12} color="var(--text-tertiary)" />
-                {seller.email}
+                <Store size={12} color="var(--text-tertiary)" />
+                <a
+                  href={`/toko/${seller.tokoSlug}`}
+                  target="_blank" rel="noreferrer"
+                  style={{ color: 'var(--accent)' }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  /toko/{seller.tokoSlug}
+                </a>
               </div>
-              {seller.tokoSlug && (
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  <Store size={12} color="var(--text-tertiary)" />
-                  <a
-                    href={`/toko/${seller.tokoSlug}`}
-                    target="_blank" rel="noreferrer"
-                    style={{ color: 'var(--accent)' }}
-                    onClick={e => e.stopPropagation()}
+            )}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+              <Calendar size={12} color="var(--text-tertiary)" />
+              Daftar: {formatDate(seller.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })}
+            </div>
+            {seller.totalProduk !== undefined && (
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                📦 {seller.totalProduk} produk · 🛒 {seller.totalPesanan || 0} pesanan
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {!isPro && (
+              <div style={{ display: 'flex', gap: 4 }}>
+                {DURATIONS.map(d => (
+                  <button
+                    key={d.months}
+                    onClick={e => { e.stopPropagation(); onDurationChange(d.months) }}
+                    className="btn btn-sm"
+                    style={{
+                      borderRadius: 'var(--radius-full)',
+                      padding: '5px 10px', fontSize: '0.72rem',
+                      background: duration === d.months ? 'var(--accent-gradient-soft)' : 'var(--surface)',
+                      color: duration === d.months ? 'var(--accent-3)' : 'var(--text-tertiary)',
+                      border: `1px solid ${duration === d.months ? 'rgba(167,139,250,0.25)' : 'var(--glass-border)'}`,
+                    }}
                   >
-                    /toko/{seller.tokoSlug}
-                  </a>
-                </div>
-              )}
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                <Calendar size={12} color="var(--text-tertiary)" />
-                Daftar: {formatDate(seller.createdAt, { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {d.label}
+                  </button>
+                ))}
               </div>
-              {seller.totalProduk !== undefined && (
-                <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                  📦 {seller.totalProduk} produk · 🛒 {seller.totalPesanan || 0} pesanan
-                </div>
-              )}
-            </div>
+            )}
 
-            {/* Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              {/* Duration selector — only show when activating */}
-              {!isPro && (
-                <div style={{ display: 'flex', gap: 4 }}>
-                  {DURATIONS.map(d => (
-                    <button
-                      key={d.months}
-                      onClick={e => { e.stopPropagation(); onDurationChange(d.months) }}
-                      className="btn btn-sm"
-                      style={{
-                        borderRadius: 'var(--radius-full)',
-                        padding: '5px 10px', fontSize: '0.72rem',
-                        background: duration === d.months ? 'var(--accent-gradient-soft)' : 'var(--surface)',
-                        color: duration === d.months ? 'var(--accent-3)' : 'var(--text-tertiary)',
-                        border: `1px solid ${duration === d.months ? 'rgba(167,139,250,0.25)' : 'var(--glass-border)'}`,
-                      }}
-                    >
-                      {d.label}
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Toggle Pro */}
+            <button
+              onClick={e => { e.stopPropagation(); onToggle() }}
+              disabled={isToggling || isDeleting}
+              className="btn btn-sm"
+              style={{
+                background: isPro ? 'rgba(248,113,113,0.12)' : 'linear-gradient(135deg, #5b8af5, #a78bfa)',
+                color: isPro ? 'var(--danger)' : '#fff',
+                border: isPro ? '1px solid rgba(248,113,113,0.25)' : 'none',
+                boxShadow: isPro ? 'none' : '0 4px 16px rgba(91,138,245,0.35)',
+                minWidth: 120, gap: 7,
+              }}
+            >
+              {isToggling
+                ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Memproses...</>
+                : isPro
+                ? <><ZapOff size={13} /> Cabut Pro</>
+                : <><Zap size={13} /> Aktifkan Pro {duration > 1 ? `${duration}bln` : ''}</>
+              }
+            </button>
 
-              {/* Toggle Pro button */}
-              <button
-                onClick={e => { e.stopPropagation(); onToggle() }}
-                disabled={isToggling || isDeleting}
-                className="btn btn-sm"
-                style={{
-                  background: isPro
-                    ? 'rgba(248,113,113,0.12)'
-                    : 'linear-gradient(135deg, #5b8af5, #a78bfa)',
-                  color: isPro ? 'var(--danger)' : '#fff',
-                  border: isPro ? '1px solid rgba(248,113,113,0.25)' : 'none',
-                  boxShadow: isPro ? 'none' : '0 4px 16px rgba(91,138,245,0.35)',
-                  minWidth: 120,
-                  gap: 7,
-                }}
-              >
-                {isToggling ? (
-                  <><span className="spinner" style={{ width: 12, height: 12 }} /> Memproses...</>
-                ) : isPro ? (
-                  <><ZapOff size={13} /> Cabut Pro</>
-                ) : (
-                  <><Zap size={13} /> Aktifkan Pro {duration > 1 ? `${duration}bln` : ''}</>
-                )}
-              </button>
-
-              {/* Delete button */}
-              <button
-                onClick={e => { e.stopPropagation(); onDelete() }}
-                disabled={isToggling || isDeleting}
-                className="btn btn-sm"
-                style={{
-                  background: 'rgba(248,113,113,0.1)',
-                  color: 'var(--danger)',
-                  border: '1px solid rgba(248,113,113,0.2)',
-                  gap: 6,
-                }}
-              >
-                {isDeleting
-                  ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Menghapus...</>
-                  : <><Trash2 size={13} /> Hapus Akun</>
-                }
-              </button>
-            </div>
+            {/* Hapus Akun */}
+            <button
+              onClick={e => { e.stopPropagation(); onDelete() }}
+              disabled={isToggling || isDeleting}
+              className="btn btn-sm"
+              style={{
+                background: 'rgba(248,113,113,0.1)',
+                color: 'var(--danger)',
+                border: '1px solid rgba(248,113,113,0.2)',
+                gap: 6,
+              }}
+            >
+              {isDeleting
+                ? <><span className="spinner" style={{ width: 12, height: 12 }} /> Menghapus...</>
+                : <><Trash2 size={13} /> Hapus Akun</>
+              }
+            </button>
           </div>
         </div>
       )}
