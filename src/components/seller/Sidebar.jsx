@@ -98,7 +98,7 @@ export default function Sidebar() {
       {/* Toko info */}
       {toko && (
         
-          href={`/toko/${toko.slug}`}
+          href={"/toko/" + toko.slug}
           target="_blank"
           rel="noreferrer"
           style={{
