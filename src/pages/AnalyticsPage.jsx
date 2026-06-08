@@ -442,7 +442,7 @@ function BarChartCustom({ data, maxVal, globalMax }) {
                 background: isHighest
                   ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
                   : isEmpty
-                    ? 'rgba(91,138,245,0.1)'
+                    ? 'var(--glass-border-hover)'
                     : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
                 borderRadius: '3px 3px 0 0',
                 transition: 'height 0.5s ease, opacity 0.15s ease',
