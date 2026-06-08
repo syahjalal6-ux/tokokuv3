@@ -50,22 +50,25 @@ async function requestSafe(action, data = {}) {
   const url = new URL(CONFIG.GAS_URL)
   url.searchParams.set('action', action)
 
-  const { foto, ...rest } = data
+  const { foto, logo, ...rest } = data
   Object.entries(rest).forEach(([k, v]) => {
     if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
   })
 
-  const urlWithoutFoto = url.toString()
+  const urlWithoutLongFields = url.toString()
   const fotoStr = foto ? String(foto) : ''
-  const totalLength = urlWithoutFoto.length + (fotoStr ? fotoStr.length + 6 : 0)
+  const logoStr = logo ? String(logo) : ''
+  const totalLength = urlWithoutLongFields.length + fotoStr.length + logoStr.length
 
   if (totalLength <= 1800) {
     if (fotoStr) url.searchParams.set('foto', fotoStr)
+    if (logoStr) url.searchParams.set('logo', logoStr)
     const res = await fetchWithTimeout(url.toString())
     return parseGasResponse(res)
   } else {
     const body = { action, ...rest }
     if (fotoStr) body.foto = fotoStr
+    if (logoStr) body.logo = logoStr
     const res = await fetchWithTimeout(CONFIG.GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,7 +103,7 @@ export const authApi = {
 
 export const tokoApi = {
   create: (token, data) => request('createToko', { token, ...data }),
-  update: (token, tokoId, data) => request('updateToko', { token, tokoId, ...data }),
+  update: (token, tokoId, data) => requestSafe('updateToko', { token, tokoId, ...data }),
   delete: (token, tokoId) => request('deleteToko', { token, tokoId }),
   getMine: (token) => request('getMyToko', { token }),
   getBySlug: (slug) => request('getTokoBySlug', { slug }),
@@ -137,4 +140,12 @@ export const tokoInfoApi = {
 export const ratingApi = {
   add: (data) => request('addRating', data),
   get: (params) => request('getRating', params),
+}
+
+export const adminApi = {
+  getUsers: () => request('adminGetUsers', {}),
+  getStats: () => request('adminGetStats', {}),
+  grantPro: (targetUserId, months) => request('adminGrantPro', { targetUserId, months }),
+  revokePro: (targetUserId) => request('adminRevokePro', { targetUserId }),
+  deleteUser: (targetUserId) => request('adminDeleteUser', { targetUserId }),
 }
