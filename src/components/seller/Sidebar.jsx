@@ -80,7 +80,7 @@ export default function Sidebar() {
             fontFamily: PJS,
             fontWeight: 800,
             fontSize: '1.05rem',
-            color: '#ffffff',
+            color: 'var(--text-primary)',
             letterSpacing: '-0.02em',
           }}>exora</span>
           <span style={{
@@ -251,7 +251,7 @@ export default function Sidebar() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <ExoraIcon size={22} />
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
-            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '0.95rem', color: '#ffffff', letterSpacing: '-0.02em' }}>exora</span>
+            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '0.95rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>exora</span>
             <span style={{
               fontFamily: PJS, fontWeight: 600, fontSize: '0.5rem',
               background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
