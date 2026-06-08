@@ -502,7 +502,7 @@ function BarChartCustom({ data, maxVal, globalMax }) {
                 fontFamily: 'var(--font-display)',
                 fontWeight: 800,
                 fontSize: '1rem',
-                color: isHighestSelected ? '#fbbf24' : 'var(--text-primary)',
+                color: isHighestSelected ? '#fbbf24' : '#fff',
               }}>
                 {formatRupiah(selectedItem.total || 0)}
               </p>
