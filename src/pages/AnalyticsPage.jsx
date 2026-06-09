@@ -1,16 +1,21 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useRef } from 'react'
 import {
   TrendingUp, Package, ShoppingBag, DollarSign,
   BarChart2, Award, RefreshCw, Download, Zap,
-  ChevronLeft, ChevronRight
+  ChevronLeft, ChevronRight, Sparkles, Send,
+  Trash2, Bot, User, Loader
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { useAuthStore } from '../lib/store.js'
 import { analyticsApi } from '../lib/api.js'
 import { formatRupiah, isPro } from '../lib/utils.js'
+import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+
+const CHAT_STORAGE_KEY = 'exora_ai_chat_history'
+const PJS = "'Plus Jakarta Sans', sans-serif"
 
 export default function AnalyticsPage() {
   const { user, token } = useAuthStore()
@@ -45,7 +50,7 @@ function AnalyticsGate() {
             Pantau performa toko kamu: revenue, produk terlaris, tren pesanan, dan lebih banyak lagi.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
-            {['Grafik revenue mingguan & bulanan','Produk terlaris','Statistik pesanan lengkap','Export data ke Excel'].map(f => (
+            {['Grafik revenue mingguan & bulanan','Produk terlaris','Statistik pesanan lengkap','Export data ke Excel','AI Insight & Chat Konsultan'].map(f => (
               <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
                 {f}
@@ -134,7 +139,7 @@ function AnalyticsDashboard({ token }) {
       }
     >
       {loading ? <AnalyticsSkeleton /> : data ? (
-        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} />
+        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} token={token} />
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
           <BarChart2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
@@ -183,7 +188,6 @@ function shortenMonthLabel(label = '') {
   return monthMap[word] || label.slice(0, 3)
 }
 
-// Status pesanan config — semua pakai rgba hardcoded, konsisten
 const STATUS_PESANAN = [
   { key: 'pesananPending',    label: 'Menunggu',    color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',   border: 'rgba(245,158,11,0.18)'   },
   { key: 'pesananConfirmed',  label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)',  border: 'rgba(91,138,245,0.18)'   },
@@ -193,7 +197,7 @@ const STATUS_PESANAN = [
   { key: 'pesananCancelled',  label: 'Dibatalkan',  color: '#f87171', bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.18)'  },
 ]
 
-function AnalyticsContent({ data, period, setPeriod }) {
+function AnalyticsContent({ data, period, setPeriod, token }) {
   const {
     totalProduk = 0, produkAktif = 0,
     totalPesanan = 0, pesananPending = 0, pesananSelesai = 0,
@@ -240,6 +244,9 @@ function AnalyticsContent({ data, period, setPeriod }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+      {/* AI Insight Card */}
+      <AIInsightCard token={token} data={data} />
+
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         <KpiCard label="Total Revenue" value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" />
@@ -269,7 +276,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
           </div>
         </div>
 
-        {/* Navigator */}
         {totalItems > WINDOW && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
             <button onClick={() => setOffset(o => Math.min(o + 1, maxOffset))} disabled={!canGoBack} style={{
@@ -386,6 +392,345 @@ function AnalyticsContent({ data, period, setPeriod }) {
         </div>
       </div>
 
+      {/* AI Chat Card */}
+      <AIChatCard token={token} data={data} />
+
+    </div>
+  )
+}
+
+// ============ AI INSIGHT CARD ============
+function AIInsightCard({ token, data }) {
+  const [insight, setInsight] = useState(null)
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (data) generateInsight()
+  }, [data])
+
+  const generateInsight = async () => {
+    setLoading(true)
+    setInsight(null)
+    try {
+      const res = await fetch(CONFIG.GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'getAIInsight',
+          token,
+          type: 'insight',
+          analyticsData: data,
+        }),
+      })
+      const json = await res.json()
+      if (json.success) setInsight(json.reply)
+      else throw new Error(json.message)
+    } catch (err) {
+      setInsight('Gagal memuat insight: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, rgba(91,138,245,0.08) 0%, rgba(167,139,250,0.1) 100%)',
+      border: '1px solid rgba(167,139,250,0.2)',
+      borderRadius: 'var(--radius-xl)',
+      padding: '18px 20px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 'var(--radius-md)',
+            background: 'var(--accent-gradient-soft)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Sparkles size={14} color="var(--accent-3)" />
+          </div>
+          <div>
+            <p style={{ fontFamily: PJS, fontWeight: 700, fontSize: '0.85rem' }}>AI Insight</p>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>oleh Aira — diperbarui tiap refresh</p>
+          </div>
+        </div>
+        <button
+          onClick={generateInsight}
+          disabled={loading}
+          className="btn btn-secondary btn-sm"
+          style={{ fontSize: '0.72rem', padding: '4px 10px' }}
+        >
+          <RefreshCw size={11} style={{ animation: loading ? 'spin 0.7s linear infinite' : 'none' }} />
+          {loading ? 'Menganalisis...' : 'Refresh'}
+        </button>
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[80, 60, 70].map((w, i) => (
+            <div key={i} className="skeleton" style={{ height: 14, width: `${w}%`, borderRadius: 4 }} />
+          ))}
+        </div>
+      ) : insight ? (
+        <div style={{
+          fontSize: '0.83rem',
+          color: 'var(--text-secondary)',
+          lineHeight: 1.75,
+          whiteSpace: 'pre-line',
+        }}>
+          {insight}
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+// ============ AI CHAT CARD ============
+function AIChatCard({ token, data }) {
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CHAT_STORAGE_KEY)
+      return saved ? JSON.parse(saved) : []
+    } catch { return [] }
+  })
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages))
+    } catch {}
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  const handleSend = async () => {
+    const text = input.trim()
+    if (!text || loading) return
+
+    const newMessages = [...messages, { role: 'user', content: text }]
+    setMessages(newMessages)
+    setInput('')
+    setLoading(true)
+
+    try {
+      const res = await fetch(CONFIG.GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          action: 'getAIInsight',
+          token,
+          type: 'chat',
+          messages: newMessages,
+          analyticsData: data,
+        }),
+      })
+      const json = await res.json()
+      if (json.success) {
+        setMessages(prev => [...prev, { role: 'assistant', content: json.reply }])
+      } else {
+        throw new Error(json.message)
+      }
+    } catch (err) {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Gagal: ' + err.message }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleClear = () => {
+    setMessages([])
+    localStorage.removeItem(CHAT_STORAGE_KEY)
+    toast.success('Riwayat chat dihapus')
+  }
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSend()
+    }
+  }
+
+  return (
+    <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 'var(--radius-md)',
+            background: 'var(--accent-gradient)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Bot size={14} color="#fff" />
+          </div>
+          <div>
+            <p style={{ fontFamily: PJS, fontWeight: 700, fontSize: '0.85rem' }}>Tanya Aira</p>
+            <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>Konsultan AI toko kamu</p>
+          </div>
+        </div>
+        {messages.length > 0 && (
+          <button
+            onClick={handleClear}
+            className="btn btn-ghost btn-sm"
+            style={{ color: 'var(--danger)', fontSize: '0.72rem', gap: 4, padding: '4px 8px' }}
+          >
+            <Trash2 size={11} />
+            Hapus
+          </button>
+        )}
+      </div>
+
+      {/* Messages */}
+      <div style={{
+        maxHeight: 360,
+        overflowY: 'auto',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+        marginBottom: messages.length > 0 ? 16 : 0,
+        paddingRight: 2,
+      }}>
+        {messages.length === 0 && (
+          <div style={{
+            textAlign: 'center', padding: '24px 0',
+            color: 'var(--text-tertiary)', fontSize: '0.82rem',
+          }}>
+            <Bot size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+            <p>Tanya apa saja tentang toko kamu</p>
+            <p style={{ fontSize: '0.72rem', marginTop: 4 }}>Misal: "Kenapa revenue saya nol?" atau "Produk mana yang perlu dioptimasi?"</p>
+          </div>
+        )}
+
+        {messages.map((m, i) => (
+          <div key={i} style={{
+            display: 'flex',
+            justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
+            gap: 8,
+            alignItems: 'flex-end',
+          }}>
+            {m.role === 'assistant' && (
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: 'var(--accent-gradient)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Bot size={12} color="#fff" />
+              </div>
+            )}
+            <div style={{
+              maxWidth: '78%',
+              padding: '10px 14px',
+              borderRadius: m.role === 'user'
+                ? 'var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)'
+                : 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px',
+              background: m.role === 'user'
+                ? 'var(--accent-gradient)'
+                : 'var(--surface)',
+              border: m.role === 'user' ? 'none' : '1px solid var(--glass-border)',
+              fontSize: '0.83rem',
+              lineHeight: 1.65,
+              color: m.role === 'user' ? '#fff' : 'var(--text-primary)',
+              whiteSpace: 'pre-line',
+            }}>
+              {m.content}
+            </div>
+            {m.role === 'user' && (
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%',
+                background: 'var(--surface)',
+                border: '1px solid var(--glass-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <User size={12} color="var(--text-secondary)" />
+              </div>
+            )}
+          </div>
+        ))}
+
+        {loading && (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%',
+              background: 'var(--accent-gradient)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Bot size={12} color="#fff" />
+            </div>
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-border)',
+              display: 'flex', gap: 4, alignItems: 'center',
+            }}>
+              {[0, 1, 2].map(i => (
+                <div key={i} style={{
+                  width: 6, height: 6, borderRadius: '50%',
+                  background: 'var(--text-tertiary)',
+                  animation: 'pulse 1.2s ease-in-out infinite',
+                  animationDelay: `${i * 0.2}s`,
+                }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div style={{
+        display: 'flex', gap: 8, alignItems: 'flex-end',
+        borderTop: messages.length > 0 ? '1px solid var(--glass-border)' : 'none',
+        paddingTop: messages.length > 0 ? 14 : 0,
+      }}>
+        <textarea
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Tanya sesuatu tentang toko kamu..."
+          rows={1}
+          style={{
+            flex: 1,
+            padding: '10px 14px',
+            background: 'var(--surface)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-lg)',
+            color: 'var(--text-primary)',
+            fontSize: '0.85rem',
+            resize: 'none',
+            fontFamily: PJS,
+            outline: 'none',
+            lineHeight: 1.5,
+            maxHeight: 120,
+            overflowY: 'auto',
+          }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--glass-border)'}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || loading}
+          style={{
+            width: 38, height: 38, borderRadius: 'var(--radius-lg)',
+            background: input.trim() && !loading ? 'var(--accent-gradient)' : 'var(--surface)',
+            border: '1px solid var(--glass-border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
+            opacity: input.trim() && !loading ? 1 : 0.5,
+            flexShrink: 0,
+            transition: 'all var(--transition-fast)',
+          }}
+        >
+          {loading ? <Loader size={14} color="var(--text-tertiary)" style={{ animation: 'spin 0.7s linear infinite' }} /> : <Send size={14} color={input.trim() ? '#fff' : 'var(--text-tertiary)'} />}
+        </button>
+      </div>
+      <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: 8, textAlign: 'center' }}>
+        Enter untuk kirim · Shift+Enter baris baru · Riwayat tersimpan di perangkat ini
+      </p>
     </div>
   )
 }
@@ -407,8 +752,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-
-      {/* Bars */}
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140 }}>
         {data.map((d, i) => {
           const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
@@ -456,7 +799,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
         })}
       </div>
 
-      {/* X-axis labels */}
       <div style={{ display: 'flex', gap: 4 }}>
         {data.map((d, i) => (
           <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
@@ -476,7 +818,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
         ))}
       </div>
 
-      {/* Selected bar detail card */}
       <div style={{
         overflow: 'hidden',
         maxHeight: selectedItem ? 80 : 0,
@@ -530,16 +871,10 @@ function BarChartCustom({ data, maxVal, globalMax }) {
         )}
       </div>
 
-      {/* Divider */}
       <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
 
-      {/* Stats bawah — 2 kolom equal width */}
       <div style={{ display: 'flex', gap: 0 }}>
-        <div style={{
-          flex: 1, minWidth: 0,
-          display: 'flex', flexDirection: 'column', gap: 3,
-          paddingRight: 12,
-        }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, paddingRight: 12 }}>
           <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Tertinggi
           </p>
@@ -551,14 +886,8 @@ function BarChartCustom({ data, maxVal, globalMax }) {
             {formatRupiah(maxVal)}
           </p>
         </div>
-
         <div style={{ width: 1, background: 'var(--glass-border)', flexShrink: 0 }} />
-
-        <div style={{
-          flex: 1, minWidth: 0,
-          display: 'flex', flexDirection: 'column', gap: 3,
-          paddingLeft: 12,
-        }}>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 12 }}>
           <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             Total Periode
           </p>
@@ -571,7 +900,6 @@ function BarChartCustom({ data, maxVal, globalMax }) {
           </p>
         </div>
       </div>
-
     </div>
   )
 }
@@ -592,6 +920,7 @@ function KpiCard({ label, value, icon, color, sub }) {
 function AnalyticsSkeleton() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="skeleton" style={{ height: 100, borderRadius: 'var(--radius-xl)' }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)' }} />)}
       </div>
