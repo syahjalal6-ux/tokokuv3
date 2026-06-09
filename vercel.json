@@ -1,6 +1,8 @@
 {
+  "redirects": [
+    { "source": "/toko/:slug", "destination": "/:slug", "permanent": true }
+  ],
   "rewrites": [
-    { "source": "/toko/:slug/manifest.json", "destination": "/api/manifest?slug=:slug" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
