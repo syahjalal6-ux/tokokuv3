@@ -31,20 +31,37 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
 
   useEffect(() => {
     const vv = window.visualViewport
-    if (!vv) return
 
-    const onResize = () => {
+    const onVVResize = () => {
       setVpHeight(vv.height)
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
       }, 50)
     }
 
-    vv.addEventListener('resize', onResize)
-    vv.addEventListener('scroll', onResize)
+    const onWindowResize = () => {
+      // Fallback untuk browser yang tidak support visualViewport dengan benar
+      const h = window.visualViewport?.height || window.innerHeight
+      setVpHeight(h)
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+      }, 50)
+    }
+
+    if (vv) {
+      vv.addEventListener('resize', onVVResize)
+      vv.addEventListener('scroll', onVVResize)
+    }
+
+    // Fallback: window resize (trigger di browser bawaan Android saat keyboard muncul)
+    window.addEventListener('resize', onWindowResize)
+
     return () => {
-      vv.removeEventListener('resize', onResize)
-      vv.removeEventListener('scroll', onResize)
+      if (vv) {
+        vv.removeEventListener('resize', onVVResize)
+        vv.removeEventListener('scroll', onVVResize)
+      }
+      window.removeEventListener('resize', onWindowResize)
     }
   }, [])
 
