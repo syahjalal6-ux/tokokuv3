@@ -46,6 +46,29 @@ async function request(action, data = {}) {
   }
 }
 
+async function requestPost(action, data = {}) {
+  try {
+    const res = await fetchWithTimeout(CONFIG.GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...data }),
+    })
+    const text = await res.text()
+    let json
+    try {
+      json = JSON.parse(text)
+    } catch {
+      throw new ApiError('Response dari server tidak valid.', 500)
+    }
+    if (!json.success) throw new ApiError(json.message || 'Terjadi kesalahan', 400)
+    return json
+  } catch (err) {
+    if (err.name === 'AbortError') throw new ApiError('Request timeout. Coba lagi.', 408)
+    if (err instanceof ApiError) throw err
+    throw new ApiError(err.message || 'Gagal terhubung ke server', 0)
+  }
+}
+
 async function requestSafe(action, data = {}) {
   const url = new URL(CONFIG.GAS_URL)
   url.searchParams.set('action', action)
@@ -122,7 +145,7 @@ export const produkApi = {
 }
 
 export const pesananApi = {
-  create: (data) => request('createPesanan', data),
+  create: (data) => requestPost('createPesanan', data),
   getMine: (token, status = 'all') => request('getMyPesanan', { token, status }),
   updateStatus: (token, pesananId, status) => request('updatePesananStatus', { token, pesananId, status }),
   getById: (pesananId, buyerWa) => request('getPesananById', { pesananId, buyerWa }),
