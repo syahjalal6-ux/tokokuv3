@@ -99,7 +99,7 @@ export default function App() {
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
 
         {/* Storefront publik */}
-        <Route path="/toko/:slug" element={<StorefrontPage />} />
+        <Route path="/:slug" element={<StorefrontPage />} />
 
         {/* Private (seller) */}
         <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
