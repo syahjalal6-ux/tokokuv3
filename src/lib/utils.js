@@ -196,7 +196,7 @@ export function isPro(user) {
 
 // Storefront URL
 export function getStorefrontUrl(slug) {
-  return `${CONFIG.APP_URL}/toko/${slug}`
+  return `${CONFIG.APP_URL}/${slug}`
 }
 
 // Debounce
