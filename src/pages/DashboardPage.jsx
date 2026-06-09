@@ -347,11 +347,11 @@ function SetupTokoCard({ token, setToko }) {
             <label className="form-label">Slug / URL Toko *</label>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <span style={{ position: 'absolute', left: 12, color: 'var(--text-tertiary)', fontSize: '0.82rem', pointerEvents: 'none' }}>
-                exora.app/toko/
+                exora.app/
               </span>
               <input
                 className={'form-input ' + (errors.slug ? 'error' : '')}
-                style={{ paddingLeft: 110 }}
+                style={{ paddingLeft: 80 }}
                 placeholder="nama-toko"
                 value={form.slug}
                 onChange={e => { setSlugManual(true); set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30)) }}
