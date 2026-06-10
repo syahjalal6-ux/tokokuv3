@@ -255,145 +255,170 @@ function AnalyticsContent({ data, period, setPeriod, token }) {
         <KpiCard label="Produk Aktif" value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" />
       </div>
 
-      {/* Revenue chart */}
-      <div className="glass-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
-          <div>
-            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>Revenue</h3>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{periodLabel}</p>
+      {/* Desktop: 3 kolom | Mobile: single column */}
+      <style>{`
+        .analytics-3col {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+        @media (min-width: 1024px) {
+          .analytics-3col {
+            grid-template-columns: 1fr 1fr 1fr;
+            align-items: start;
+          }
+        }
+        .analytics-right-col {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+      `}</style>
+
+      <div className="analytics-3col">
+
+        {/* Kolom 1: Revenue chart */}
+        <div className="glass-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>Revenue</h3>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{periodLabel}</p>
+            </div>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[{ key: 'minggu', label: 'Mingguan' }, { key: 'bulan', label: 'Bulanan' }].map(p => (
+                <button key={p.key} onClick={() => setPeriod(p.key)} className="btn btn-sm" style={{
+                  borderRadius: 'var(--radius-full)', fontSize: '0.72rem', padding: '4px 10px',
+                  background: period === p.key ? 'var(--surface-active)' : 'var(--surface)',
+                  color: period === p.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                  border: `1px solid ${period === p.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
+                }}>
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {[{ key: 'minggu', label: 'Mingguan' }, { key: 'bulan', label: 'Bulanan' }].map(p => (
-              <button key={p.key} onClick={() => setPeriod(p.key)} className="btn btn-sm" style={{
-                borderRadius: 'var(--radius-full)', fontSize: '0.72rem', padding: '4px 10px',
-                background: period === p.key ? 'var(--surface-active)' : 'var(--surface)',
-                color: period === p.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                border: `1px solid ${period === p.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
+
+          {totalItems > WINDOW && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
+              <button onClick={() => setOffset(o => Math.min(o + 1, maxOffset))} disabled={!canGoBack} style={{
+                width: 26, height: 26, borderRadius: 'var(--radius-md)',
+                background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.3, color: 'var(--text-secondary)',
               }}>
-                {p.label}
+                <ChevronLeft size={13} />
               </button>
-            ))}
-          </div>
-        </div>
-
-        {totalItems > WINDOW && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
-            <button onClick={() => setOffset(o => Math.min(o + 1, maxOffset))} disabled={!canGoBack} style={{
-              width: 26, height: 26, borderRadius: 'var(--radius-md)',
-              background: 'var(--surface)', border: '1px solid var(--glass-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.3, color: 'var(--text-secondary)',
-            }}>
-              <ChevronLeft size={13} />
-            </button>
-            <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-              {chartData[0]?.label} – {chartData[chartData.length - 1]?.label}
-            </span>
-            <button onClick={() => setOffset(o => Math.max(o - 1, 0))} disabled={!canGoForward} style={{
-              width: 26, height: 26, borderRadius: 'var(--radius-md)',
-              background: 'var(--surface)', border: '1px solid var(--glass-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.3, color: 'var(--text-secondary)',
-            }}>
-              <ChevronRight size={13} />
-            </button>
-          </div>
-        )}
-
-        {chartData.length > 0 ? (
-          <BarChartCustom data={chartData} maxVal={maxRevenue} globalMax={maxRevenueAll} />
-        ) : (
-          <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
-            <BarChart2 size={32} style={{ opacity: 0.3 }} />
-            <p style={{ fontSize: '0.82rem' }}>Belum ada data revenue</p>
-          </div>
-        )}
-      </div>
-
-      {/* Top produk */}
-      <div className="glass-card" style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-          <Award size={16} color="var(--warning)" />
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem' }}>Produk Terlaris</h3>
-        </div>
-        {topProduk.length > 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {topProduk.map((p, i) => {
-              const maxQty = topProduk[0].qty
-              const pct = Math.round((p.qty / maxQty) * 100)
-              return (
-                <div key={i}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{
-                        width: 20, height: 20, borderRadius: '50%',
-                        background: i === 0 ? 'var(--accent-gradient)' : 'var(--surface)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.65rem', fontWeight: 800,
-                        color: i === 0 ? '#fff' : 'var(--text-tertiary)', flexShrink: 0,
-                      }}>{i + 1}</span>
-                      <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.nama}</span>
-                    </div>
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>×{p.qty}</span>
-                  </div>
-                  <div style={{ height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
-                    <div style={{
-                      height: '100%', width: `${pct}%`,
-                      background: i === 0 ? 'var(--accent-gradient)' : 'rgba(91,138,245,0.4)',
-                      borderRadius: 2, transition: 'width 0.6s ease',
-                    }} />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)' }}>
-            <Award size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
-            <p style={{ fontSize: '0.82rem' }}>Belum ada data</p>
-          </div>
-        )}
-      </div>
-
-      {/* Status Pesanan */}
-      <div className="glass-card" style={{ padding: '20px' }}>
-        <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>Status Pesanan</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-          {STATUS_PESANAN.map(s => {
-            const value = data[s.key] || 0
-            return (
-              <div key={s.key} style={{
-                padding: '12px',
-                borderRadius: 'var(--radius-lg)',
-                background: s.bg,
-                border: `1px solid ${s.border}`,
-                display: 'flex', flexDirection: 'column', gap: 2,
+              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                {chartData[0]?.label} – {chartData[chartData.length - 1]?.label}
+              </span>
+              <button onClick={() => setOffset(o => Math.max(o - 1, 0))} disabled={!canGoForward} style={{
+                width: 26, height: 26, borderRadius: 'var(--radius-md)',
+                background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.3, color: 'var(--text-secondary)',
               }}>
-                <p style={{
-                  fontSize: '0.65rem', color: 'var(--text-tertiary)',
-                  fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
-                }}>
-                  {s.label}
-                </p>
-                <p style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 800,
-                  fontSize: '1.3rem', color: s.color,
-                }}>
-                  {value}
-                </p>
-                {totalPesanan > 0 && (
-                  <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
-                    {Math.round((value / totalPesanan) * 100)}%
-                  </p>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+                <ChevronRight size={13} />
+              </button>
+            </div>
+          )}
 
-      {/* AI Chat Card */}
-      <AIChatCard token={token} data={data} />
+          {chartData.length > 0 ? (
+            <BarChartCustom data={chartData} maxVal={maxRevenue} globalMax={maxRevenueAll} />
+          ) : (
+            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
+              <BarChart2 size={32} style={{ opacity: 0.3 }} />
+              <p style={{ fontSize: '0.82rem' }}>Belum ada data revenue</p>
+            </div>
+          )}
+        </div>
+
+        {/* Kolom 2: Top produk + Status pesanan */}
+        <div className="analytics-right-col">
+          <div className="glass-card" style={{ padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <Award size={16} color="var(--warning)" />
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem' }}>Produk Terlaris</h3>
+            </div>
+            {topProduk.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {topProduk.map((p, i) => {
+                  const maxQty = topProduk[0].qty
+                  const pct = Math.round((p.qty / maxQty) * 100)
+                  return (
+                    <div key={i}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{
+                            width: 20, height: 20, borderRadius: '50%',
+                            background: i === 0 ? 'var(--accent-gradient)' : 'var(--surface)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            fontSize: '0.65rem', fontWeight: 800,
+                            color: i === 0 ? '#fff' : 'var(--text-tertiary)', flexShrink: 0,
+                          }}>{i + 1}</span>
+                          <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{p.nama}</span>
+                        </div>
+                        <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>×{p.qty}</span>
+                      </div>
+                      <div style={{ height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%', width: `${pct}%`,
+                          background: i === 0 ? 'var(--accent-gradient)' : 'rgba(91,138,245,0.4)',
+                          borderRadius: 2, transition: 'width 0.6s ease',
+                        }} />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)' }}>
+                <Award size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+                <p style={{ fontSize: '0.82rem' }}>Belum ada data</p>
+              </div>
+            )}
+          </div>
+
+          <div className="glass-card" style={{ padding: '20px' }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>Status Pesanan</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {STATUS_PESANAN.map(s => {
+                const value = data[s.key] || 0
+                return (
+                  <div key={s.key} style={{
+                    padding: '12px',
+                    borderRadius: 'var(--radius-lg)',
+                    background: s.bg,
+                    border: `1px solid ${s.border}`,
+                    display: 'flex', flexDirection: 'column', gap: 2,
+                  }}>
+                    <p style={{
+                      fontSize: '0.65rem', color: 'var(--text-tertiary)',
+                      fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
+                    }}>
+                      {s.label}
+                    </p>
+                    <p style={{
+                      fontFamily: 'var(--font-display)', fontWeight: 800,
+                      fontSize: '1.3rem', color: s.color,
+                    }}>
+                      {value}
+                    </p>
+                    {totalPesanan > 0 && (
+                      <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
+                        {Math.round((value / totalPesanan) * 100)}%
+                      </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Kolom 3: AI Chat */}
+        <AIChatCard token={token} data={data} />
+
+      </div>
 
     </div>
   )
@@ -552,8 +577,6 @@ function AIChatCard({ token, data }) {
 
   return (
     <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
-
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{
@@ -580,14 +603,13 @@ function AIChatCard({ token, data }) {
         )}
       </div>
 
-      {/* Messages */}
       <div style={{
-        maxHeight: 360,
+        height: 320,
         overflowY: 'auto',
         display: 'flex',
         flexDirection: 'column',
         gap: 12,
-        marginBottom: messages.length > 0 ? 16 : 0,
+        marginBottom: 16,
         paddingRight: 2,
       }}>
         {messages.length === 0 && (
@@ -624,9 +646,7 @@ function AIChatCard({ token, data }) {
               borderRadius: m.role === 'user'
                 ? 'var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)'
                 : 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px',
-              background: m.role === 'user'
-                ? 'var(--accent-gradient)'
-                : 'var(--surface)',
+              background: m.role === 'user' ? 'var(--accent-gradient)' : 'var(--surface)',
               border: m.role === 'user' ? 'none' : '1px solid var(--glass-border)',
               fontSize: '0.83rem',
               lineHeight: 1.65,
@@ -681,11 +701,10 @@ function AIChatCard({ token, data }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
       <div style={{
         display: 'flex', gap: 8, alignItems: 'flex-end',
-        borderTop: messages.length > 0 ? '1px solid var(--glass-border)' : 'none',
-        paddingTop: messages.length > 0 ? 14 : 0,
+        borderTop: '1px solid var(--glass-border)',
+        paddingTop: 14,
       }}>
         <textarea
           value={input}
@@ -924,9 +943,14 @@ function AnalyticsSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)' }} />)}
       </div>
-      <div className="skeleton" style={{ height: 240, borderRadius: 'var(--radius-xl)' }} />
-      <div className="skeleton" style={{ height: 200, borderRadius: 'var(--radius-xl)' }} />
-      <div className="skeleton" style={{ height: 180, borderRadius: 'var(--radius-xl)' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+        <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-xl)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-xl)' }} />
+          <div className="skeleton" style={{ height: 140, borderRadius: 'var(--radius-xl)' }} />
+        </div>
+        <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-xl)' }} />
+      </div>
     </div>
   )
 }
