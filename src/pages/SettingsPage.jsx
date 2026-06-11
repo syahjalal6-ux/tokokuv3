@@ -113,18 +113,13 @@ function LogoUpload({ value, onChange, disabled }) {
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-      {/* Preview */}
       <div style={{ position: 'relative', flexShrink: 0 }}>
         {value ? (
           <>
             <img
               src={value}
               alt="Logo toko"
-              style={{
-                width: 72, height: 72, borderRadius: 16,
-                objectFit: 'cover',
-                border: '1px solid var(--glass-border)',
-              }}
+              style={{ width: 72, height: 72, borderRadius: 16, objectFit: 'cover', border: '1px solid var(--glass-border)' }}
             />
             {!disabled && (
               <button
@@ -156,7 +151,6 @@ function LogoUpload({ value, onChange, disabled }) {
         )}
       </div>
 
-      {/* Dropzone */}
       <div
         {...getRootProps()}
         style={{
@@ -310,6 +304,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
     customDomain: '',
     tema: 'default',
     musik: '',
+    video: '',
     pengumuman: '',
     logo: '',
   })
@@ -325,6 +320,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
         customDomain: toko.customDomain || '',
         tema: toko.tema || 'default',
         musik: toko.musik || '',
+        video: toko.video || '',
         pengumuman: toko.pengumuman || '',
         logo: toko.logo || '',
       })
@@ -414,7 +410,18 @@ function TokoSettings({ token, toko, setToko, pro }) {
               value={form.musik}
               onChange={e => set('musik', e.target.value)}
             />
-            <span className="form-hint">Akan muncul sebagai tombol 🎵 di toko kamu — buyer klik untuk putar</span>
+            <span className="form-hint">Tombol 🎵 muncul di kiri bawah toko — buyer klik untuk play/pause</span>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Video Toko (YouTube)</label>
+            <input
+              className="form-input"
+              placeholder="cth: https://www.youtube.com/watch?v=xxxxx"
+              value={form.video}
+              onChange={e => set('video', e.target.value)}
+            />
+            <span className="form-hint">Tampil sebagai video kecil di bawah produk — cocok untuk video katalog atau tutorial</span>
           </div>
 
           <div className="form-group">
