@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { ShoppingBag, MessageCircle, ChevronDown, Search, Download } from 'lucide-react'
+import { ShoppingBag, MessageCircle, ChevronDown, Search, Download, Truck } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { EmptyState, ProGate } from '../components/ui/index.jsx'
 import { useAuthStore } from '../lib/store.js'
@@ -15,6 +15,11 @@ const STATUS_TABS = [
   { key: 'shipped', label: 'Dikirim' },
   { key: 'done', label: 'Selesai' },
   { key: 'cancelled', label: 'Dibatalkan' },
+]
+
+const KURIR_LIST = [
+  'J&T Express', 'JNE', 'SiCepat', 'Anteraja', 'Ninja Xpress',
+  'Lion Parcel', 'Pos Indonesia', 'Tiki', 'SAP Express', 'Lainnya',
 ]
 
 const STATUS_KETERANGAN = {
@@ -41,6 +46,23 @@ function generatePesananWAMessage(p) {
   lines.push('')
   lines.push('Status: *' + statusLabel + '*')
   if (keterangan) lines.push(keterangan)
+  return lines.join('\n')
+}
+
+function generateShippingWAMessage(p, kurir, resi) {
+  const lines = [
+    'Halo ' + p.buyerNama + ', pesanan kamu sudah kami kirim! 🚚',
+    '',
+    '*' + p.produkNama + '* x' + p.qty,
+    'Total: ' + formatRupiah(p.total),
+    '',
+    'Info Pengiriman:',
+    'Kurir: *' + kurir + '*',
+    'No. Resi: *' + resi + '*',
+    '',
+    'Silakan cek status pengiriman dengan nomor resi di atas ya!',
+    'Terima kasih sudah berbelanja 🙏',
+  ]
   return lines.join('\n')
 }
 
@@ -217,7 +239,7 @@ export default function PesananPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {filtered.map(p => (
-              <PesananCard key={p.id} pesanan={p} onStatusChange={handleStatusChange} />
+              <PesananCard key={p.id} pesanan={p} onStatusChange={handleStatusChange} setPesanan={setPesanan} />
             ))}
           </div>
         )}
@@ -226,8 +248,12 @@ export default function PesananPage() {
   )
 }
 
-function PesananCard({ pesanan: p, onStatusChange }) {
+function PesananCard({ pesanan: p, onStatusChange, setPesanan }) {
   const [expanded, setExpanded] = useState(false)
+  const [kurirOpen, setKurirOpen] = useState(false)
+  const [kurir, setKurir] = useState(KURIR_LIST[0])
+  const [resi, setResi] = useState('')
+  const [sendingKurir, setSendingKurir] = useState(false)
   const statusCfg = PESANAN_STATUS[p.status] || PESANAN_STATUS.pending
 
   const dotColor = statusCfg.color === 'success' ? 'var(--success)'
@@ -236,6 +262,28 @@ function PesananCard({ pesanan: p, onStatusChange }) {
     : 'var(--accent)'
 
   const waMessage = generatePesananWAMessage(p)
+
+  const handleKirim = async () => {
+    if (!resi.trim()) {
+      toast.error('Nomor resi wajib diisi')
+      return
+    }
+    setSendingKurir(true)
+    try {
+      await pesananApi.updateStatus(p.token || '', p.id, 'shipped')
+      setPesanan(ps => ps.map(x => x.id === p.id ? { ...x, status: 'shipped', kurir, resi } : x))
+      const msg = generateShippingWAMessage(p, kurir, resi)
+      window.open(generateWALink(p.buyerWa, msg), '_blank')
+      setKurirOpen(false)
+      toast.success('Status dikirim & WA terkirim!')
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setSendingKurir(false)
+    }
+  }
+
+  const canShip = p.status !== 'shipped' && p.status !== 'done' && p.status !== 'cancelled'
 
   return (
     <div className="glass-card" style={{ padding: '16px 20px', borderRadius: 'var(--radius-lg)' }}>
@@ -256,7 +304,7 @@ function PesananCard({ pesanan: p, onStatusChange }) {
                 {'#' + (p.id ? p.id.slice(-8) : '-') + ' · ' + formatDateTime(p.createdAt)}
               </p>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
               <span className={'badge badge-' + statusCfg.color}>{statusCfg.label}</span>
               <button onClick={() => setExpanded(!expanded)} className="btn btn-ghost btn-icon btn-sm">
                 <ChevronDown size={15} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
@@ -320,20 +368,28 @@ function PesananCard({ pesanan: p, onStatusChange }) {
                 <span style={{ color: 'var(--text-tertiary)' }}>Catatan: </span>{p.catatan}
               </p>
             )}
+            {p.resi && (
+              <p style={{ marginBottom: 0, marginTop: 4 }}>
+                <span style={{ color: 'var(--text-tertiary)' }}>Resi: </span>
+                <span style={{ fontWeight: 700, color: 'var(--success)' }}>{p.kurir} — {p.resi}</span>
+              </p>
+            )}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Action icons */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Chat WA */}
             <a
               href={generateWALink(p.buyerWa, waMessage)}
               target="_blank"
               rel="noreferrer"
-              className="btn btn-secondary btn-sm"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              className="btn btn-secondary btn-icon btn-sm"
+              title="Chat via WA"
             >
-              <MessageCircle size={13} />
-              Hubungi via WA
+              <MessageCircle size={15} />
             </a>
 
+            {/* Status dropdown */}
             {p.status !== 'done' && p.status !== 'cancelled' && (
               <select
                 className="form-input form-select"
@@ -358,7 +414,66 @@ function PesananCard({ pesanan: p, onStatusChange }) {
                 ))}
               </select>
             )}
+
+            {/* Kirim icon */}
+            {canShip && (
+              <button
+                onClick={() => setKurirOpen(!kurirOpen)}
+                className="btn btn-icon btn-sm"
+                title="Input kurir & resi"
+                style={{
+                  background: kurirOpen ? 'var(--accent-gradient)' : 'var(--surface)',
+                  border: '1px solid var(--glass-border)',
+                  color: kurirOpen ? '#fff' : 'var(--text-secondary)',
+                }}
+              >
+                <Truck size={15} />
+              </button>
+            )}
           </div>
+
+          {/* Form kurir & resi */}
+          {kurirOpen && canShip && (
+            <div style={{
+              marginTop: 12, padding: '14px',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex', flexDirection: 'column', gap: '10px',
+            }}>
+              <div className="form-group">
+                <label className="form-label">Kurir</label>
+                <select
+                  className="form-input form-select"
+                  value={kurir}
+                  onChange={e => setKurir(e.target.value)}
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                >
+                  {KURIR_LIST.map(k => (
+                    <option key={k} value={k} style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>{k}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Nomor Resi</label>
+                <input
+                  className="form-input"
+                  placeholder="cth: JT1234567890"
+                  value={resi}
+                  onChange={e => setResi(e.target.value)}
+                />
+              </div>
+              <button
+                onClick={handleKirim}
+                disabled={sendingKurir || !resi.trim()}
+                className="btn btn-primary btn-sm"
+                style={{ width: '100%', gap: 6 }}
+              >
+                <Truck size={14} />
+                {sendingKurir ? 'Menyimpan...' : 'Simpan & Kirim WA'}
+              </button>
+            </div>
+          )}
 
         </div>
       )}
