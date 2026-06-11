@@ -239,7 +239,7 @@ export default function PesananPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {filtered.map(p => (
-              <PesananCard key={p.id} pesanan={p} onStatusChange={handleStatusChange} setPesanan={setPesanan} />
+              <PesananCard key={p.id} pesanan={p} token={token} onStatusChange={handleStatusChange} setPesanan={setPesanan} />
             ))}
           </div>
         )}
@@ -248,7 +248,7 @@ export default function PesananPage() {
   )
 }
 
-function PesananCard({ pesanan: p, onStatusChange, setPesanan }) {
+function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
   const [expanded, setExpanded] = useState(false)
   const [kurirOpen, setKurirOpen] = useState(false)
   const [kurir, setKurir] = useState(KURIR_LIST[0])
@@ -270,7 +270,7 @@ function PesananCard({ pesanan: p, onStatusChange, setPesanan }) {
     }
     setSendingKurir(true)
     try {
-      await pesananApi.updateStatus(p.token || '', p.id, 'shipped')
+      await pesananApi.updateStatus(token, p.id, 'shipped', kurir, resi)
       setPesanan(ps => ps.map(x => x.id === p.id ? { ...x, status: 'shipped', kurir, resi } : x))
       const msg = generateShippingWAMessage(p, kurir, resi)
       window.open(generateWALink(p.buyerWa, msg), '_blank')
