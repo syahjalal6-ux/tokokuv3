@@ -124,7 +124,7 @@ export const produkApi = {
 export const pesananApi = {
   create: (data) => request('createPesanan', data),
   getMine: (token, status = 'all') => request('getMyPesanan', { token, status }),
-  updateStatus: (token, pesananId, status) => request('updatePesananStatus', { token, pesananId, status }),
+  updateStatus: (token, pesananId, status, kurir, resi) => request('updatePesananStatus', { token, pesananId, status, kurir, resi }),
   getById: (pesananId, buyerWa) => request('getPesananById', { pesananId, buyerWa }),
 }
 
