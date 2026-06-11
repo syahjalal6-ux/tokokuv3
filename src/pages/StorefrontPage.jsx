@@ -62,20 +62,14 @@ function StarRating({ value, onChange, size = 20 }) {
 
 function MusicPlayer({ musikUrl, tema }) {
   const [playing, setPlaying] = useState(false)
-  const iframeRef = useRef(null)
   const videoId = getYouTubeId(musikUrl)
   if (!videoId) return null
-
-  const handleToggle = () => {
-    setPlaying(p => !p)
-  }
 
   return (
     <>
       {playing && (
         <div style={{ position: 'fixed', width: 0, height: 0, overflow: 'hidden', zIndex: -1 }}>
           <iframe
-            ref={iframeRef}
             src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`}
             title="Musik Toko"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -83,9 +77,8 @@ function MusicPlayer({ musikUrl, tema }) {
           />
         </div>
       )}
-
       <button
-        onClick={handleToggle}
+        onClick={() => setPlaying(p => !p)}
         title={playing ? 'Pause musik' : 'Play musik'}
         style={{
           position: 'fixed', bottom: 48, left: 16, zIndex: 200,
@@ -101,16 +94,46 @@ function MusicPlayer({ musikUrl, tema }) {
         }}
       >
         <Music size={15} />
-        {playing && (
-          <style>{`
-            @keyframes musicPulse {
-              0%, 100% { box-shadow: 0 4px 24px ${tema.accent}66; }
-              50% { box-shadow: 0 4px 32px ${tema.accent}99; }
-            }
-          `}</style>
-        )}
       </button>
     </>
+  )
+}
+
+function VideoToko({ videoUrl }) {
+  const videoId = getYouTubeId(videoUrl)
+  if (!videoId) return null
+
+  return (
+    <div style={{
+      border: '1px solid var(--glass-border)',
+      borderRadius: 'var(--radius-lg)',
+      overflow: 'hidden',
+      background: 'var(--surface)',
+    }}>
+      <div style={{
+        padding: '7px 12px',
+        borderBottom: '1px solid var(--glass-border)',
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+          VIDEO TOKO
+        </span>
+      </div>
+      <div style={{ position: 'relative', paddingBottom: '40%', height: 0, background: '#000' }}>
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+          title="Video Toko"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          style={{
+            position: 'absolute', top: 0, left: 0,
+            width: '100%', height: '100%',
+            border: 'none',
+          }}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -277,12 +300,22 @@ export default function StorefrontPage() {
   const [chatOpen, setChatOpen] = useState(false)
 
   useEffect(() => {
+    // Manifest per toko
     const existing = document.querySelector('link[rel="manifest"]')
     if (existing) existing.remove()
     const link = document.createElement('link')
     link.rel = 'manifest'
-    link.href = `/toko/${slug}/manifest.json`
+    link.href = `/api/manifest?slug=${slug}`
     document.head.appendChild(link)
+
+    // Register SW dengan scope per toko
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js', { scope: `/${slug}/` })
+        .catch(() => {
+          // Fallback: register tanpa scope spesifik
+          navigator.serviceWorker.register('/sw.js')
+        })
+    }
 
     loadStorefront()
 
@@ -328,7 +361,7 @@ export default function StorefrontPage() {
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24, textAlign: 'center' }}>
         <Store size={48} color="var(--text-tertiary)" />
         <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700 }}>Toko tidak ditemukan</h2>
-        <p style={{ color: 'var(--text-secondary)', maxWidth: 320 }}>Toko dengan alamat <strong>/toko/{slug}</strong> tidak ada atau sudah dihapus.</p>
+        <p style={{ color: 'var(--text-secondary)', maxWidth: 320 }}>Toko dengan alamat <strong>/{slug}</strong> tidak ada atau sudah dihapus.</p>
         <a href="/" className="btn btn-primary btn-sm">Kembali ke Beranda</a>
       </div>
     )
@@ -409,6 +442,7 @@ export default function StorefrontPage() {
       </div>
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 80px' }}>
+        {/* Search */}
         <div style={{ marginBottom: '16px' }}>
           <div style={{ position: 'relative' }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
@@ -422,6 +456,7 @@ export default function StorefrontPage() {
           </div>
         </div>
 
+        {/* Filter kategori */}
         {kategoriList.length > 1 && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: '16px', paddingBottom: 4, scrollbarWidth: 'none' }}>
             <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? tema.accent + '22' : 'var(--surface)', color: filterKat === 'all' ? tema.accent : 'var(--text-secondary)', border: `1px solid ${filterKat === 'all' ? tema.accent + '44' : 'var(--glass-border)'}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
@@ -431,6 +466,7 @@ export default function StorefrontPage() {
           </div>
         )}
 
+        {/* Grid produk */}
         {filtered.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-secondary)' }}>
             <Package size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
@@ -441,6 +477,13 @@ export default function StorefrontPage() {
             {filtered.map(p => (
               <ProdukCard key={p.id} produk={p} tema={tema} onClick={() => setSelectedProduk(p)} />
             ))}
+          </div>
+        )}
+
+        {/* Video toko */}
+        {toko.video && getYouTubeId(toko.video) && (
+          <div style={{ marginTop: 16 }}>
+            <VideoToko videoUrl={toko.video} />
           </div>
         )}
       </div>
@@ -478,7 +521,7 @@ export default function StorefrontPage() {
         background: 'rgba(10,10,15,0.9)', backdropFilter: 'blur(16px)',
         borderTop: '1px solid var(--glass-border)',
         padding: '8px 16px', textAlign: 'center',
-        fontSize: '0.72rem', color: 'var(--text-tertiary)',
+        fontSize: '0.72rem', color: '#ffffff',
       }}>
         Powered by <a href="/" style={{ color: '#3B82F6', fontWeight: 700 }}>Exora</a>
       </div>
@@ -486,9 +529,6 @@ export default function StorefrontPage() {
   )
 }
 
-// ================================================
-// TOKO AVATAR — logo kalau ada, fallback huruf pertama
-// ================================================
 function TokoAvatar({ toko, tema, size = 52, radius = 14, fontSize = 22 }) {
   if (toko.logo) {
     return (
