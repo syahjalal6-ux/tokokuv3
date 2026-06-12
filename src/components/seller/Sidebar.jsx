@@ -6,7 +6,7 @@ import {
   Store, BarChart2, Sun, Moon
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
-import { pesananApi } from '../../lib/api.js'
+import { pesananApi } from '../../lib/api/index.js'
 import { getInitials, isPro } from '../../lib/utils.js'
 import { CONFIG } from '../../lib/config.js'
 import toast from 'react-hot-toast'
