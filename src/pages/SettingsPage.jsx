@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { Alert } from '../components/ui/index.jsx'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
-import { tokoApi, tokoInfoApi } from '../lib/api.js'
+import { tokoApi, tokoInfoApi } from '../lib/api/index.js'
 import { validateWA, getStorefrontUrl, isPro, compressImage } from '../lib/utils.js'
 import toast from 'react-hot-toast'
 
