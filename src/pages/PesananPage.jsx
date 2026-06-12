@@ -3,7 +3,7 @@ import { ShoppingBag, MessageCircle, ChevronDown, Search, Download, Truck } from
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { EmptyState, ProGate } from '../components/ui/index.jsx'
 import { useAuthStore } from '../lib/store.js'
-import { pesananApi } from '../lib/api.js'
+import { pesananApi } from '../lib/api/index.js'
 import { formatRupiah, formatDateTime, generateWALink, isPro, PESANAN_STATUS } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
