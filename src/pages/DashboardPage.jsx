@@ -69,6 +69,14 @@ export default function DashboardPage() {
   const produkAktif = produk.filter(p => p.aktif).length
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
 
+  const btnPerpanjangStyle = {
+    flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    color: '#fff',
+  }
+
   return (
     <DashboardLayout
       title={'Halo, ' + (user?.name?.split(' ')[0]) + ' 👋'}
@@ -77,7 +85,7 @@ export default function DashboardPage() {
         toko && (
           <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
             <ExternalLink size={14} />
-            Lihat Toko
+            {' Lihat Toko'}
           </a>
         )
       }
@@ -106,11 +114,12 @@ export default function DashboardPage() {
                   Upgrade ke Pro
                 </p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                  Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya {CONFIG.PRO_PRICE}.
+                  {'Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya ' + CONFIG.PRO_PRICE + '.'}
                 </p>
               </div>
               <Link to="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
-                <>Upgrade Sekarang <ArrowRight size={13} /></>
+                {'Upgrade Sekarang '}
+                <ArrowRight size={13} />
               </Link>
             </div>
           )}
@@ -143,24 +152,19 @@ export default function DashboardPage() {
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-sm"
-                style={{
-                  flexShrink: 0,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  background: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
-                  color: '#fff',
-                }}
+                style={Object.assign({}, btnPerpanjangStyle, { background: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)' })}
               >
-                Perpanjang Sekarang <ArrowRight size={13} />
+                {'Perpanjang Sekarang '}
+                <ArrowRight size={13} />
               </a>
             </div>
           )}
 
           {limitReached && (
             <Alert type="warning" title="Batas produk tercapai">
-              Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
-              <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link> untuk produk unlimited.
+              {'Kamu sudah mencapai batas ' + CONFIG.FREE_PRODUCT_LIMIT + ' produk untuk paket gratis. '}
+              <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link>
+              {' untuk produk unlimited.'}
             </Alert>
           )}
 
@@ -180,8 +184,8 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <button onClick={handleCopyLink} className="btn btn-secondary btn-sm">
                   {linkCopied
-                    ? <><CheckCircle size={13} color="var(--success)" /> Disalin</>
-                    : <><Copy size={13} /> Salin</>}
+                    ? <><CheckCircle size={13} color="var(--success)" />{' Disalin'}</>
+                    : <><Copy size={13} />{' Salin'}</>}
                 </button>
                 <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
@@ -225,7 +229,7 @@ export default function DashboardPage() {
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
               <button
-                onClick={() => !limitReached && setShowProdukForm(true)}
+                onClick={() => { if (!limitReached) setShowProdukForm(true) }}
                 disabled={limitReached}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
@@ -288,7 +292,8 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Produk Terbaru</h2>
                 <Link to="/dashboard/produk" className="btn btn-ghost btn-sm" style={{ color: 'var(--accent)' }}>
-                  <>Lihat semua <ArrowRight size={13} /></>
+                  {'Lihat semua '}
+                  <ArrowRight size={13} />
                 </Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -429,7 +434,7 @@ function SetupTokoCard({ token, setToko }) {
 
           <button onClick={handleSubmit} className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%', marginTop: '8px' }}>
             {loading
-              ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Membuat Toko...</>
+              ? <><span className="spinner" style={{ width: 16, height: 16 }} />{' Membuat Toko...'}</>
               : 'Buat Toko Sekarang 🚀'}
           </button>
         </div>
