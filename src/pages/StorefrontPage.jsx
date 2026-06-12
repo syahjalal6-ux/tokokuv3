@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { useParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send } from 'lucide-react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi } from '../lib/api.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
+import { CONFIG } from '../lib/config.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
 
 const TEMA = {
@@ -38,6 +39,209 @@ function getYouTubeId(url) {
     if (m) return m[1]
   }
   return null
+}
+
+// =============================================
+// BITESHIP TRACKING dengan cache 5 menit
+// =============================================
+const TRACKING_CACHE = {}
+const CACHE_TTL = 5 * 60 * 1000
+
+async function fetchTracking(resi) {
+  const key = resi.trim().toUpperCase()
+  const now = Date.now()
+
+  if (TRACKING_CACHE[key] && now - TRACKING_CACHE[key].ts < CACHE_TTL) {
+    return TRACKING_CACHE[key].data
+  }
+
+  const res = await fetch(`https://api.biteship.com/v1/trackings/${encodeURIComponent(key)}`, {
+    headers: {
+      'Authorization': CONFIG.BITESHIP_KEY,
+      'Content-Type': 'application/json',
+    },
+  })
+  if (!res.ok) throw new Error('Resi tidak ditemukan atau tidak valid')
+  const data = await res.json()
+  if (!data.success) throw new Error(data.error || 'Gagal melacak resi')
+
+  TRACKING_CACHE[key] = { data, ts: now }
+
+  return data
+}
+
+function TrackingModal({ onClose, initialResi = '' }) {
+  const [resi, setResi] = useState(initialResi)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    if (initialResi) handleTrack(initialResi)
+  }, [])
+
+  const handleTrack = async (resiVal) => {
+    const val = resiVal || resi
+    if (!val.trim()) return
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const data = await fetchTracking(val.trim())
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const isMobile = window.innerWidth < 640
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 700,
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: isMobile ? 'flex-end' : 'center',
+        justifyContent: 'center',
+        animation: 'fadeIn 0.2s ease',
+        padding: isMobile ? 0 : 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: isMobile ? '100%' : 480,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)',
+          maxHeight: isMobile ? '92vh' : '80vh',
+          overflow: 'auto',
+          animation: isMobile ? 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'fadeIn 0.25s ease',
+        }}
+      >
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--glass-border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Truck size={18} color="var(--accent)" />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Lacak Pesanan</span>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+        </div>
+
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              className="form-input"
+              placeholder="Masukkan nomor resi..."
+              value={resi}
+              onChange={e => setResi(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleTrack()}
+              style={{ flex: 1, fontSize: '0.875rem' }}
+            />
+            <button
+              onClick={() => handleTrack()}
+              disabled={loading || !resi.trim()}
+              className="btn btn-primary btn-sm"
+              style={{ flexShrink: 0 }}
+            >
+              {loading ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Lacak'}
+            </button>
+          </div>
+
+          {error && (
+            <div style={{ padding: '10px 14px', background: 'var(--danger-bg)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--danger)' }}>
+              {error}
+            </div>
+          )}
+
+          {result && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ padding: '12px 14px', background: 'var(--surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--glass-border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Kurir</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{result.courier?.name || '-'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>No. Resi</span>
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{result.waybill_id || resi}</span>
+                </div>
+                {result.destination && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>Tujuan</span>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 700 }}>{result.destination}</span>
+                  </div>
+                )}
+              </div>
+
+              {result.status && (
+                <div style={{
+                  padding: '8px 14px',
+                  background: result.status === 'delivered' ? 'var(--success-bg)' : 'rgba(91,138,245,0.1)',
+                  border: `1px solid ${result.status === 'delivered' ? 'rgba(52,211,153,0.2)' : 'rgba(91,138,245,0.2)'}`,
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.82rem',
+                  color: result.status === 'delivered' ? 'var(--success)' : 'var(--accent)',
+                  fontWeight: 700,
+                  textAlign: 'center',
+                }}>
+                  {result.status === 'delivered' ? '✓ Paket telah diterima' :
+                   result.status === 'in_transit' ? '🚚 Dalam perjalanan' :
+                   result.status === 'on_delivery' ? '🛵 Sedang diantar' :
+                   result.status === 'picked_up' ? '📦 Sudah dipickup' :
+                   result.status}
+                </div>
+              )}
+
+              {result.history && result.history.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {result.history.map((h, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingBottom: i < result.history.length - 1 ? 12 : 0 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+                        <div style={{
+                          width: 10, height: 10, borderRadius: '50%', marginTop: 3, flexShrink: 0,
+                          background: i === 0 ? 'var(--success)' : 'var(--surface-hover)',
+                          border: `2px solid ${i === 0 ? 'var(--success)' : 'var(--glass-border)'}`,
+                        }} />
+                        {i < result.history.length - 1 && (
+                          <div style={{ width: 2, flex: 1, minHeight: 20, background: 'var(--glass-border)', margin: '4px 0' }} />
+                        )}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ fontSize: '0.82rem', fontWeight: i === 0 ? 700 : 500, color: i === 0 ? 'var(--success)' : 'var(--text-primary)', margin: 0 }}>
+                          {h.note || h.status}
+                        </p>
+                        {h.service_area && (
+                          <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>{h.service_area}</p>
+                        )}
+                        <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: '2px 0 0' }}>
+                          {h.updated_at ? new Date(h.updated_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {!result && !loading && !error && (
+            <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.82rem', padding: '20px 0' }}>
+              Masukkan nomor resi untuk melacak status pengiriman
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function StarRating({ value, onChange, size = 20 }) {
@@ -104,21 +308,10 @@ function VideoToko({ videoUrl }) {
   if (!videoId) return null
 
   return (
-    <div style={{
-      border: '1px solid var(--glass-border)',
-      borderRadius: 'var(--radius-lg)',
-      overflow: 'hidden',
-      background: 'var(--surface)',
-    }}>
-      <div style={{
-        padding: '7px 12px',
-        borderBottom: '1px solid var(--glass-border)',
-        display: 'flex', alignItems: 'center', gap: 6,
-      }}>
+    <div style={{ border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: 'var(--surface)' }}>
+      <div style={{ padding: '7px 12px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
-        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
-          VIDEO TOKO
-        </span>
+        <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>VIDEO TOKO</span>
       </div>
       <div style={{ position: 'relative', paddingBottom: '40%', height: 0, background: '#000' }}>
         <iframe
@@ -126,11 +319,7 @@ function VideoToko({ videoUrl }) {
           title="Video Toko"
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowFullScreen
-          style={{
-            position: 'absolute', top: 0, left: 0,
-            width: '100%', height: '100%',
-            border: 'none',
-          }}
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
         />
       </div>
     </div>
@@ -289,6 +478,7 @@ function RatingSection({ produkId, tokoId, tema }) {
 
 export default function StorefrontPage() {
   const { slug } = useParams()
+  const [searchParams] = useSearchParams()
   const [toko, setToko] = useState(null)
   const [produk, setProduk] = useState([])
   const [loading, setLoading] = useState(true)
@@ -298,9 +488,16 @@ export default function StorefrontPage() {
   const [selectedProduk, setSelectedProduk] = useState(null)
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
+  const [trackingOpen, setTrackingOpen] = useState(false)
+  const [initialResi, setInitialResi] = useState('')
 
   useEffect(() => {
-    // Manifest per toko
+    const resiParam = searchParams.get('resi')
+    if (resiParam) {
+      setInitialResi(resiParam)
+      setTrackingOpen(true)
+    }
+
     const existing = document.querySelector('link[rel="manifest"]')
     if (existing) existing.remove()
     const link = document.createElement('link')
@@ -308,13 +505,9 @@ export default function StorefrontPage() {
     link.href = `/api/manifest?slug=${slug}`
     document.head.appendChild(link)
 
-    // Register SW dengan scope per toko
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js', { scope: `/${slug}/` })
-        .catch(() => {
-          // Fallback: register tanpa scope spesifik
-          navigator.serviceWorker.register('/sw.js')
-        })
+        .catch(() => navigator.serviceWorker.register('/sw.js'))
     }
 
     loadStorefront()
@@ -438,6 +631,26 @@ export default function StorefrontPage() {
               📢 {toko.pengumuman}
             </div>
           )}
+
+          {/* Lacak Pesanan bar */}
+          <div
+            onClick={() => setTrackingOpen(true)}
+            style={{
+              marginTop: 10, padding: '8px 12px',
+              background: 'var(--surface)', border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <Truck size={14} color={tema.accent} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Lacak pesananmu</span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: tema.accent, fontWeight: 700 }}>→</span>
+          </div>
         </div>
       </div>
 
@@ -514,6 +727,13 @@ export default function StorefrontPage() {
         />
       )}
 
+      {trackingOpen && (
+        <TrackingModal
+          onClose={() => { setTrackingOpen(false); setInitialResi('') }}
+          initialResi={initialResi}
+        />
+      )}
+
       {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} />}
 
       <div style={{
@@ -532,31 +752,11 @@ export default function StorefrontPage() {
 function TokoAvatar({ toko, tema, size = 52, radius = 14, fontSize = 22 }) {
   if (toko.logo) {
     return (
-      <img
-        src={toko.logo}
-        alt={toko.nama}
-        style={{
-          width: size, height: size,
-          borderRadius: radius,
-          objectFit: 'cover',
-          flexShrink: 0,
-          border: '1px solid var(--glass-border)',
-          boxShadow: `0 0 20px ${tema.accent}44`,
-        }}
-      />
+      <img src={toko.logo} alt={toko.nama} style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--glass-border)', boxShadow: `0 0 20px ${tema.accent}44` }} />
     )
   }
   return (
-    <div style={{
-      width: size, height: size,
-      borderRadius: radius,
-      flexShrink: 0,
-      background: tema.gradient,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'var(--font-display)', fontWeight: 900,
-      fontSize, color: '#fff',
-      boxShadow: `0 0 20px ${tema.accent}44`,
-    }}>
+    <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>
       {toko.nama?.[0]?.toUpperCase()}
     </div>
   )
@@ -570,12 +770,7 @@ function ProdukCard({ produk: p, tema, onClick }) {
   return (
     <div
       onClick={onClick}
-      style={{
-        background: 'var(--glass)', backdropFilter: 'blur(20px)',
-        border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-xl)',
-        overflow: 'hidden', cursor: 'pointer',
-        transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)',
-      }}
+      style={{ background: 'var(--glass)', backdropFilter: 'blur(20px)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)' }}
       onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${tema.accent}44` }}
       onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = 'var(--glass-border)' }}
     >
@@ -586,9 +781,7 @@ function ProdukCard({ produk: p, tema, onClick }) {
           <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)' }}><Package size={32} /></div>
         )}
         {fotos.length > 1 && (
-          <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>
-            1/{fotos.length}
-          </div>
+          <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>1/{fotos.length}</div>
         )}
         {diskon && (
           <div style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 'var(--radius-full)' }}>-{diskon}%</div>
@@ -617,13 +810,7 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 640, margin: '0 auto',
-        background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
-        overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column',
-        animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-      }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 640, margin: '0 auto', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
         <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
           <PhotoCarousel fotos={fotos} nama={p.nama} />
           <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', padding: '7px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
@@ -631,7 +818,6 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
           </button>
           {diskon && <div style={{ position: 'absolute', top: 10, left: 10, background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--radius-full)', zIndex: 10 }}>-{diskon}%</div>}
         </div>
-
         <div style={{ padding: '20px 20px 0', overflowY: 'auto', flex: 1 }}>
           {p.kategori && <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{p.kategori}</p>}
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', marginBottom: 8 }}>{p.nama}</h2>
@@ -649,30 +835,14 @@ function ProdukModal({ produk: p, toko, tema, onClose, onCheckout, onChat }) {
           <RatingSection produkId={p.id} tokoId={toko.id} tema={tema} />
           <div style={{ height: 20 }} />
         </div>
-
         <div style={{ padding: '12px 16px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: 10, alignItems: 'center', background: 'var(--bg-secondary)' }}>
-          <button
-            onClick={() => onChat(p)}
-            className="btn btn-secondary btn-icon"
-            style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--radius-md)' }}
-            title="Tanya Penjual"
-          >
+          <button onClick={() => onChat(p)} className="btn btn-secondary btn-icon" style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--radius-md)' }} title="Tanya Penjual">
             <MessageCircle size={18} />
           </button>
           <button
             onClick={() => !sold && onCheckout(p)}
             disabled={sold}
-            style={{
-              flex: 1, height: 44,
-              background: sold ? 'var(--surface)' : tema.gradient,
-              color: sold ? 'var(--text-tertiary)' : '#fff',
-              border: 'none', borderRadius: 'var(--radius-full)',
-              fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem',
-              cursor: sold ? 'not-allowed' : 'pointer',
-              boxShadow: sold ? 'none' : `0 4px 20px ${tema.accent}44`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              transition: 'all 0.2s',
-            }}
+            style={{ flex: 1, height: 44, background: sold ? 'var(--surface)' : tema.gradient, color: sold ? 'var(--text-tertiary)' : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${tema.accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}
           >
             <ShoppingBag size={16} />
             {sold ? 'Stok Habis' : 'Beli Sekarang'}
@@ -736,13 +906,7 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
 
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 560, margin: '0 auto',
-        background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
-        maxHeight: '92vh', overflow: 'auto',
-        animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-      }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto', animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Detail Pesanan</h3>
           <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
@@ -760,7 +924,6 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
               <button onClick={() => set('qty', Math.min(maxQty, form.qty + 1))} style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--surface-hover)', border: '1px solid var(--glass-border)', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={12} /></button>
             </div>
           </div>
-
           <div className="form-group">
             <label className="form-label">Nama Lengkap *</label>
             <input className={`form-input ${errors.nama ? 'error' : ''}`} placeholder="Nama penerima" value={form.nama} onChange={e => set('nama', e.target.value)} />
@@ -780,12 +943,10 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
             <label className="form-label">Catatan (Opsional)</label>
             <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} />
           </div>
-
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${tema.accent}12`, border: `1px solid ${tema.accent}22`, borderRadius: 'var(--radius-lg)' }}>
             <span style={{ fontWeight: 700 }}>Total</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: tema.accent }}>{formatRupiah(p.harga * form.qty)}</span>
           </div>
-
           <button
             onClick={handleCheckout}
             disabled={submitting}
