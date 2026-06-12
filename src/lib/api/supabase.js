@@ -243,20 +243,29 @@ export const produkApi = {
     return { success: true, data }
   },
 
-  getByToko: async (tokoId, params = {}) => {
-    let query = supabase
-      .from('produk')
-      .select('*')
-      .eq('toko_id', tokoId)
-      .eq('aktif', true)
-      .order('created_at', { ascending: false })
+ getByToko: async (tokoId, params = {}) => {
+  // Resolve slug → id dulu
+  let actualTokoId = tokoId
+  const { data: toko } = await supabase
+    .from('toko')
+    .select('id')
+    .or(`id.eq.${tokoId},slug.eq.${tokoId}`)
+    .single()
+  if (toko) actualTokoId = toko.id
 
-    if (params.kategori) query = query.eq('kategori', params.kategori)
+  let query = supabase
+    .from('produk')
+    .select('*')
+    .eq('toko_id', actualTokoId)
+    .eq('aktif', true)
+    .order('created_at', { ascending: false })
 
-    const { data, error } = await query
-    if (error) handleError(error)
-    return { success: true, data }
-  },
+  if (params.kategori) query = query.eq('kategori', params.kategori)
+
+  const { data, error } = await query
+  if (error) handleError(error)
+  return { success: true, data }
+},
 
   getById: async (produkId) => {
     const { data, error } = await supabase
