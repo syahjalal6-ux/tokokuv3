@@ -5,6 +5,7 @@ import { EmptyState, ProGate } from '../components/ui/index.jsx'
 import { useAuthStore } from '../lib/store.js'
 import { pesananApi } from '../lib/api.js'
 import { formatRupiah, formatDateTime, generateWALink, isPro, PESANAN_STATUS } from '../lib/utils.js'
+import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
 
 const STATUS_TABS = [
@@ -31,7 +32,7 @@ const STATUS_KETERANGAN = {
   cancelled: 'Mohon maaf, pesanan kamu dibatalkan. Silakan hubungi kami untuk info lebih lanjut.',
 }
 
-function generatePesananWAMessage(p) {
+function generatePesananWAMessage(p, tokoSlug) {
   const statusLabel = PESANAN_STATUS[p.status] ? PESANAN_STATUS[p.status].label : p.status
   const keterangan = STATUS_KETERANGAN[p.status] || ''
   const lines = [
@@ -49,7 +50,8 @@ function generatePesananWAMessage(p) {
   return lines.join('\n')
 }
 
-function generateShippingWAMessage(p, kurir, resi) {
+function generateShippingWAMessage(p, kurir, resi, tokoSlug) {
+  const trackUrl = CONFIG.APP_URL + '/toko/' + tokoSlug + '?resi=' + resi
   const lines = [
     'Halo ' + p.buyerNama + ', pesanan kamu sudah kami kirim! 🚚',
     '',
@@ -60,7 +62,9 @@ function generateShippingWAMessage(p, kurir, resi) {
     'Kurir: *' + kurir + '*',
     'No. Resi: *' + resi + '*',
     '',
-    'Silakan cek status pengiriman dengan nomor resi di atas ya!',
+    '🔍 Lacak pesananmu di sini:',
+    trackUrl,
+    '',
     'Terima kasih sudah berbelanja 🙏',
   ]
   return lines.join('\n')
@@ -261,7 +265,9 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
     : statusCfg.color === 'danger' ? 'var(--danger)'
     : 'var(--accent)'
 
-  const waMessage = generatePesananWAMessage(p)
+  // Extract slug dari tokoId — fallback ke tokoId kalau tidak ada slug
+  const tokoSlug = p.tokoSlug || p.tokoId || ''
+  const waMessage = generatePesananWAMessage(p, tokoSlug)
 
   const handleKirim = async () => {
     if (!resi.trim()) {
@@ -272,7 +278,7 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
     try {
       await pesananApi.updateStatus(token, p.id, 'shipped', kurir, resi)
       setPesanan(ps => ps.map(x => x.id === p.id ? { ...x, status: 'shipped', kurir, resi } : x))
-      const msg = generateShippingWAMessage(p, kurir, resi)
+      const msg = generateShippingWAMessage(p, kurir, resi, tokoSlug)
       window.open(generateWALink(p.buyerWa, msg), '_blank')
       setKurirOpen(false)
       toast.success('Status dikirim & WA terkirim!')
@@ -286,45 +292,46 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
   const canShip = p.status !== 'shipped' && p.status !== 'done' && p.status !== 'cancelled'
 
   return (
-    <div className="glass-card" style={{ padding: '16px 20px', borderRadius: 'var(--radius-lg)' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+    <div className="glass-card" style={{ padding: '14px 16px', borderRadius: 'var(--radius-lg)' }}>
+      {/* Header card — selalu konsisten */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{
-          width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 7,
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
           background: dotColor,
           boxShadow: '0 0 6px ' + dotColor,
         }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 2 }}>
-                {p.buyerNama || 'Pembeli'}
-              </p>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>
-                {'#' + (p.id ? p.id.slice(-8) : '-') + ' · ' + formatDateTime(p.createdAt)}
-              </p>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-              <span className={'badge badge-' + statusCfg.color}>{statusCfg.label}</span>
-              <button onClick={() => setExpanded(!expanded)} className="btn btn-ghost btn-icon btn-sm">
-                <ChevronDown size={15} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-              </button>
-            </div>
-          </div>
+          <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {p.buyerNama || 'Pembeli'}
+          </p>
+          <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+            {'#' + (p.id ? p.id.slice(-8) : '-') + ' · ' + formatDateTime(p.createdAt)}
+          </p>
+        </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: 8, flexWrap: 'wrap' }}>
-            <p style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '0.95rem' }}>{formatRupiah(p.total)}</p>
-            <p style={{ fontSize: '0.78rem', color: 'var(--text-tertiary)' }}>
-              {p.produkNama ? (p.produkNama + ' x' + p.qty) : ((p.items ? p.items.length : 0) + ' item')}
-            </p>
-          </div>
+        {/* Badge + chevron selalu di kanan */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <span className={'badge badge-' + statusCfg.color} style={{ fontSize: '0.68rem' }}>{statusCfg.label}</span>
+          <button onClick={() => setExpanded(!expanded)} className="btn btn-ghost btn-icon btn-sm">
+            <ChevronDown size={14} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
         </div>
       </div>
 
-      {expanded && (
-        <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--glass-border)' }}>
+      {/* Summary */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: 8, paddingLeft: 18 }}>
+        <p style={{ fontWeight: 800, color: 'var(--accent)', fontSize: '0.9rem' }}>{formatRupiah(p.total)}</p>
+        <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {p.produkNama ? (p.produkNama + ' x' + p.qty) : ((p.items ? p.items.length : 0) + ' item')}
+        </p>
+      </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 16 }}>
+      {expanded && (
+        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--glass-border)' }}>
+
+          {/* Produk detail */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: 14 }}>
             {p.items && p.items.length > 0 ? (
               p.items.map((item, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
@@ -351,7 +358,8 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
             ) : null}
           </div>
 
-          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: 14, fontSize: '0.82rem' }}>
+          {/* Info buyer */}
+          <div style={{ background: 'var(--surface)', borderRadius: 'var(--radius-md)', padding: '12px', marginBottom: 12, fontSize: '0.82rem' }}>
             <p style={{ marginBottom: 4 }}>
               <span style={{ color: 'var(--text-tertiary)' }}>Nama: </span>{p.buyerNama}
             </p>
@@ -378,7 +386,6 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
 
           {/* Action icons */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Chat WA */}
             <a
               href={generateWALink(p.buyerWa, waMessage)}
               target="_blank"
@@ -389,7 +396,6 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
               <MessageCircle size={15} />
             </a>
 
-            {/* Status dropdown */}
             {p.status !== 'done' && p.status !== 'cancelled' && (
               <select
                 className="form-input form-select"
@@ -415,7 +421,6 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
               </select>
             )}
 
-            {/* Kirim icon */}
             {canShip && (
               <button
                 onClick={() => setKurirOpen(!kurirOpen)}
