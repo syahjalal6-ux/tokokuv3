@@ -91,7 +91,6 @@ export default function DashboardPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-          {/* Banner: Free → ajak upgrade */}
           {!pro && (
             <div style={{
               background: 'linear-gradient(135deg, rgba(91,138,245,0.1) 0%, rgba(167,139,250,0.1) 100%)',
@@ -111,12 +110,11 @@ export default function DashboardPage() {
                 </p>
               </div>
               <Link to="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
-                Upgrade Sekarang <ArrowRight size={13} />
+                <>Upgrade Sekarang <ArrowRight size={13} /></>
               </Link>
             </div>
           )}
 
-          {/* Banner: Pro mau expire ≤ 7 hari */}
           {pro && sisaHari !== null && sisaHari <= 7 && (
             <div style={{
               background: sisaHari <= 0 ? 'var(--danger-bg)' : 'var(--warning-bg)',
@@ -132,7 +130,7 @@ export default function DashboardPage() {
                   fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2,
                   color: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
                 }}>
-                  {sisaHari <= 0 ? 'Paket Pro kamu sudah expired' : `Paket Pro berakhir dalam ${sisaHari} hari`}
+                  {sisaHari <= 0 ? 'Paket Pro kamu sudah expired' : 'Paket Pro berakhir dalam ' + sisaHari + ' hari'}
                 </p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
                   {sisaHari <= 0
@@ -147,6 +145,9 @@ export default function DashboardPage() {
                 className="btn btn-sm"
                 style={{
                   flexShrink: 0,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
                   background: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
                   color: '#fff',
                 }}
@@ -178,7 +179,9 @@ export default function DashboardPage() {
               </div>
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <button onClick={handleCopyLink} className="btn btn-secondary btn-sm">
-                  {linkCopied ? <><CheckCircle size={13} color="var(--success)" /> Disalin</> : <><Copy size={13} /> Salin</>}
+                  {linkCopied
+                    ? <><CheckCircle size={13} color="var(--success)" /> Disalin</>
+                    : <><Copy size={13} /> Salin</>}
                 </button>
                 <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
@@ -221,7 +224,6 @@ export default function DashboardPage() {
               Aksi Cepat
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-              {/* Tambah Produk — buka modal */}
               <button
                 onClick={() => !limitReached && setShowProdukForm(true)}
                 disabled={limitReached}
@@ -234,8 +236,8 @@ export default function DashboardPage() {
                   cursor: limitReached ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                 }}
-                onMouseEnter={e => !limitReached && (e.currentTarget.style.background = 'var(--surface-hover)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
+                onMouseEnter={e => { if (!limitReached) e.currentTarget.style.background = 'var(--surface-hover)' }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
               >
                 <div style={{
                   width: 36, height: 36, borderRadius: 'var(--radius-md)',
@@ -249,7 +251,6 @@ export default function DashboardPage() {
                 <ArrowRight size={14} color="var(--text-tertiary)" style={{ marginLeft: 'auto' }} />
               </button>
 
-              {/* Lihat Pesanan & Kelola Produk */}
               {[
                 { icon: ShoppingBag, label: 'Lihat Pesanan', to: '/dashboard/pesanan', color: 'var(--warning)' },
                 { icon: Package, label: 'Kelola Produk', to: '/dashboard/produk', color: 'var(--success)' },
@@ -264,8 +265,8 @@ export default function DashboardPage() {
                     transition: 'all var(--transition-fast)',
                     cursor: 'pointer',
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
                 >
                   <div style={{
                     width: 36, height: 36, borderRadius: 'var(--radius-md)',
@@ -275,7 +276,7 @@ export default function DashboardPage() {
                   }}>
                     <a.icon size={16} />
                   </div>
-                  <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{a.label}</span>
+                  <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>{a.label}</span>
                   <ArrowRight size={14} color="var(--text-tertiary)" style={{ marginLeft: 'auto' }} />
                 </Link>
               ))}
@@ -287,7 +288,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Produk Terbaru</h2>
                 <Link to="/dashboard/produk" className="btn btn-ghost btn-sm" style={{ color: 'var(--accent)' }}>
-                  Lihat semua <ArrowRight size={13} />
+                  <>Lihat semua <ArrowRight size={13} /></>
                 </Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -328,7 +329,6 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Modal Tambah Produk */}
       <ProdukForm
         isOpen={showProdukForm}
         onClose={() => setShowProdukForm(false)}
@@ -428,7 +428,9 @@ function SetupTokoCard({ token, setToko }) {
           </div>
 
           <button onClick={handleSubmit} className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%', marginTop: '8px' }}>
-            {loading ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Membuat Toko...</> : 'Buat Toko Sekarang 🚀'}
+            {loading
+              ? <><span className="spinner" style={{ width: 16, height: 16 }} /> Membuat Toko...</>
+              : 'Buat Toko Sekarang 🚀'}
           </button>
         </div>
       </div>
