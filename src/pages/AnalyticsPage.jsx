@@ -8,7 +8,7 @@ import {
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { useAuthStore } from '../lib/store.js'
-import { analyticsApi } from '../lib/api.js'
+import { analyticsApi } from '../lib/api/index.js'
 import { formatRupiah, isPro } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
