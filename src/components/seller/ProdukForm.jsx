@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { ChevronDown, Check } from 'lucide-react'
 import { Modal } from '../ui/index.jsx'
 import ImageUpload from './ImageUpload.jsx'
-import { produkApi } from '../../lib/api.js'
+import { produkApi } from '../../lib/api/index.js'
 import { useAuthStore, useProdukStore } from '../../lib/store.js'
 import toast from 'react-hot-toast'
 
