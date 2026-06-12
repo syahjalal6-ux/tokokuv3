@@ -6,6 +6,8 @@ export const CONFIG = {
   // Google Apps Script Web App URL
   // Setelah deploy GAS, paste URL-nya di sini
   GAS_URL: import.meta.env.VITE_GAS_URL || 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+  SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '',
+  SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
 
   // Google OAuth Client ID
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
