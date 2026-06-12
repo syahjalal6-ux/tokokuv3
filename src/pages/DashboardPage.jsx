@@ -3,8 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Package, ShoppingBag, Eye, TrendingUp, Plus, ExternalLink, Copy, CheckCircle, ArrowRight, Zap, AlertCircle } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { StatCard, Alert, EmptyState } from '../components/ui/index.jsx'
+import ProdukForm from '../components/seller/ProdukForm.jsx'
 import { useAuthStore, useTokoStore, useProdukStore } from '../lib/store.js'
-import { tokoApi } from '../lib/api.js'
+import { tokoApi, pesananApi } from '../lib/api.js'
 import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
@@ -25,6 +26,9 @@ export default function DashboardPage() {
   const { produk, load: loadProduk } = useProdukStore()
   const [linkCopied, setLinkCopied] = useState(false)
   const [tokoLoading, setTokoLoading] = useState(true)
+  const [showProdukForm, setShowProdukForm] = useState(false)
+  const [pesananCount, setPesananCount] = useState(null)
+  const [totalRevenue, setTotalRevenue] = useState(null)
   const navigate = useNavigate()
   const pro = isPro(user)
 
@@ -39,6 +43,21 @@ export default function DashboardPage() {
       loadProduk(token)
     }
   }, [token])
+
+  useEffect(() => {
+    if (token && pro) {
+      pesananApi.getMine(token, 'all')
+        .then(res => {
+          const data = res.data || []
+          setPesananCount(data.length)
+          const revenue = data
+            .filter(p => p.status === 'done')
+            .reduce((s, p) => s + Number(p.total), 0)
+          setTotalRevenue(revenue)
+        })
+        .catch(() => {})
+    }
+  }, [token, pro])
 
   const handleCopyLink = async () => {
     await copyToClipboard(getStorefrontUrl(toko.slug))
@@ -183,14 +202,14 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Pesanan Masuk"
-              value={pro ? '—' : '—'}
+              value={pro ? (pesananCount !== null ? pesananCount : '...') : '—'}
               icon={<ShoppingBag size={18} />}
               trend={pro ? 'Lihat detail' : 'Fitur Pro'}
               color="var(--warning)"
             />
             <StatCard
               label="Total Penjualan"
-              value={pro ? '—' : '🔒'}
+              value={pro ? (totalRevenue !== null ? formatRupiah(totalRevenue) : '...') : '🔒'}
               icon={<TrendingUp size={18} />}
               trend={pro ? '' : 'Upgrade untuk akses'}
               color="var(--accent-3)"
@@ -202,24 +221,51 @@ export default function DashboardPage() {
               Aksi Cepat
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+              {/* Tambah Produk — buka modal */}
+              <button
+                onClick={() => !limitReached && setShowProdukForm(true)}
+                disabled={limitReached}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '16px', borderRadius: 'var(--radius-lg)',
+                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                  transition: 'all var(--transition-fast)',
+                  opacity: limitReached ? 0.5 : 1,
+                  cursor: limitReached ? 'not-allowed' : 'pointer',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={e => !limitReached && (e.currentTarget.style.background = 'var(--surface-hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
+              >
+                <div style={{
+                  width: 36, height: 36, borderRadius: 'var(--radius-md)',
+                  background: 'var(--accent)18',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  color: 'var(--accent)', flexShrink: 0,
+                }}>
+                  <Plus size={16} />
+                </div>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tambah Produk</span>
+                <ArrowRight size={14} color="var(--text-tertiary)" style={{ marginLeft: 'auto' }} />
+              </button>
+
+              {/* Lihat Pesanan & Kelola Produk */}
               {[
-                { icon: Plus, label: 'Tambah Produk', to: '/dashboard/produk', disabled: limitReached, color: 'var(--accent)' },
                 { icon: ShoppingBag, label: 'Lihat Pesanan', to: '/dashboard/pesanan', color: 'var(--warning)' },
                 { icon: Package, label: 'Kelola Produk', to: '/dashboard/produk', color: 'var(--success)' },
               ].map(a => (
                 <Link
                   key={a.label}
-                  to={a.disabled ? '#' : a.to}
+                  to={a.to}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
                     padding: '16px', borderRadius: 'var(--radius-lg)',
                     background: 'var(--surface)', border: '1px solid var(--glass-border)',
                     transition: 'all var(--transition-fast)',
-                    opacity: a.disabled ? 0.5 : 1,
-                    cursor: a.disabled ? 'not-allowed' : 'pointer',
+                    cursor: 'pointer',
                   }}
-                  onMouseEnter={e => !a.disabled && (e.currentTarget.style.background = 'var(--surface-hover)')}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
                 >
                   <div style={{
                     width: 36, height: 36, borderRadius: 'var(--radius-md)',
@@ -281,6 +327,13 @@ export default function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* Modal Tambah Produk */}
+      <ProdukForm
+        isOpen={showProdukForm}
+        onClose={() => setShowProdukForm(false)}
+        editData={null}
+      />
     </DashboardLayout>
   )
 }
