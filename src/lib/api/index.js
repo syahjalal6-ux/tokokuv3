@@ -4,12 +4,12 @@
 // ================================================
 
 import * as gas from './gas.js'
-// import * as supabase from './supabase.js' // uncomment saat migrasi
+import * as supabase from './supabase.js' 
 
 const provider = import.meta.env.VITE_API_PROVIDER || 'gas'
 
 const api = provider === 'supabase'
-  ? null // ganti: supabase
+  ? supabase
   : gas
 
 export const authApi = api.authApi
