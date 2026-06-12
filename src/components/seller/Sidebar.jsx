@@ -6,19 +6,12 @@ import {
   Store, BarChart2, Sun, Moon
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
+import { pesananApi } from '../../lib/api.js'
 import { getInitials, isPro } from '../../lib/utils.js'
 import { CONFIG } from '../../lib/config.js'
 import toast from 'react-hot-toast'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
-
-const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, exact: true },
-  { to: '/dashboard/produk', label: 'Produk', icon: Package },
-  { to: '/dashboard/pesanan', label: 'Pesanan', icon: ShoppingBag },
-  { to: '/dashboard/analytics', label: 'Analitik', icon: BarChart2 },
-  { to: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
-]
 
 const ExoraIcon = ({ size = 26 }) => (
   <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -35,14 +28,14 @@ const ExoraIcon = ({ size = 26 }) => (
 
 function getProExpiry(planExpiry) {
   if (!planExpiry) return null
-  const sisaHari = Math.ceil((new Date(planExpiry) - new Date()) / 86400000)
-  return sisaHari
+  return Math.ceil((new Date(planExpiry) - new Date()) / 86400000)
 }
 
 export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
-  const { user, logout } = useAuthStore()
+  const [pendingCount, setPendingCount] = useState(0)
+  const { user, token, logout } = useAuthStore()
   const { toko, clear: clearToko } = useTokoStore()
   const navigate = useNavigate()
 
@@ -58,6 +51,14 @@ export default function Sidebar() {
     localStorage.setItem('theme', theme)
   }, [theme])
 
+  useEffect(() => {
+    if (token && pro) {
+      pesananApi.getMine(token, 'pending')
+        .then(res => setPendingCount((res.data || []).length))
+        .catch(() => {})
+    }
+  }, [token, pro])
+
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
   const handleLogout = async () => {
@@ -71,47 +72,40 @@ export default function Sidebar() {
     }
   }
 
+  const NAV_ITEMS = [
+    { to: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, exact: true },
+    { to: '/dashboard/produk', label: 'Produk', icon: Package },
+    { to: '/dashboard/pesanan', label: 'Pesanan', icon: ShoppingBag, badge: pendingCount },
+    { to: '/dashboard/analytics', label: 'Analitik', icon: BarChart2 },
+    { to: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
+  ]
+
   const ProExpiryBadge = () => {
     if (!pro || sisaHari === null) return null
 
     if (sisaHari <= 0) {
       return (
-        <span style={{
-          fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700,
-          color: 'var(--danger)',
-        }}>
+        <span style={{ fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)' }}>
           Expired
         </span>
       )
     }
-
     if (sisaHari <= 7) {
       return (
-        <span style={{
-          fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700,
-          color: 'var(--danger)',
-        }}>
+        <span style={{ fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700, color: 'var(--danger)' }}>
           • ⚠️ {sisaHari}h lagi
         </span>
       )
     }
-
     if (sisaHari <= 30) {
       return (
-        <span style={{
-          fontFamily: PJS, fontSize: '0.6rem', fontWeight: 600,
-          color: 'var(--warning)',
-        }}>
+        <span style={{ fontFamily: PJS, fontSize: '0.6rem', fontWeight: 600, color: 'var(--warning)' }}>
           • {sisaHari}h lagi
         </span>
       )
     }
-
     return (
-      <span style={{
-        fontFamily: PJS, fontSize: '0.6rem', fontWeight: 500,
-        color: 'var(--text-tertiary)',
-      }}>
+      <span style={{ fontFamily: PJS, fontSize: '0.6rem', fontWeight: 500, color: 'var(--text-tertiary)' }}>
         • {sisaHari}h lagi
       </span>
     )
@@ -130,19 +124,13 @@ export default function Sidebar() {
         <ExoraIcon size={26} />
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.15 }}>
           <span style={{
-            fontFamily: PJS,
-            fontWeight: 800,
-            fontSize: '1.05rem',
-            color: 'var(--text-primary)',
-            letterSpacing: '-0.02em',
+            fontFamily: PJS, fontWeight: 800, fontSize: '1.05rem',
+            color: 'var(--text-primary)', letterSpacing: '-0.02em',
           }}>exora</span>
           <span style={{
-            fontFamily: PJS,
-            fontWeight: 600,
-            fontSize: '0.55rem',
+            fontFamily: PJS, fontWeight: 600, fontSize: '0.55rem',
             background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             letterSpacing: '0.05em',
           }}>Start. Sell. Scale.</span>
         </div>
@@ -201,7 +189,21 @@ export default function Sidebar() {
                   }} />
                 )}
                 <item.icon size={16} style={{ opacity: isActive ? 1 : 0.6 }} />
-                {item.label}
+                <span style={{ flex: 1 }}>{item.label}</span>
+                {item.badge > 0 && (
+                  <span style={{
+                    background: 'var(--danger)',
+                    color: '#fff',
+                    borderRadius: 'var(--radius-full)',
+                    padding: '1px 7px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    minWidth: 18,
+                    textAlign: 'center',
+                  }}>
+                    {item.badge}
+                  </span>
+                )}
               </>
             )}
           </NavLink>
@@ -238,10 +240,7 @@ export default function Sidebar() {
       </nav>
 
       {/* User profile */}
-      <div style={{
-        borderTop: '1px solid var(--glass-border)',
-        paddingTop: '16px', marginTop: '8px',
-      }}>
+      <div style={{ borderTop: '1px solid var(--glass-border)', paddingTop: '16px', marginTop: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', marginBottom: '4px' }}>
           {user?.picture ? (
             <img src={user.picture} alt={user.name}
@@ -262,12 +261,10 @@ export default function Sidebar() {
           </div>
         </div>
 
-        {/* Theme toggle */}
         <button onClick={toggleTheme} className="btn btn-ghost" style={{
           width: '100%', justifyContent: 'flex-start', gap: '10px',
           padding: '8px 12px', borderRadius: 'var(--radius-md)',
-          fontFamily: PJS, fontSize: '0.85rem',
-          color: 'var(--text-tertiary)',
+          fontFamily: PJS, fontSize: '0.85rem', color: 'var(--text-tertiary)',
         }}>
           {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
           {theme === 'dark' ? 'Mode Terang' : 'Mode Gelap'}
@@ -276,8 +273,7 @@ export default function Sidebar() {
         <button onClick={handleLogout} className="btn btn-ghost" style={{
           width: '100%', justifyContent: 'flex-start', gap: '10px',
           padding: '8px 12px', borderRadius: 'var(--radius-md)',
-          fontFamily: PJS, fontSize: '0.85rem',
-          color: 'var(--text-tertiary)',
+          fontFamily: PJS, fontSize: '0.85rem', color: 'var(--text-tertiary)',
         }}>
           <LogOut size={15} />
           Keluar
@@ -314,9 +310,20 @@ export default function Sidebar() {
             }}>Start. Sell. Scale.</span>
           </div>
         </div>
-        <button onClick={() => setMobileOpen(true)} className="btn btn-ghost btn-icon btn-sm">
-          <Menu size={20} />
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {pendingCount > 0 && (
+            <span style={{
+              background: 'var(--danger)', color: '#fff',
+              borderRadius: 'var(--radius-full)',
+              padding: '1px 8px', fontSize: '0.7rem', fontWeight: 700,
+            }}>
+              {pendingCount} pesanan
+            </span>
+          )}
+          <button onClick={() => setMobileOpen(true)} className="btn btn-ghost btn-icon btn-sm">
+            <Menu size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Mobile drawer */}
