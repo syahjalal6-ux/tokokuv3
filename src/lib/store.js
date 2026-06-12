@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { authApi } from '../lib/api.js'
+import { authApi } from '../lib/api/index.js'
 
 // =============================================
 // AUTH STORE
@@ -89,7 +89,7 @@ export const useTokoStore = create((set, get) => ({
   load: async (token) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await import('../lib/api.js').then(m => m.tokoApi.getMine(token))
+      const res = await import('../lib/api/index.js').then(m => m.tokoApi.getMine(token))
       set({ toko: res.data, isLoading: false })
     } catch (err) {
       set({ error: err.message, isLoading: false })
@@ -111,7 +111,7 @@ export const useProdukStore = create((set, get) => ({
   load: async (token) => {
     set({ isLoading: true, error: null })
     try {
-      const res = await import('../lib/api.js').then(m => m.produkApi.getMine(token))
+      const res = await import('../lib/api/index.js').then(m => m.produkApi.getMine(token))
       set({ produk: res.data || [], isLoading: false })
     } catch (err) {
       set({ error: err.message, isLoading: false })
