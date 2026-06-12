@@ -140,7 +140,7 @@ export default function DashboardPage() {
                     : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
                 </p>
               </div>
-              <a
+              
                 href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
                 target="_blank"
                 rel="noreferrer"
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                 }}>
                   <Plus size={16} />
                 </div>
-                <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Tambah Produk</span>
+                <span style={{ fontWeight: 600, fontSize: '0.875rem', color: 'var(--text-primary)' }}>Tambah Produk</span>
                 <ArrowRight size={14} color="var(--text-tertiary)" style={{ marginLeft: 'auto' }} />
               </button>
 
