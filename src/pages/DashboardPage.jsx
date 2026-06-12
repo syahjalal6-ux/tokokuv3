@@ -69,23 +69,17 @@ export default function DashboardPage() {
   const produkAktif = produk.filter(p => p.aktif).length
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
 
-  const btnPerpanjangStyle = {
-    flexShrink: 0,
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    color: '#fff',
-  }
+  const perpanjangBg = sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'
 
   return (
     <DashboardLayout
-      title={'Halo, ' + (user?.name?.split(' ')[0]) + ' 👋'}
+      title={'Halo, ' + (user?.name?.split(' ')[0]) + ' \uD83D\uDC4B'}
       subtitle={new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       actions={
         toko && (
           <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
             <ExternalLink size={14} />
-            {' Lihat Toko'}
+            Lihat Toko
           </a>
         )
       }
@@ -114,11 +108,11 @@ export default function DashboardPage() {
                   Upgrade ke Pro
                 </p>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                  {'Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya ' + CONFIG.PRO_PRICE + '.'}
+                  Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya {CONFIG.PRO_PRICE}.
                 </p>
               </div>
-              <Link to="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
-                {'Upgrade Sekarang '}
+              <Link to="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                Upgrade Sekarang
                 <ArrowRight size={13} />
               </Link>
             </div>
@@ -147,14 +141,14 @@ export default function DashboardPage() {
                     : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
                 </p>
               </div>
-              
+              <a
                 href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
                 target="_blank"
                 rel="noreferrer"
                 className="btn btn-sm"
-                style={Object.assign({}, btnPerpanjangStyle, { background: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)' })}
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px', background: perpanjangBg, color: '#fff' }}
               >
-                {'Perpanjang Sekarang '}
+                Perpanjang Sekarang
                 <ArrowRight size={13} />
               </a>
             </div>
@@ -162,9 +156,8 @@ export default function DashboardPage() {
 
           {limitReached && (
             <Alert type="warning" title="Batas produk tercapai">
-              {'Kamu sudah mencapai batas ' + CONFIG.FREE_PRODUCT_LIMIT + ' produk untuk paket gratis. '}
-              <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link>
-              {' untuk produk unlimited.'}
+              Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
+              <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link> untuk produk unlimited.
             </Alert>
           )}
 
@@ -184,8 +177,8 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <button onClick={handleCopyLink} className="btn btn-secondary btn-sm">
                   {linkCopied
-                    ? <><CheckCircle size={13} color="var(--success)" />{' Disalin'}</>
-                    : <><Copy size={13} />{' Salin'}</>}
+                    ? <><CheckCircle size={13} color="var(--success)" /> Disalin</>
+                    : <><Copy size={13} /> Salin</>}
                 </button>
                 <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
@@ -291,8 +284,8 @@ export default function DashboardPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Produk Terbaru</h2>
-                <Link to="/dashboard/produk" className="btn btn-ghost btn-sm" style={{ color: 'var(--accent)' }}>
-                  {'Lihat semua '}
+                <Link to="/dashboard/produk" className="btn btn-ghost btn-sm" style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  Lihat semua
                   <ArrowRight size={13} />
                 </Link>
               </div>
@@ -433,9 +426,7 @@ function SetupTokoCard({ token, setToko }) {
           </div>
 
           <button onClick={handleSubmit} className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%', marginTop: '8px' }}>
-            {loading
-              ? <><span className="spinner" style={{ width: 16, height: 16 }} />{' Membuat Toko...'}</>
-              : 'Buat Toko Sekarang 🚀'}
+            {loading ? 'Membuat Toko...' : 'Buat Toko Sekarang 🚀'}
           </button>
         </div>
       </div>
