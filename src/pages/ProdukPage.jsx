@@ -32,7 +32,8 @@ const gridStyle = {
 }
 
 export default function ProdukPage() {
-  const { user, token } = useAuthStore()
+  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
   const { toko, load: loadToko, isLoading: tokoLoading } = useTokoStore()
   const { produk, load, update, remove, isLoading } = useProdukStore()
   const [formOpen, setFormOpen] = useState(false)
@@ -46,11 +47,11 @@ export default function ProdukPage() {
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
 
   useEffect(() => {
-    if (token) {
-      load(token)
-      loadToko(token)
+    if (tokenSupabase || tokenGas) {
+      load(tokenObj)
+      loadToko(tokenObj)
     }
-  }, [token])
+  }, [tokenSupabase, tokenGas])
 
   const filtered = produk.filter(p => {
     const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase())
@@ -66,7 +67,7 @@ export default function ProdukPage() {
 
   const handleToggleAktif = async (p) => {
     try {
-      await produkApi.update(token, p.id, { aktif: !p.aktif })
+      await produkApi.update(tokenObj, p.id, { aktif: !p.aktif })
       update(p.id, { aktif: !p.aktif })
       toast.success(p.aktif ? 'Produk dinonaktifkan' : 'Produk diaktifkan')
     } catch (err) {
@@ -77,7 +78,7 @@ export default function ProdukPage() {
   const handleDelete = async () => {
     setDeleting(true)
     try {
-      await produkApi.delete(token, deleteId)
+      await produkApi.delete(tokenObj, deleteId)
       remove(deleteId)
       toast.success('Produk dihapus')
       setDeleteId(null)
