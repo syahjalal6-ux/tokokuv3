@@ -18,10 +18,11 @@ const CHAT_STORAGE_KEY = 'exora_ai_chat_history'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
 export default function AnalyticsPage() {
-  const { user, token } = useAuthStore()
+  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
   const pro = isPro(user)
   if (!pro) return <AnalyticsGate />
-  return <AnalyticsDashboard token={token} />
+  return <AnalyticsDashboard tokenObj={tokenObj} tokenGas={tokenGas} />
 }
 
 function AnalyticsGate() {
@@ -66,18 +67,18 @@ function AnalyticsGate() {
   )
 }
 
-function AnalyticsDashboard({ token }) {
+function AnalyticsDashboard({ tokenObj, tokenGas }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('minggu')
   const [exporting, setExporting] = useState(false)
 
-  useEffect(() => { load() }, [token])
+  useEffect(() => { load() }, [tokenObj.tokenSupabase, tokenObj.tokenGas])
 
   const load = async () => {
     setLoading(true)
     try {
-      const res = await analyticsApi.getDashboard(token)
+      const res = await analyticsApi.getDashboard(tokenObj)
       setData(res.data)
     } catch (err) {
       toast.error('Gagal memuat analytics: ' + err.message)
@@ -139,7 +140,7 @@ function AnalyticsDashboard({ token }) {
       }
     >
       {loading ? <AnalyticsSkeleton /> : data ? (
-        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} token={token} />
+        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} tokenGas={tokenGas} />
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
           <BarChart2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
@@ -197,7 +198,7 @@ const STATUS_PESANAN = [
   { key: 'pesananCancelled',  label: 'Dibatalkan',  color: '#f87171', bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.18)'  },
 ]
 
-function AnalyticsContent({ data, period, setPeriod, token }) {
+function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
   const {
     totalProduk = 0, produkAktif = 0,
     totalPesanan = 0, pesananPending = 0, pesananSelesai = 0,
@@ -245,7 +246,7 @@ function AnalyticsContent({ data, period, setPeriod, token }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* AI Insight Card */}
-      <AIInsightCard token={token} data={data} />
+      <AIInsightCard tokenGas={tokenGas} data={data} />
 
       {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
@@ -416,7 +417,7 @@ function AnalyticsContent({ data, period, setPeriod, token }) {
         </div>
 
         {/* Kolom 3: AI Chat */}
-        <AIChatCard token={token} data={data} />
+        <AIChatCard tokenGas={tokenGas} data={data} />
 
       </div>
 
@@ -425,7 +426,7 @@ function AnalyticsContent({ data, period, setPeriod, token }) {
 }
 
 // ============ AI INSIGHT CARD ============
-function AIInsightCard({ token, data }) {
+function AIInsightCard({ tokenGas, data }) {
   const [insight, setInsight] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -442,7 +443,7 @@ function AIInsightCard({ token, data }) {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'getAIInsight',
-          token,
+          token: tokenGas,
           type: 'insight',
           analyticsData: data,
         }),
@@ -510,7 +511,7 @@ function AIInsightCard({ token, data }) {
 }
 
 // ============ AI CHAT CARD ============
-function AIChatCard({ token, data }) {
+function AIChatCard({ tokenGas, data }) {
   const [messages, setMessages] = useState(() => {
     try {
       const saved = localStorage.getItem(CHAT_STORAGE_KEY)
@@ -543,7 +544,7 @@ function AIChatCard({ token, data }) {
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({
           action: 'getAIInsight',
-          token,
+          token: tokenGas,
           type: 'chat',
           messages: newMessages,
           analyticsData: data,
