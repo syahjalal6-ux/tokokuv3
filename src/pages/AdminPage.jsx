@@ -14,12 +14,12 @@ import toast from 'react-hot-toast'
 // API calls ke GAS — admin endpoints
 // =============================================
 async function adminRequest(action, data = {}) {
-  const { token } = useAuthStore.getState()
+  const { tokenGas } = useAuthStore.getState()
   const res = await fetch(CONFIG.GAS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain' },
     redirect: 'follow',
-    body: JSON.stringify({ action, token, ...data }),
+    body: JSON.stringify({ action, token: tokenGas, ...data }),
   })
   const json = await res.json()
   if (!json.success) throw new Error(json.message || 'Gagal')
@@ -480,7 +480,7 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
             {seller.tokoSlug && (
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 <Store size={12} color="var(--text-tertiary)" />
-                <a
+                
                   href={`/toko/${seller.tokoSlug}`}
                   target="_blank" rel="noreferrer"
                   style={{ color: 'var(--accent)' }}
