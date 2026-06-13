@@ -69,7 +69,7 @@ export const authApi = {
       .eq('id', userId)
       .single()
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: { ...data, planExpiry: data.plan_expiry } }
   },
 
   logout: async (token) => {
