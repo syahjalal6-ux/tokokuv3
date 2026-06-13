@@ -346,8 +346,8 @@ function TokoSettings({ tokenObj, toko, setToko, pro }) {
     if (!validate()) return
     setLoading(true)
     try {
-      const res = await tokoApi.update(tokenObj, toko.id, form)
-      setToko(res.data)
+      await tokoApi.update(tokenObj, toko.id, form)
+      setToko({ ...toko, ...form })
       toast.success('Pengaturan toko disimpan!')
     } catch (err) {
       toast.error(err.message || 'Gagal menyimpan')
