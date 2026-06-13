@@ -126,7 +126,7 @@ export default function PesananPage() {
   const pro = isPro(user)
 
   useEffect(() => {
-    if ((tokenSupabase || tokenGas) loadPesanan()
+    if (tokenSupabase || tokenGas) loadPesanan()
     else setIsLoading(false)
   }, [tokenSupabase, tokenGas, pro])
 
