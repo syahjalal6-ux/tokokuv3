@@ -201,7 +201,7 @@ export default function AdminPage() {
             </div>
             <div style={{ height: 36, width: 1, background: 'var(--glass-border)' }} />
             <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-              Dari <strong>{proCount}</strong> seller Pro aktif × Rp 49.000
+              Dari <strong>{proCount}</strong> seller Pro aktif × Rp 19.000
             </p>
           </div>
         )}
