@@ -126,7 +126,7 @@ export default function PesananPage() {
   const pro = isPro(user)
 
   useEffect(() => {
-    if ((tokenSupabase || tokenGas) && pro) loadPesanan()
+    if ((tokenSupabase || tokenGas) loadPesanan()
     else setIsLoading(false)
   }, [tokenSupabase, tokenGas, pro])
 
@@ -157,16 +157,6 @@ export default function PesananPage() {
     const matchSearch = !search || (p.buyerNama && p.buyerNama.toLowerCase().includes(search.toLowerCase())) || (p.id && p.id.includes(search))
     return matchTab && matchSearch
   })
-
-  if (!pro) {
-    return (
-      <DashboardLayout title="Pesanan">
-        <div style={{ maxWidth: 500, margin: '0 auto', marginTop: 40 }}>
-          <ProGate />
-        </div>
-      </DashboardLayout>
-    )
-  }
 
   return (
     <DashboardLayout
