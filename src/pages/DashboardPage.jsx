@@ -21,7 +21,8 @@ function parseFotos(foto) {
 }
 
 export default function DashboardPage() {
-  const { user, token } = useAuthStore()
+  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
   const { toko, load: loadToko, setToko } = useTokoStore()
   const { produk, load: loadProduk } = useProdukStore()
   const [linkCopied, setLinkCopied] = useState(false)
@@ -37,16 +38,16 @@ export default function DashboardPage() {
     : null
 
   useEffect(() => {
-    if (token) {
+    if (tokenSupabase || tokenGas) {
       setTokoLoading(true)
-      loadToko(token).finally(() => setTokoLoading(false))
-      loadProduk(token)
+      loadToko(tokenObj).finally(() => setTokoLoading(false))
+      loadProduk(tokenObj)
     }
-  }, [token])
+  }, [tokenSupabase, tokenGas])
 
   useEffect(() => {
-    if (token && pro) {
-      pesananApi.getMine(token, 'all')
+    if ((tokenSupabase || tokenGas) && pro) {
+      pesananApi.getMine(tokenObj, 'all')
         .then(res => {
           const data = res.data || []
           setPesananCount(data.length)
@@ -57,7 +58,7 @@ export default function DashboardPage() {
         })
         .catch(() => {})
     }
-  }, [token, pro])
+  }, [tokenSupabase, tokenGas, pro])
 
   const handleCopyLink = async () => {
     await copyToClipboard(getStorefrontUrl(toko.slug))
@@ -89,7 +90,7 @@ export default function DashboardPage() {
           <div className="spinner" />
         </div>
       ) : !toko ? (
-        <SetupTokoCard token={token} setToko={setToko} />
+        <SetupTokoCard tokenObj={tokenObj} setToko={setToko} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
@@ -336,7 +337,7 @@ export default function DashboardPage() {
   )
 }
 
-function SetupTokoCard({ token, setToko }) {
+function SetupTokoCard({ tokenObj, setToko }) {
   const [form, setForm] = useState({ nama: '', slug: '', deskripsi: '', wa: '' })
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
@@ -365,7 +366,7 @@ function SetupTokoCard({ token, setToko }) {
     if (!validate()) return
     setLoading(true)
     try {
-      const res = await tokoApi.create(token, form)
+      const res = await tokoApi.create(tokenObj, form)
       setToko(res.data)
       updateUser({ tokoId: res.data.id })
       toast.success('Toko berhasil dibuat! 🎉')
