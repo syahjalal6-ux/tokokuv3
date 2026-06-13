@@ -3,16 +3,46 @@
 // Semua WRITE → dua provider sekaligus (Supabase + GAS)
 // Semua READ → Supabase dulu, fallback GAS
 // ================================================
-
 import * as gas from './gas.js'
 import * as supabase from './supabase.js'
 
 // ================================================
-// HELPERS
+// HELPERS — dengan dual-token support
 // ================================================
+// tokenObj = { tokenSupabase, tokenGas }
+function splitToken(tokenObj) {
+  if (tokenObj && typeof tokenObj === 'object' && ('tokenSupabase' in tokenObj || 'tokenGas' in tokenObj)) {
+    return [tokenObj.tokenSupabase, tokenObj.tokenGas]
+  }
+  // fallback kalau ada kode lama yang masih kirim string token tunggal
+  return [tokenObj, tokenObj]
+}
 
-// READ: Supabase dulu, fallback GAS
-async function readWith(apiName, method, ...args) {
+// READ: Supabase dulu, fallback GAS — pakai token sesuai provider
+async function readWith(apiName, method, tokenObj, ...args) {
+  const [tokenSb, tokenGas] = splitToken(tokenObj)
+  try {
+    return await supabase[apiName][method](tokenSb, ...args)
+  } catch (e) {
+    console.warn(`[${apiName}.${method}] supabase gagal, fallback GAS:`, e.message)
+    return await gas[apiName][method](tokenGas, ...args)
+  }
+}
+
+// WRITE: tulis ke dua-duanya, return Supabase kalau sukses — pakai token sesuai provider
+async function writeWith(apiName, method, tokenObj, ...args) {
+  const [tokenSb, tokenGas] = splitToken(tokenObj)
+  const [sb, g] = await Promise.allSettled([
+    supabase[apiName][method](tokenSb, ...args),
+    gas[apiName][method](tokenGas, ...args),
+  ])
+  if (sb.status === 'fulfilled') return sb.value
+  if (g.status === 'fulfilled') return g.value
+  throw sb.reason
+}
+
+// READ tanpa token (publik)
+async function readWithNoToken(apiName, method, ...args) {
   try {
     return await supabase[apiName][method](...args)
   } catch (e) {
@@ -21,8 +51,8 @@ async function readWith(apiName, method, ...args) {
   }
 }
 
-// WRITE: tulis ke dua-duanya, return Supabase kalau sukses
-async function writeWith(apiName, method, ...args) {
+// WRITE tanpa token (publik)
+async function writeWithNoToken(apiName, method, ...args) {
   const [sb, g] = await Promise.allSettled([
     supabase[apiName][method](...args),
     gas[apiName][method](...args),
@@ -36,66 +66,92 @@ async function writeWith(apiName, method, ...args) {
 // AUTH
 // ================================================
 export const authApi = {
-  loginWithGoogle: (...args) => writeWith('authApi', 'loginWithGoogle', ...args),
-  getMe:           (...args) => readWith('authApi', 'getMe', ...args),
-  logout:          (...args) => writeWith('authApi', 'logout', ...args),
+  // Login khusus: jalankan ke dua provider, simpan KEDUA token
+  loginWithGoogle: async (googleUser) => {
+    const [sb, g] = await Promise.allSettled([
+      supabase.authApi.loginWithGoogle(googleUser),
+      gas.authApi.loginWithGoogle(googleUser),
+    ])
+
+    const sbOk = sb.status === 'fulfilled'
+    const gOk = g.status === 'fulfilled'
+
+    if (!sbOk && !gOk) {
+      throw new Error(sb.reason?.message || g.reason?.message || 'Login gagal di kedua provider')
+    }
+
+    const user = sbOk ? sb.value.data.user : g.value.data.user
+
+    return {
+      success: true,
+      data: {
+        user,
+        tokenSupabase: sbOk ? sb.value.data.token : null,
+        tokenGas: gOk ? g.value.data.token : null,
+      }
+    }
+  },
+
+  getMe: (tokenObj) => readWith('authApi', 'getMe', tokenObj),
+
+  logout: (tokenObj) => writeWith('authApi', 'logout', tokenObj),
 }
 
 // ================================================
 // TOKO
 // ================================================
 export const tokoApi = {
-  create:         (...args) => writeWith('tokoApi', 'create', ...args),
-  update:         (...args) => writeWith('tokoApi', 'update', ...args),
-  delete:         (...args) => writeWith('tokoApi', 'delete', ...args),
-  getMine:        (...args) => readWith('tokoApi', 'getMine', ...args),
-  getBySlug:      (...args) => readWith('tokoApi', 'getBySlug', ...args),
-  checkSlug:      (...args) => readWith('tokoApi', 'checkSlug', ...args),
-  requestUpgrade: (...args) => writeWith('tokoApi', 'requestUpgrade', ...args),
-  confirmUpgrade: (...args) => writeWith('tokoApi', 'confirmUpgrade', ...args),
+  create:         (tokenObj, ...args) => writeWith('tokoApi', 'create', tokenObj, ...args),
+  update:         (tokenObj, ...args) => writeWith('tokoApi', 'update', tokenObj, ...args),
+  delete:         (tokenObj, ...args) => writeWith('tokoApi', 'delete', tokenObj, ...args),
+  getMine:        (tokenObj) => readWith('tokoApi', 'getMine', tokenObj),
+  getBySlug:      (...args) => readWithNoToken('tokoApi', 'getBySlug', ...args),
+  checkSlug:      (...args) => readWithNoToken('tokoApi', 'checkSlug', ...args),
+  requestUpgrade: (tokenObj) => writeWith('tokoApi', 'requestUpgrade', tokenObj),
+  confirmUpgrade: (tokenObj, ...args) => writeWith('tokoApi', 'confirmUpgrade', tokenObj, ...args),
 }
 
 // ================================================
 // PRODUK
 // ================================================
 export const produkApi = {
-  create:   (...args) => writeWith('produkApi', 'create', ...args),
-  update:   (...args) => writeWith('produkApi', 'update', ...args),
-  delete:   (...args) => writeWith('produkApi', 'delete', ...args),
-  getMine:  (...args) => readWith('produkApi', 'getMine', ...args),
-  getByToko:(...args) => readWith('produkApi', 'getByToko', ...args),
-  getById:  (...args) => readWith('produkApi', 'getById', ...args),
+  create:    (tokenObj, ...args) => writeWith('produkApi', 'create', tokenObj, ...args),
+  update:    (tokenObj, ...args) => writeWith('produkApi', 'update', tokenObj, ...args),
+  delete:    (tokenObj, ...args) => writeWith('produkApi', 'delete', tokenObj, ...args),
+  getMine:   (tokenObj) => readWith('produkApi', 'getMine', tokenObj),
+  getByToko: (...args) => readWithNoToken('produkApi', 'getByToko', ...args),
+  getById:   (...args) => readWithNoToken('produkApi', 'getById', ...args),
 }
 
 // ================================================
 // PESANAN
 // ================================================
 export const pesananApi = {
-  create:       (...args) => writeWith('pesananApi', 'create', ...args),
-  getMine:      (...args) => readWith('pesananApi', 'getMine', ...args),
-  updateStatus: (...args) => writeWith('pesananApi', 'updateStatus', ...args),
-  getById:      (...args) => readWith('pesananApi', 'getById', ...args),
+  create:       (...args) => writeWithNoToken('pesananApi', 'create', ...args),
+  getMine:      (tokenObj, ...args) => readWith('pesananApi', 'getMine', tokenObj, ...args),
+  updateStatus: (tokenObj, ...args) => writeWith('pesananApi', 'updateStatus', tokenObj, ...args),
+  getById:      (...args) => readWithNoToken('pesananApi', 'getById', ...args),
 }
 
 // ================================================
 // ANALYTICS
 // ================================================
 export const analyticsApi = {
-  getDashboard: (...args) => readWith('analyticsApi', 'getDashboard', ...args),
+  getDashboard: (tokenObj) => readWith('analyticsApi', 'getDashboard', tokenObj),
 }
 
 // ================================================
 // TOKO INFO
 // ================================================
 export const tokoInfoApi = {
-  get:    (...args) => readWith('tokoInfoApi', 'get', ...args),
-  update: (...args) => writeWith('tokoInfoApi', 'update', ...args),
+  get:    (tokenObj) => readWith('tokoInfoApi', 'get', tokenObj),
+  update: (tokenObj, ...args) => writeWith('tokoInfoApi', 'update', tokenObj, ...args),
 }
 
 // ================================================
 // RATING
 // ================================================
 export const ratingApi = {
-  add: (...args) => writeWith('ratingApi', 'add', ...args),
-  get: (...args) => readWith('ratingApi', 'get', ...args),
+  add: (...args) => writeWithNoToken('ratingApi', 'add', ...args),
+  get: (...args) => readWithNoToken('ratingApi', 'get', ...args),
 }
