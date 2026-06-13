@@ -28,18 +28,19 @@ async function uploadLogoToCloudinary(file) {
 }
 
 export default function SettingsPage() {
-  const { user, token } = useAuthStore()
+  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
   const { toko, setToko } = useTokoStore()
   const [tab, setTab] = useState('toko')
   const pro = isPro(user)
 
   useEffect(() => {
-    if (token && !toko) {
-      tokoApi.getMine(token).then(res => {
+    if ((tokenSupabase || tokenGas) && !toko) {
+      tokoApi.getMine(tokenObj).then(res => {
         if (res.data) setToko(res.data)
       }).catch(() => {})
     }
-  }, [token])
+  }, [tokenSupabase, tokenGas])
 
   const TABS = [
     { key: 'toko', label: 'Info Toko', icon: Store },
@@ -69,8 +70,8 @@ export default function SettingsPage() {
       </div>
 
       <div style={{ maxWidth: 600 }}>
-        {tab === 'toko' && <TokoSettings token={token} toko={toko} setToko={setToko} pro={pro} />}
-        {tab === 'asisten' && <AsistenSettings token={token} toko={toko} />}
+        {tab === 'toko' && <TokoSettings tokenObj={tokenObj} toko={toko} setToko={setToko} pro={pro} />}
+        {tab === 'asisten' && <AsistenSettings tokenObj={tokenObj} toko={toko} />}
         {tab === 'profil' && <ProfilSettings user={user} />}
       </div>
     </DashboardLayout>
@@ -190,14 +191,14 @@ function LogoUpload({ value, onChange, disabled }) {
 // ================================================
 // ASISTEN SETTINGS
 // ================================================
-function AsistenSettings({ token, toko }) {
+function AsistenSettings({ tokenObj, toko }) {
   const [form, setForm] = useState({ faq: '', garansi: '', policy: '', infoLain: '' })
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
 
   useEffect(() => {
-    if (!token || !toko) return
-    tokoInfoApi.get(token).then(res => {
+    if (!(tokenObj.tokenSupabase || tokenObj.tokenGas) || !toko) return
+    tokoInfoApi.get(tokenObj).then(res => {
       if (res.data) setForm({
         faq: res.data.faq || '',
         garansi: res.data.garansi || '',
@@ -205,14 +206,14 @@ function AsistenSettings({ token, toko }) {
         infoLain: res.data.infoLain || '',
       })
     }).catch(() => {}).finally(() => setFetching(false))
-  }, [token, toko])
+  }, [tokenObj.tokenSupabase, tokenObj.tokenGas, toko])
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }))
 
   const handleSave = async () => {
     setLoading(true)
     try {
-      await tokoInfoApi.update(token, form)
+      await tokoInfoApi.update(tokenObj, form)
       toast.success('Data asisten AI disimpan!')
     } catch (err) {
       toast.error(err.message || 'Gagal menyimpan')
@@ -296,7 +297,7 @@ function AsistenSettings({ token, toko }) {
 // ================================================
 // TOKO SETTINGS
 // ================================================
-function TokoSettings({ token, toko, setToko, pro }) {
+function TokoSettings({ tokenObj, toko, setToko, pro }) {
   const [form, setForm] = useState({
     nama: '',
     deskripsi: '',
@@ -345,7 +346,7 @@ function TokoSettings({ token, toko, setToko, pro }) {
     if (!validate()) return
     setLoading(true)
     try {
-      const res = await tokoApi.update(token, toko.id, form)
+      const res = await tokoApi.update(tokenObj, toko.id, form)
       setToko(res.data)
       toast.success('Pengaturan toko disimpan!')
     } catch (err) {
