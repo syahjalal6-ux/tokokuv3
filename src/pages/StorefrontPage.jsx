@@ -461,9 +461,9 @@ function RatingSection({ produkId, tokoId, tema }) {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', color: '#fff', flexShrink: 0 }}>
-                    {r.buyerNama?.[0]?.toUpperCase()}
+                    {r.buyer_nama?.[0]?.toUpperCase()}
                   </div>
-                  <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{r.buyerNama}</span>
+                  <span style={{ fontWeight: 700, fontSize: '0.82rem' }}>{r.buyer_nama}</span>
                 </div>
                 <StarRating value={Number(r.rating)} size={13} />
               </div>
