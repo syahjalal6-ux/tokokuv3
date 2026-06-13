@@ -102,7 +102,8 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
   const [form, setForm] = useState(INITIAL)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const { token, user } = useAuthStore()
+  const { tokenSupabase, tokenGas, user } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
   const { add, update } = useProdukStore()
   const isEdit = !!editData
 
@@ -175,11 +176,11 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
       }
 
       if (isEdit) {
-        const res = await produkApi.update(token, editData.id, payload)
+        const res = await produkApi.update(tokenObj, editData.id, payload)
         update(editData.id, res.data)
         toast.success('Produk berhasil diperbarui!')
       } else {
-        const res = await produkApi.create(token, payload)
+        const res = await produkApi.create(tokenObj, payload)
         add(res.data)
         toast.success('Produk berhasil ditambahkan!')
       }
