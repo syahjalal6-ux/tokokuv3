@@ -1,12 +1,17 @@
 // ================================================
 // Supabase API Provider
-// Implementasi penuh saat migrasi dari GAS
 // ================================================
 
 import { createClient } from '@supabase/supabase-js'
 import { CONFIG } from '../config.js'
 
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
+
+// Client khusus admin — pakai service role key agar bisa bypass RLS
+const supabaseAdmin = createClient(
+  CONFIG.SUPABASE_URL,
+  CONFIG.SUPABASE_SERVICE_ROLE_KEY
+)
 
 // ================================================
 // HELPERS
@@ -29,7 +34,7 @@ function handleError(error) {
 
 export const authApi = {
   loginWithGoogle: async (googleUser) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .upsert({
         email: googleUser.email,
@@ -43,12 +48,11 @@ export const authApi = {
 
     if (error) handleError(error)
 
-    // Buat token
     const token = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '')
     const expiresAt = new Date()
     expiresAt.setDate(expiresAt.getDate() + 30)
 
-    const { error: tokenError } = await supabase
+    const { error: tokenError } = await supabaseAdmin
       .from('tokens')
       .insert({ token, user_id: data.id, expires_at: expiresAt.toISOString() })
 
@@ -59,7 +63,7 @@ export const authApi = {
 
   getMe: async (token) => {
     const userId = await verifyToken(token)
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -69,7 +73,7 @@ export const authApi = {
   },
 
   logout: async (token) => {
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('tokens')
       .delete()
       .eq('token', token)
@@ -87,7 +91,7 @@ export const tokoApi = {
     const userId = await verifyToken(token)
     const { nama, slug, deskripsi, wa } = data
 
-    const { data: toko, error } = await supabase
+    const { data: toko, error } = await supabaseAdmin
       .from('toko')
       .insert({
         user_id: userId, nama, slug,
@@ -108,7 +112,7 @@ export const tokoApi = {
 
   update: async (token, tokoId, data) => {
     const userId = await verifyToken(token)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('toko')
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq('id', tokoId)
@@ -119,7 +123,7 @@ export const tokoApi = {
 
   delete: async (token, tokoId) => {
     const userId = await verifyToken(token)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('toko')
       .delete()
       .eq('id', tokoId)
@@ -130,7 +134,7 @@ export const tokoApi = {
 
   getMine: async (token) => {
     const userId = await verifyToken(token)
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('toko')
       .select('*')
       .eq('user_id', userId)
@@ -167,7 +171,7 @@ export const tokoApi = {
     await verifyToken(adminToken)
     const expiry = new Date()
     expiry.setMonth(expiry.getMonth() + 1)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
       .eq('id', userId)
@@ -183,10 +187,10 @@ export const tokoApi = {
 export const produkApi = {
   create: async (token, data) => {
     const userId = await verifyToken(token)
-    const { data: toko } = await supabase.from('toko').select('id').eq('user_id', userId).single()
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
     if (!toko) throw new ApiError('Buat toko dulu', 400)
 
-    const { data: produk, error } = await supabase
+    const { data: produk, error } = await supabaseAdmin
       .from('produk')
       .insert({
         toko_id: toko.id,
@@ -212,7 +216,7 @@ export const produkApi = {
 
   update: async (token, produkId, data) => {
     const userId = await verifyToken(token)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('produk')
       .update({ ...data, updated_at: new Date().toISOString() })
       .eq('id', produkId)
@@ -223,7 +227,7 @@ export const produkApi = {
 
   delete: async (token, produkId) => {
     const userId = await verifyToken(token)
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('produk')
       .delete()
       .eq('id', produkId)
@@ -234,7 +238,7 @@ export const produkApi = {
 
   getMine: async (token) => {
     const userId = await verifyToken(token)
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('produk')
       .select('*')
       .eq('user_id', userId)
@@ -243,29 +247,28 @@ export const produkApi = {
     return { success: true, data }
   },
 
- getByToko: async (tokoId, params = {}) => {
-  // Resolve slug → id dulu
-  let actualTokoId = tokoId
-  const { data: toko } = await supabase
-    .from('toko')
-    .select('id')
-    .or(`id.eq.${tokoId},slug.eq.${tokoId}`)
-    .single()
-  if (toko) actualTokoId = toko.id
+  getByToko: async (tokoId, params = {}) => {
+    let actualTokoId = tokoId
+    const { data: toko } = await supabase
+      .from('toko')
+      .select('id')
+      .or(`id.eq.${tokoId},slug.eq.${tokoId}`)
+      .single()
+    if (toko) actualTokoId = toko.id
 
-  let query = supabase
-    .from('produk')
-    .select('*')
-    .eq('toko_id', actualTokoId)
-    .eq('aktif', true)
-    .order('created_at', { ascending: false })
+    let query = supabase
+      .from('produk')
+      .select('*')
+      .eq('toko_id', actualTokoId)
+      .eq('aktif', true)
+      .order('created_at', { ascending: false })
 
-  if (params.kategori) query = query.eq('kategori', params.kategori)
+    if (params.kategori) query = query.eq('kategori', params.kategori)
 
-  const { data, error } = await query
-  if (error) handleError(error)
-  return { success: true, data }
-},
+    const { data, error } = await query
+    if (error) handleError(error)
+    return { success: true, data }
+  },
 
   getById: async (produkId) => {
     const { data, error } = await supabase
@@ -312,10 +315,10 @@ export const pesananApi = {
 
   getMine: async (token, status = 'all') => {
     const userId = await verifyToken(token)
-    const { data: toko } = await supabase.from('toko').select('id').eq('user_id', userId).single()
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
     if (!toko) return { success: true, data: [] }
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('pesanan')
       .select('*')
       .eq('toko_id', toko.id)
@@ -334,7 +337,7 @@ export const pesananApi = {
     if (kurir !== undefined) updates.kurir = kurir || ''
     if (resi !== undefined) updates.resi = resi || ''
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('pesanan')
       .update(updates)
       .eq('id', pesananId)
@@ -362,11 +365,11 @@ export const pesananApi = {
 export const analyticsApi = {
   getDashboard: async (token) => {
     const userId = await verifyToken(token)
-    const { data: toko } = await supabase.from('toko').select('id').eq('user_id', userId).single()
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
     if (!toko) return { success: true, data: {} }
 
-    const { data: produk } = await supabase.from('produk').select('*').eq('toko_id', toko.id)
-    const { data: pesanans } = await supabase.from('pesanan').select('*').eq('toko_id', toko.id)
+    const { data: produk } = await supabaseAdmin.from('produk').select('*').eq('toko_id', toko.id)
+    const { data: pesanans } = await supabaseAdmin.from('pesanan').select('*').eq('toko_id', toko.id)
 
     const done = (pesanans || []).filter(p => p.status === 'done')
     const totalRevenue = done.reduce((s, p) => s + Number(p.total), 0)
@@ -392,10 +395,10 @@ export const analyticsApi = {
 export const tokoInfoApi = {
   get: async (token) => {
     const userId = await verifyToken(token)
-    const { data: toko } = await supabase.from('toko').select('id').eq('user_id', userId).single()
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
     if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('toko_info')
       .select('*')
       .eq('toko_id', toko.id)
@@ -407,10 +410,10 @@ export const tokoInfoApi = {
 
   update: async (token, data) => {
     const userId = await verifyToken(token)
-    const { data: toko } = await supabase.from('toko').select('id').eq('user_id', userId).single()
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
     if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('toko_info')
       .upsert({ toko_id: toko.id, ...data }, { onConflict: 'toko_id' })
 
@@ -466,13 +469,114 @@ export const ratingApi = {
 }
 
 // ================================================
-// VERIFY TOKEN HELPER
+// ADMIN
+// ================================================
+
+export const adminApi = {
+  getUsers: async (token) => {
+    await verifyToken(token)
+
+    const { data: users, error: usersError } = await supabaseAdmin
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (usersError) handleError(usersError)
+
+    const { data: tokos } = await supabaseAdmin.from('toko').select('*')
+    const { data: produks } = await supabaseAdmin.from('produk').select('id, user_id')
+    const { data: pesanans } = await supabaseAdmin.from('pesanan').select('id, toko_id')
+
+    const result = (users || []).map(u => {
+      const toko = (tokos || []).find(t => t.user_id === u.id)
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        picture: u.picture,
+        plan: u.plan || 'free',
+        planExpiry: u.plan_expiry || null,
+        createdAt: u.created_at,
+        tokoNama: toko?.nama || null,
+        tokoSlug: toko?.slug || null,
+        tokoAktif: toko?.aktif !== false,
+        totalProduk: (produks || []).filter(p => p.user_id === u.id).length,
+        totalPesanan: toko ? (pesanans || []).filter(p => p.toko_id === toko.id).length : 0,
+      }
+    })
+
+    return { success: true, data: result }
+  },
+
+  getStats: async (token) => {
+    await verifyToken(token)
+
+    const { count: totalUser } = await supabaseAdmin.from('users').select('*', { count: 'exact', head: true })
+    const { count: totalToko } = await supabaseAdmin.from('toko').select('*', { count: 'exact', head: true })
+    const { count: totalProduk } = await supabaseAdmin.from('produk').select('*', { count: 'exact', head: true })
+
+    return {
+      success: true,
+      data: { totalUser, totalToko, totalProduk }
+    }
+  },
+
+  grantPro: async (token, targetUserId, months) => {
+    await verifyToken(token)
+
+    const expiry = new Date()
+    expiry.setMonth(expiry.getMonth() + Number(months || 1))
+
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', targetUserId)
+    if (error) handleError(error)
+
+    return { success: true, message: `Pro aktif ${months} bulan` }
+  },
+
+  revokePro: async (token, targetUserId) => {
+    await verifyToken(token)
+
+    const { error } = await supabaseAdmin
+      .from('users')
+      .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
+      .eq('id', targetUserId)
+    if (error) handleError(error)
+
+    return { success: true, message: 'Pro berhasil dicabut' }
+  },
+
+  deleteUser: async (token, targetUserId) => {
+    await verifyToken(token)
+
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', targetUserId).single()
+    const tokoId = toko?.id || null
+
+    await supabaseAdmin.from('tokens').delete().eq('user_id', targetUserId)
+    await supabaseAdmin.from('produk').delete().eq('user_id', targetUserId)
+
+    if (tokoId) {
+      await supabaseAdmin.from('pesanan').delete().eq('toko_id', tokoId)
+      await supabaseAdmin.from('toko_info').delete().eq('toko_id', tokoId)
+      await supabaseAdmin.from('toko').delete().eq('id', tokoId)
+    }
+
+    const { error } = await supabaseAdmin.from('users').delete().eq('id', targetUserId)
+    if (error) handleError(error)
+
+    return { success: true, message: 'User berhasil dihapus' }
+  },
+}
+
+// ================================================
+// VERIFY TOKEN HELPER — pakai supabaseAdmin bypass RLS
 // ================================================
 
 async function verifyToken(token) {
   if (!token) throw new ApiError('Token diperlukan', 401)
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('tokens')
     .select('*')
     .eq('token', token)
