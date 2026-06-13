@@ -117,7 +117,8 @@ function exportToExcel(pesanan) {
 }
 
 export default function PesananPage() {
-  const { user, token } = useAuthStore()
+  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
   const [pesanan, setPesanan] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('all')
@@ -125,14 +126,14 @@ export default function PesananPage() {
   const pro = isPro(user)
 
   useEffect(() => {
-    if (token && pro) loadPesanan()
+    if ((tokenSupabase || tokenGas) && pro) loadPesanan()
     else setIsLoading(false)
-  }, [token, pro])
+  }, [tokenSupabase, tokenGas, pro])
 
   const loadPesanan = async () => {
     setIsLoading(true)
     try {
-      const res = await pesananApi.getMine(token)
+      const res = await pesananApi.getMine(tokenObj)
       setPesanan(res.data || [])
     } catch (err) {
       toast.error('Gagal memuat pesanan')
@@ -143,7 +144,7 @@ export default function PesananPage() {
 
   const handleStatusChange = async (pesananId, status) => {
     try {
-      await pesananApi.updateStatus(token, pesananId, status)
+      await pesananApi.updateStatus(tokenObj, pesananId, status)
       setPesanan(ps => ps.map(p => p.id === pesananId ? { ...p, status } : p))
       toast.success('Status diperbarui')
     } catch (err) {
@@ -243,7 +244,7 @@ export default function PesananPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {filtered.map(p => (
-              <PesananCard key={p.id} pesanan={p} token={token} onStatusChange={handleStatusChange} setPesanan={setPesanan} />
+              <PesananCard key={p.id} pesanan={p} tokenObj={tokenObj} onStatusChange={handleStatusChange} setPesanan={setPesanan} />
             ))}
           </div>
         )}
@@ -252,7 +253,7 @@ export default function PesananPage() {
   )
 }
 
-function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
+function PesananCard({ pesanan: p, tokenObj, onStatusChange, setPesanan }) {
   const [expanded, setExpanded] = useState(false)
   const [kurirOpen, setKurirOpen] = useState(false)
   const [kurir, setKurir] = useState(KURIR_LIST[0])
@@ -265,7 +266,6 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
     : statusCfg.color === 'danger' ? 'var(--danger)'
     : 'var(--accent)'
 
-  // Extract slug dari tokoId — fallback ke tokoId kalau tidak ada slug
   const tokoSlug = p.tokoSlug || p.tokoId || ''
   const waMessage = generatePesananWAMessage(p, tokoSlug)
 
@@ -276,7 +276,7 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
     }
     setSendingKurir(true)
     try {
-      await pesananApi.updateStatus(token, p.id, 'shipped', kurir, resi)
+      await pesananApi.updateStatus(tokenObj, p.id, 'shipped', kurir, resi)
       setPesanan(ps => ps.map(x => x.id === p.id ? { ...x, status: 'shipped', kurir, resi } : x))
       const msg = generateShippingWAMessage(p, kurir, resi, tokoSlug)
       window.open(generateWALink(p.buyerWa, msg), '_blank')
@@ -293,7 +293,7 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
 
   return (
     <div className="glass-card" style={{ padding: '14px 16px', borderRadius: 'var(--radius-lg)' }}>
-      {/* Header card — selalu konsisten */}
+      {/* Header card */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         <div style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
@@ -310,7 +310,6 @@ function PesananCard({ pesanan: p, token, onStatusChange, setPesanan }) {
           </p>
         </div>
 
-        {/* Badge + chevron selalu di kanan */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
           <span className={'badge badge-' + statusCfg.color} style={{ fontSize: '0.68rem' }}>{statusCfg.label}</span>
           <button onClick={() => setExpanded(!expanded)} className="btn btn-ghost btn-icon btn-sm">
