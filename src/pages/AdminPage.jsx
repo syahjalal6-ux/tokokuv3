@@ -481,7 +481,7 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 <Store size={12} color="var(--text-tertiary)" />
                 
-                  href={`/toko/${seller.tokoSlug}`}
+                 <a href={`/toko/${seller.tokoSlug}`}
                   target="_blank" rel="noreferrer"
                   style={{ color: 'var(--accent)' }}
                   onClick={e => e.stopPropagation()}
