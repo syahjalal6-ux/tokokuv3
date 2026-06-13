@@ -7,24 +7,8 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../lib/store.js'
 import { formatDate, formatRupiah } from '../lib/utils.js'
-import { CONFIG } from '../lib/config.js'
+import { adminApi } from '../lib/api/index.js'
 import toast from 'react-hot-toast'
-
-// =============================================
-// API calls ke GAS — admin endpoints
-// =============================================
-async function adminRequest(action, data = {}) {
-  const { tokenGas } = useAuthStore.getState()
-  const res = await fetch(CONFIG.GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    redirect: 'follow',
-    body: JSON.stringify({ action, token: tokenGas, ...data }),
-  })
-  const json = await res.json()
-  if (!json.success) throw new Error(json.message || 'Gagal')
-  return json
-}
 
 const DURATIONS = [
   { label: '1 Bulan', months: 1 },
@@ -34,7 +18,9 @@ const DURATIONS = [
 ]
 
 export default function AdminPage() {
-  const { user } = useAuthStore()
+  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const tokenObj = { tokenSupabase, tokenGas }
+
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -54,8 +40,8 @@ export default function AdminPage() {
     setLoading(true)
     try {
       const [usersRes, statsRes] = await Promise.all([
-        adminRequest('adminGetUsers'),
-        adminRequest('adminGetStats'),
+        adminApi.getUsers(tokenObj),
+        adminApi.getStats(tokenObj),
       ])
       setUsers(usersRes.data || [])
       setStats(statsRes.data || null)
@@ -73,11 +59,11 @@ export default function AdminPage() {
     setTogglingId(targetUser.id)
     try {
       if (isPro) {
-        await adminRequest('adminRevokePro', { targetUserId: targetUser.id })
+        await adminApi.revokePro(tokenObj, targetUser.id)
         setUsers(u => u.map(x => x.id === targetUser.id ? { ...x, plan: 'free', planExpiry: null } : x))
         toast.success(`Pro dinonaktifkan untuk ${targetUser.name}`)
       } else {
-        await adminRequest('adminGrantPro', { targetUserId: targetUser.id, months })
+        await adminApi.grantPro(tokenObj, targetUser.id, months)
         const expiry = new Date()
         expiry.setMonth(expiry.getMonth() + months)
         setUsers(u => u.map(x => x.id === targetUser.id ? { ...x, plan: 'pro', planExpiry: expiry.toISOString() } : x))
@@ -94,7 +80,7 @@ export default function AdminPage() {
     if (!confirmDelete) return
     setDeletingId(confirmDelete.id)
     try {
-      await adminRequest('adminDeleteUser', { targetUserId: confirmDelete.id })
+      await adminApi.deleteUser(tokenObj, confirmDelete.id)
       setUsers(u => u.filter(x => x.id !== confirmDelete.id))
       if (expandedId === confirmDelete.id) setExpandedId(null)
       toast.success(`Akun ${confirmDelete.name} berhasil dihapus`)
@@ -480,8 +466,7 @@ function SellerRow({ seller, expanded, onExpand, onToggle, onDelete, isToggling,
             {seller.tokoSlug && (
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
                 <Store size={12} color="var(--text-tertiary)" />
-                
-                 <a href={`/toko/${seller.tokoSlug}`}
+                <a href={`/toko/${seller.tokoSlug}`}
                   target="_blank" rel="noreferrer"
                   style={{ color: 'var(--accent)' }}
                   onClick={e => e.stopPropagation()}
