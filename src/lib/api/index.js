@@ -66,7 +66,6 @@ async function writeWithNoToken(apiName, method, ...args) {
 // AUTH
 // ================================================
 export const authApi = {
-  // Login khusus: jalankan ke dua provider, simpan KEDUA token
   loginWithGoogle: async (googleUser) => {
     const [sb, g] = await Promise.allSettled([
       supabase.authApi.loginWithGoogle(googleUser),
@@ -154,4 +153,15 @@ export const tokoInfoApi = {
 export const ratingApi = {
   add: (...args) => writeWithNoToken('ratingApi', 'add', ...args),
   get: (...args) => readWithNoToken('ratingApi', 'get', ...args),
+}
+
+// ================================================
+// ADMIN
+// ================================================
+export const adminApi = {
+  getUsers:   (tokenObj) => readWith('adminApi', 'getUsers', tokenObj),
+  getStats:   (tokenObj) => readWith('adminApi', 'getStats', tokenObj),
+  grantPro:   (tokenObj, ...args) => writeWith('adminApi', 'grantPro', tokenObj, ...args),
+  revokePro:  (tokenObj, ...args) => writeWith('adminApi', 'revokePro', tokenObj, ...args),
+  deleteUser: (tokenObj, ...args) => writeWith('adminApi', 'deleteUser', tokenObj, ...args),
 }
