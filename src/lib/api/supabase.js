@@ -114,6 +114,7 @@ export const tokoApi = {
     const userId = await verifyToken(token)
     const { customDomain, ...rest } = data
     const { error } = await supabaseAdmin
+      .from('toko')
       .update({ ...rest, custom_domain: customDomain, updated_at: new Date().toISOString() })
       .eq('id', tokoId)
       .eq('user_id', userId)
