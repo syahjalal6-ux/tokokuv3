@@ -154,7 +154,7 @@ export default function DashboardPage() {
                     : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
                 </p>
               </div>
-              
+              <a
                 href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
                 target="_blank"
                 rel="noreferrer"
