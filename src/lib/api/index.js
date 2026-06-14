@@ -1,24 +1,13 @@
-// ================================================
-// API Index — Dual Write + Fallback Read
-// Semua WRITE → dua provider sekaligus (Supabase + GAS)
-// Semua READ → Supabase dulu, fallback GAS
-// ================================================
 import * as gas from './gas.js'
 import * as supabase from './supabase.js'
 
-// ================================================
-// HELPERS — dengan dual-token support
-// ================================================
-// tokenObj = { tokenSupabase, tokenGas }
 function splitToken(tokenObj) {
   if (tokenObj && typeof tokenObj === 'object' && ('tokenSupabase' in tokenObj || 'tokenGas' in tokenObj)) {
     return [tokenObj.tokenSupabase, tokenObj.tokenGas]
   }
-  // fallback kalau ada kode lama yang masih kirim string token tunggal
   return [tokenObj, tokenObj]
 }
 
-// READ: Supabase dulu, fallback GAS — pakai token sesuai provider
 async function readWith(apiName, method, tokenObj, ...args) {
   const [tokenSb, tokenGas] = splitToken(tokenObj)
   try {
@@ -29,7 +18,6 @@ async function readWith(apiName, method, tokenObj, ...args) {
   }
 }
 
-// WRITE: tulis ke dua-duanya, return Supabase kalau sukses — pakai token sesuai provider
 async function writeWith(apiName, method, tokenObj, ...args) {
   const [tokenSb, tokenGas] = splitToken(tokenObj)
   const [sb, g] = await Promise.allSettled([
@@ -41,7 +29,6 @@ async function writeWith(apiName, method, tokenObj, ...args) {
   throw sb.reason
 }
 
-// READ tanpa token (publik)
 async function readWithNoToken(apiName, method, ...args) {
   try {
     return await supabase[apiName][method](...args)
@@ -51,7 +38,6 @@ async function readWithNoToken(apiName, method, ...args) {
   }
 }
 
-// WRITE tanpa token (publik)
 async function writeWithNoToken(apiName, method, ...args) {
   const [sb, g] = await Promise.allSettled([
     supabase[apiName][method](...args),
@@ -92,7 +78,6 @@ export const authApi = {
   },
 
   getMe: (tokenObj) => readWith('authApi', 'getMe', tokenObj),
-
   logout: (tokenObj) => writeWith('authApi', 'logout', tokenObj),
 }
 
@@ -126,12 +111,11 @@ export const produkApi = {
 // PESANAN
 // ================================================
 export const pesananApi = {
-  create:         (...args) => writeWithNoToken('pesananApi', 'create', ...args),
-  getMine:        (tokenObj, ...args) => readWith('pesananApi', 'getMine', tokenObj, ...args),
-  updateStatus:   (tokenObj, ...args) => writeWith('pesananApi', 'updateStatus', tokenObj, ...args),
-  getById:        (...args) => readWithNoToken('pesananApi', 'getById', ...args),
-  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
-  getSlugByResi:  (...args) => readWithNoToken('pesananApi', 'getSlugByResi', ...args),
+  create:        (...args) => writeWithNoToken('pesananApi', 'create', ...args),
+  getMine:       (tokenObj, ...args) => readWith('pesananApi', 'getMine', tokenObj, ...args),
+  updateStatus:  (tokenObj, ...args) => writeWith('pesananApi', 'updateStatus', tokenObj, ...args),
+  getById:       (...args) => readWithNoToken('pesananApi', 'getById', ...args),
+  getSlugByResi: (...args) => readWithNoToken('pesananApi', 'getSlugByResi', ...args),
 }
 
 // ================================================
@@ -163,7 +147,7 @@ export const ratingApi = {
 export const adminApi = {
   getUsers:   (tokenObj) => readWith('adminApi', 'getUsers', tokenObj),
   getStats:   (tokenObj) => readWith('adminApi', 'getStats', tokenObj),
-  grantPro:   (tokenObj, ...args) => writeWith('adminApi', 'grantPro', tokenObj, ...args),
-  revokePro:  (tokenObj, ...args) => writeWith('adminApi', 'revokePro', tokenObj, ...args),
-  deleteUser: (tokenObj, ...args) => writeWith('adminApi', 'deleteUser', tokenObj, ...args),
+  grantPro:   (tokenObj, targetUserId, months, targetUserEmail) => writeWith('adminApi', 'grantPro', tokenObj, targetUserId, months, targetUserEmail),
+  revokePro:  (tokenObj, targetUserId, targetUserEmail) => writeWith('adminApi', 'revokePro', tokenObj, targetUserId, targetUserEmail),
+  deleteUser: (tokenObj, targetUserId, targetUserEmail) => writeWith('adminApi', 'deleteUser', tokenObj, targetUserId, targetUserEmail),
 }
