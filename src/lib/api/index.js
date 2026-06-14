@@ -126,10 +126,12 @@ export const produkApi = {
 // PESANAN
 // ================================================
 export const pesananApi = {
-  create:       (...args) => writeWithNoToken('pesananApi', 'create', ...args),
-  getMine:      (tokenObj, ...args) => readWith('pesananApi', 'getMine', tokenObj, ...args),
-  updateStatus: (tokenObj, ...args) => writeWith('pesananApi', 'updateStatus', tokenObj, ...args),
-  getById:      (...args) => readWithNoToken('pesananApi', 'getById', ...args),
+  create:         (...args) => writeWithNoToken('pesananApi', 'create', ...args),
+  getMine:        (tokenObj, ...args) => readWith('pesananApi', 'getMine', tokenObj, ...args),
+  updateStatus:   (tokenObj, ...args) => writeWith('pesananApi', 'updateStatus', tokenObj, ...args),
+  getById:        (...args) => readWithNoToken('pesananApi', 'getById', ...args),
+  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
+  getSlugByResi:  (...args) => readWithNoToken('pesananApi', 'getSlugByResi', ...args),
 }
 
 // ================================================
