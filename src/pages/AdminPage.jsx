@@ -59,11 +59,11 @@ export default function AdminPage() {
     setTogglingId(targetUser.id)
     try {
       if (isPro) {
-        await adminApi.revokePro(tokenObj, targetUser.email)
+        await adminApi.revokePro(tokenObj, targetUser.id, targetUser.email)
         setUsers(u => u.map(x => x.id === targetUser.id ? { ...x, plan: 'free', planExpiry: null } : x))
         toast.success(`Pro dinonaktifkan untuk ${targetUser.name}`)
       } else {
-        await adminApi.grantPro(tokenObj, targetUser.email, months)
+        await adminApi.grantPro(tokenObj, targetUser.id, months, targetUser.email)
         const expiry = new Date()
         expiry.setMonth(expiry.getMonth() + months)
         setUsers(u => u.map(x => x.id === targetUser.id ? { ...x, plan: 'pro', planExpiry: expiry.toISOString() } : x))
@@ -80,7 +80,7 @@ export default function AdminPage() {
     if (!confirmDelete) return
     setDeletingId(confirmDelete.id)
     try {
-      await adminApi.deleteUser(tokenObj, confirmDelete.email)
+      await adminApi.deleteUser(tokenObj, confirmDelete.id, confirmDelete.email)
       setUsers(u => u.filter(x => x.id !== confirmDelete.id))
       if (expandedId === confirmDelete.id) setExpandedId(null)
       toast.success(`Akun ${confirmDelete.name} berhasil dihapus`)
