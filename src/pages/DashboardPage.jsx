@@ -45,7 +45,6 @@ export default function DashboardPage() {
     }
   }, [tokenSupabase, tokenGas])
 
-  // ✅ FIX: hapus && pro — pesanan masuk tampil untuk semua user
   useEffect(() => {
     if (tokenSupabase || tokenGas) {
       pesananApi.getMine(tokenObj, 'all')
@@ -72,7 +71,6 @@ export default function DashboardPage() {
 
   const produkAktif = produk.filter(p => p.aktif).length
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
-
   const perpanjangBg = sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'
 
   return (
@@ -103,7 +101,9 @@ export default function DashboardPage() {
               border: '1px solid rgba(167,139,250,0.2)',
               borderRadius: 'var(--radius-xl)',
               padding: '18px 24px',
-              display: 'flex', alignItems: 'center', gap: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
               flexWrap: 'wrap',
             }}>
               <Zap size={20} color="var(--accent-3)" style={{ flexShrink: 0 }} />
@@ -115,7 +115,11 @@ export default function DashboardPage() {
                   Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya {CONFIG.PRO_PRICE}.
                 </p>
               </div>
-              <Link to="/dashboard/upgrade" className="btn btn-primary btn-sm" style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <Link
+                to="/dashboard/upgrade"
+                className="btn btn-primary btn-sm"
+                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+              >
                 Upgrade Sekarang
                 <ArrowRight size={13} />
               </Link>
@@ -128,13 +132,18 @@ export default function DashboardPage() {
               border: '1px solid ' + (sisaHari <= 0 ? 'rgba(248,113,113,0.3)' : 'rgba(251,191,36,0.3)'),
               borderRadius: 'var(--radius-xl)',
               padding: '18px 24px',
-              display: 'flex', alignItems: 'center', gap: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '16px',
               flexWrap: 'wrap',
             }}>
               <AlertCircle size={20} color={sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'} style={{ flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 200 }}>
                 <p style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2,
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  marginBottom: 2,
                   color: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
                 }}>
                   {sisaHari <= 0 ? 'Paket Pro kamu sudah expired' : 'Paket Pro berakhir dalam ' + sisaHari + ' hari'}
@@ -172,8 +181,13 @@ export default function DashboardPage() {
                   Link Toko Kamu
                 </p>
                 <p style={{
-                  fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: '0.9rem',
-                  color: 'var(--accent)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
+                  fontSize: '0.9rem',
+                  color: 'var(--accent)',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
                 }}>
                   {getStorefrontUrl(toko.slug)}
                 </p>
@@ -204,7 +218,6 @@ export default function DashboardPage() {
               icon={<Eye size={18} />}
               color="var(--success)"
             />
-            {/* ✅ FIX: tampil untuk semua user, bukan cuma Pro */}
             <StatCard
               label="Pesanan Masuk"
               value={pesananCount !== null ? pesananCount : '...'}
@@ -214,7 +227,7 @@ export default function DashboardPage() {
             />
             <StatCard
               label="Total Penjualan"
-              value={pro ? (totalRevenue !== null ? formatRupiah(totalRevenue) : '...') : '🔒'}
+              value={pro ? (totalRevenue !== null ? formatRupiah(totalRevenue) : '...') : '\uD83D\uDD12'}
               icon={<TrendingUp size={18} />}
               trend={pro ? '' : 'Upgrade untuk akses'}
               color="var(--accent-3)"
@@ -230,9 +243,13 @@ export default function DashboardPage() {
                 onClick={() => { if (!limitReached) setShowProdukForm(true) }}
                 disabled={limitReached}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: '16px', borderRadius: 'var(--radius-lg)',
-                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px',
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--surface)',
+                  border: '1px solid var(--glass-border)',
                   transition: 'all var(--transition-fast)',
                   opacity: limitReached ? 0.5 : 1,
                   cursor: limitReached ? 'not-allowed' : 'pointer',
@@ -242,10 +259,15 @@ export default function DashboardPage() {
                 onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
               >
                 <div style={{
-                  width: 36, height: 36, borderRadius: 'var(--radius-md)',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 'var(--radius-md)',
                   background: 'var(--accent)18',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'var(--accent)', flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--accent)',
+                  flexShrink: 0,
                 }}>
                   <Plus size={16} />
                 </div>
@@ -261,9 +283,13 @@ export default function DashboardPage() {
                   key={a.label}
                   to={a.to}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '16px', borderRadius: 'var(--radius-lg)',
-                    background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '16px',
+                    borderRadius: 'var(--radius-lg)',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--glass-border)',
                     transition: 'all var(--transition-fast)',
                     cursor: 'pointer',
                   }}
@@ -271,10 +297,15 @@ export default function DashboardPage() {
                   onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
                 >
                   <div style={{
-                    width: 36, height: 36, borderRadius: 'var(--radius-md)',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 'var(--radius-md)',
                     background: a.color + '18',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: a.color, flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: a.color,
+                    flexShrink: 0,
                   }}>
                     <a.icon size={16} />
                   </div>
@@ -289,7 +320,11 @@ export default function DashboardPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Produk Terbaru</h2>
-                <Link to="/dashboard/produk" className="btn btn-ghost btn-sm" style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                <Link
+                  to="/dashboard/produk"
+                  className="btn btn-ghost btn-sm"
+                  style={{ color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
                   Lihat semua
                   <ArrowRight size={13} />
                 </Link>
@@ -299,16 +334,29 @@ export default function DashboardPage() {
                   const thumbUrl = parseFotos(p.foto)[0] || null
                   return (
                     <div key={p.id} className="glass-card" style={{
-                      padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '14px',
+                      padding: '14px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '14px',
                       borderRadius: 'var(--radius-lg)',
                     }}>
                       {thumbUrl ? (
-                        <img src={thumbUrl} alt={p.nama} style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+                        <img
+                          src={thumbUrl}
+                          alt={p.nama}
+                          style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }}
+                        />
                       ) : (
                         <div style={{
-                          width: 44, height: 44, borderRadius: 'var(--radius-md)',
-                          background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'var(--text-tertiary)', flexShrink: 0,
+                          width: 44,
+                          height: 44,
+                          borderRadius: 'var(--radius-md)',
+                          background: 'var(--surface)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: 'var(--text-tertiary)',
+                          flexShrink: 0,
                         }}>
                           <Package size={18} />
                         </div>
@@ -329,6 +377,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
         </div>
       )}
 
@@ -395,7 +444,13 @@ function SetupTokoCard({ tokenObj, setToko }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <div className="form-group">
             <label className="form-label">Nama Toko *</label>
-            <input className={'form-input ' + (errors.nama ? 'error' : '')} placeholder="cth: Toko Rina Handmade" value={form.nama} onChange={e => set('nama', e.target.value)} maxLength={50} />
+            <input
+              className={'form-input ' + (errors.nama ? 'error' : '')}
+              placeholder="cth: Toko Rina Handmade"
+              value={form.nama}
+              onChange={e => set('nama', e.target.value)}
+              maxLength={50}
+            />
             {errors.nama && <span className="form-error">{errors.nama}</span>}
           </div>
 
@@ -410,7 +465,10 @@ function SetupTokoCard({ tokenObj, setToko }) {
                 style={{ paddingLeft: 80 }}
                 placeholder="nama-toko"
                 value={form.slug}
-                onChange={e => { setSlugManual(true); set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30)) }}
+                onChange={e => {
+                  setSlugManual(true)
+                  set('slug', e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 30))
+                }}
                 maxLength={30}
               />
             </div>
@@ -420,17 +478,34 @@ function SetupTokoCard({ tokenObj, setToko }) {
 
           <div className="form-group">
             <label className="form-label">Nomor WhatsApp *</label>
-            <input className={'form-input ' + (errors.wa ? 'error' : '')} placeholder="cth: 081234567890" value={form.wa} onChange={e => set('wa', e.target.value)} />
+            <input
+              className={'form-input ' + (errors.wa ? 'error' : '')}
+              placeholder="cth: 081234567890"
+              value={form.wa}
+              onChange={e => set('wa', e.target.value)}
+            />
             {errors.wa && <span className="form-error">{errors.wa}</span>}
             <span className="form-hint">Nomor ini yang dihubungi pembeli saat checkout</span>
           </div>
 
           <div className="form-group">
             <label className="form-label">Deskripsi Toko</label>
-            <textarea className="form-input form-textarea" placeholder="Ceritakan sedikit tentang tokomu..." value={form.deskripsi} onChange={e => set('deskripsi', e.target.value)} rows={3} maxLength={200} />
+            <textarea
+              className="form-input form-textarea"
+              placeholder="Ceritakan sedikit tentang tokomu..."
+              value={form.deskripsi}
+              onChange={e => set('deskripsi', e.target.value)}
+              rows={3}
+              maxLength={200}
+            />
           </div>
 
-          <button onClick={handleSubmit} className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%', marginTop: '8px' }}>
+          <button
+            onClick={handleSubmit}
+            className="btn btn-primary btn-lg"
+            disabled={loading}
+            style={{ width: '100%', marginTop: '8px' }}
+          >
             {loading ? 'Membuat Toko...' : 'Buat Toko Sekarang 🚀'}
           </button>
         </div>
