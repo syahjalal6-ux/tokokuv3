@@ -7,7 +7,6 @@ import { CONFIG } from '../config.js'
 
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
 
-// Client khusus admin — pakai service role key agar bisa bypass RLS
 const supabaseAdmin = createClient(
   CONFIG.SUPABASE_URL,
   CONFIG.SUPABASE_SERVICE_ROLE_KEY
@@ -26,6 +25,89 @@ class ApiError extends Error {
 
 function handleError(error) {
   throw new ApiError(error.message || 'Terjadi kesalahan', 400)
+}
+
+// ================================================
+// MAPPERS — snake_case DB → camelCase frontend
+// ================================================
+
+function mapProduk(p) {
+  if (!p) return null
+  return {
+    id: p.id,
+    tokoId: p.toko_id,
+    userId: p.user_id,
+    nama: p.nama,
+    deskripsi: p.deskripsi,
+    harga: p.harga,
+    hargaCoret: p.harga_coret,
+    stok: p.stok,
+    kategori: p.kategori,
+    berat: p.berat,
+    foto: p.foto,
+    aktif: p.aktif,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  }
+}
+
+function mapToko(t) {
+  if (!t) return null
+  return {
+    id: t.id,
+    userId: t.user_id,
+    nama: t.nama,
+    slug: t.slug,
+    deskripsi: t.deskripsi,
+    wa: t.wa,
+    logo: t.logo,
+    tema: t.tema,
+    plan: t.plan,
+    aktif: t.aktif,
+    pengumuman: t.pengumuman,
+    musik: t.musik,
+    video: t.video,
+    customDomain: t.custom_domain,
+    createdAt: t.created_at,
+    updatedAt: t.updated_at,
+  }
+}
+
+function mapUser(u) {
+  if (!u) return null
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    picture: u.picture,
+    googleId: u.google_id,
+    plan: u.plan || 'free',
+    planExpiry: u.plan_expiry,
+    createdAt: u.created_at,
+    updatedAt: u.updated_at,
+  }
+}
+
+function mapPesanan(p) {
+  if (!p) return null
+  return {
+    id: p.id,
+    tokoId: p.toko_id,
+    produkId: p.produk_id,
+    produkNama: p.produk_nama,
+    harga: p.harga,
+    qty: p.qty,
+    total: p.total,
+    buyerNama: p.buyer_nama,
+    buyerWa: p.buyer_wa,
+    buyerAlamat: p.buyer_alamat,
+    catatan: p.catatan,
+    status: p.status,
+    kurir: p.kurir,
+    resi: p.resi,
+    createdAt: p.created_at,
+    updatedAt: p.updated_at,
+  }
 }
 
 // ================================================
@@ -58,7 +140,7 @@ export const authApi = {
 
     if (tokenError) handleError(tokenError)
 
-    return { success: true, data: { user: data, token } }
+    return { success: true, data: { user: mapUser(data), token } }
   },
 
   getMe: async (token) => {
@@ -69,7 +151,7 @@ export const authApi = {
       .eq('id', userId)
       .single()
     if (error) handleError(error)
-    return { success: true, data: { ...data, planExpiry: data.plan_expiry } }
+    return { success: true, data: mapUser(data) }
   },
 
   logout: async (token) => {
@@ -107,7 +189,7 @@ export const tokoApi = {
       .single()
 
     if (error) handleError(error)
-    return { success: true, data: toko }
+    return { success: true, data: mapToko(toko) }
   },
 
   update: async (token, tokoId, data) => {
@@ -141,7 +223,7 @@ export const tokoApi = {
       .eq('user_id', userId)
       .single()
     if (error && error.code !== 'PGRST116') handleError(error)
-    return { success: true, data: data || null }
+    return { success: true, data: mapToko(data) }
   },
 
   getBySlug: async (slug) => {
@@ -151,7 +233,7 @@ export const tokoApi = {
       .eq('slug', slug)
       .single()
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: mapToko(data) }
   },
 
   checkSlug: async (slug) => {
@@ -203,7 +285,7 @@ export const produkApi = {
         stok: data.stok ? Number(data.stok) : null,
         kategori: data.kategori || '',
         berat: data.berat ? Number(data.berat) : null,
-        foto: data.foto || '',
+        foto: data.foto || '[]',
         aktif: data.aktif !== false,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -212,14 +294,28 @@ export const produkApi = {
       .single()
 
     if (error) handleError(error)
-    return { success: true, data: produk }
+    return { success: true, data: mapProduk(produk) }
   },
 
   update: async (token, produkId, data) => {
     const userId = await verifyToken(token)
+
+    // Map camelCase → snake_case untuk update
+    const updatePayload = {}
+    if (data.nama !== undefined) updatePayload.nama = data.nama
+    if (data.deskripsi !== undefined) updatePayload.deskripsi = data.deskripsi
+    if (data.harga !== undefined) updatePayload.harga = data.harga
+    if (data.hargaCoret !== undefined) updatePayload.harga_coret = data.hargaCoret
+    if (data.stok !== undefined) updatePayload.stok = data.stok
+    if (data.kategori !== undefined) updatePayload.kategori = data.kategori
+    if (data.berat !== undefined) updatePayload.berat = data.berat
+    if (data.foto !== undefined) updatePayload.foto = data.foto
+    if (data.aktif !== undefined) updatePayload.aktif = data.aktif
+    updatePayload.updated_at = new Date().toISOString()
+
     const { error } = await supabaseAdmin
       .from('produk')
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(updatePayload)
       .eq('id', produkId)
       .eq('user_id', userId)
     if (error) handleError(error)
@@ -245,7 +341,7 @@ export const produkApi = {
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: (data || []).map(mapProduk) }
   },
 
   getByToko: async (tokoId, params = {}) => {
@@ -268,7 +364,7 @@ export const produkApi = {
 
     const { data, error } = await query
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: (data || []).map(mapProduk) }
   },
 
   getById: async (produkId) => {
@@ -278,7 +374,7 @@ export const produkApi = {
       .eq('id', produkId)
       .single()
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: mapProduk(data) }
   },
 }
 
@@ -311,7 +407,7 @@ export const pesananApi = {
       .single()
 
     if (error) handleError(error)
-    return { success: true, data: pesanan }
+    return { success: true, data: mapPesanan(pesanan) }
   },
 
   getMine: async (token, status = 'all') => {
@@ -329,7 +425,7 @@ export const pesananApi = {
 
     const { data, error } = await query
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: (data || []).map(mapPesanan) }
   },
 
   updateStatus: async (token, pesananId, status, kurir, resi) => {
@@ -355,7 +451,7 @@ export const pesananApi = {
       .eq('buyer_wa', buyerWa)
       .single()
     if (error) handleError(error)
-    return { success: true, data }
+    return { success: true, data: mapPesanan(data) }
   },
 }
 
@@ -571,7 +667,7 @@ export const adminApi = {
 }
 
 // ================================================
-// VERIFY TOKEN HELPER — pakai supabaseAdmin bypass RLS
+// VERIFY TOKEN HELPER
 // ================================================
 
 async function verifyToken(token) {
