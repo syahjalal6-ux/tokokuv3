@@ -189,9 +189,14 @@ export const PESANAN_STATUS = {
   cancelled: { label: 'Dibatalkan', color: 'danger' },
 }
 
-// Cek apakah user adalah pro
+// Cek apakah user adalah pro (toleran format dari Supabase / Google Sheets)
 export function isPro(user) {
-  return user?.plan === 'pro' && user?.planExpiry && new Date(user.planExpiry) > new Date()
+  if (!user || user.plan !== 'pro') return false
+  const expiry = user.planExpiry ?? user.plan_expiry
+  if (!expiry) return false
+  const d = new Date(expiry)
+  if (Number.isNaN(d.getTime())) return false
+  return d > new Date()
 }
 
 // Storefront URL
