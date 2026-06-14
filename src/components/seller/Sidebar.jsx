@@ -51,13 +51,14 @@ export default function Sidebar() {
     localStorage.setItem('theme', theme)
   }, [theme])
 
+  // ✅ FIX: hapus && pro — fetch pesanan untuk semua user
   useEffect(() => {
-    if (token && pro) {
+    if (token) {
       pesananApi.getMine(token, 'pending')
         .then(res => setPendingCount((res.data || []).length))
         .catch(() => {})
     }
-  }, [token, pro])
+  }, [token])
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
@@ -138,8 +139,8 @@ export default function Sidebar() {
 
       {/* Toko info */}
       {toko && (
-        <a
-          href={'/toko/' + toko.slug}
+        
+          href={'/' + toko.slug}
           target="_blank"
           rel="noreferrer"
           style={{
