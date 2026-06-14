@@ -147,7 +147,7 @@ export const ratingApi = {
 export const adminApi = {
   getUsers: (token) => request('adminGetUsers', { token }),
   getStats: (token) => request('adminGetStats', { token }),
-  grantPro: (token, targetUserId, months) => request('adminGrantPro', { token, targetUserId, months }),
-  revokePro: (token, targetUserId) => request('adminRevokePro', { token, targetUserId }),
-  deleteUser: (token, targetUserId) => request('adminDeleteUser', { token, targetUserId }),
+  grantPro: (token, targetUserEmail, months) => request('adminGrantPro', { token, targetUserEmail, months }),
+  revokePro: (token, targetUserEmail) => request('adminRevokePro', { token, targetUserEmail }),
+  deleteUser: (token, targetUserEmail) => request('adminDeleteUser', { token, targetUserEmail }),
 }
