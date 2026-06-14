@@ -26,7 +26,7 @@ export default function AnalyticsPage() {
     authApi.getMe(tokenObj).then(res => {
       if (res?.data) updateUser(res.data)
     }).catch(() => {}).finally(() => setChecking(false))
-  }, [])
+  }, [tokenSupabase, tokenGas])
 
   if (isLoading || checking) return null
 
