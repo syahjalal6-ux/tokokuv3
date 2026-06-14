@@ -48,6 +48,30 @@ async function writeWithNoToken(apiName, method, ...args) {
   throw sb.reason
 }
 
+// Admin: baca dari Sheet (GAS) dulu, fallback Supabase
+async function readWithGasFirst(apiName, method, tokenObj, ...args) {
+  const [tokenSb, tokenGas] = splitToken(tokenObj)
+  if (tokenGas) {
+    try {
+      return await gas[apiName][method](tokenGas, ...args)
+    } catch (e) {
+      console.warn(`[${apiName}.${method}] GAS gagal, fallback supabase:`, e.message)
+    }
+  }
+  return await supabase[apiName][method](tokenSb, ...args)
+}
+
+// Admin: wajib tulis ke Sheet (GAS), Supabase ikut sync kalau ada
+async function writeWithGasRequired(apiName, method, tokenObj, ...args) {
+  const [tokenSb, tokenGas] = splitToken(tokenObj)
+  const [sb, g] = await Promise.allSettled([
+    tokenSb ? supabase[apiName][method](tokenSb, ...args) : Promise.resolve(null),
+    tokenGas ? gas[apiName][method](tokenGas, ...args) : Promise.reject(new Error('Token GAS tidak tersedia — login ulang')),
+  ])
+  if (g.status === 'rejected') throw g.reason
+  return g.value
+}
+
 // ================================================
 // AUTH
 // ================================================
@@ -145,9 +169,9 @@ export const ratingApi = {
 // ADMIN
 // ================================================
 export const adminApi = {
-  getUsers:   (tokenObj) => readWith('adminApi', 'getUsers', tokenObj),
-  getStats:   (tokenObj) => readWith('adminApi', 'getStats', tokenObj),
-  grantPro:   (tokenObj, targetUserId, months, targetUserEmail) => writeWith('adminApi', 'grantPro', tokenObj, targetUserId, months, targetUserEmail),
-  revokePro:  (tokenObj, targetUserId, targetUserEmail) => writeWith('adminApi', 'revokePro', tokenObj, targetUserId, targetUserEmail),
-  deleteUser: (tokenObj, targetUserId, targetUserEmail) => writeWith('adminApi', 'deleteUser', tokenObj, targetUserId, targetUserEmail),
+  getUsers:   (tokenObj) => readWithGasFirst('adminApi', 'getUsers', tokenObj),
+  getStats:   (tokenObj) => readWithGasFirst('adminApi', 'getStats', tokenObj),
+  grantPro:   (tokenObj, targetUserId, months, targetUserEmail) => writeWithGasRequired('adminApi', 'grantPro', tokenObj, targetUserId, months, targetUserEmail),
+  revokePro:  (tokenObj, targetUserId, targetUserEmail) => writeWithGasRequired('adminApi', 'revokePro', tokenObj, targetUserId, targetUserEmail),
+  deleteUser: (tokenObj, targetUserId, targetUserEmail) => writeWithGasRequired('adminApi', 'deleteUser', tokenObj, targetUserId, targetUserEmail),
 }
