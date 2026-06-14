@@ -653,56 +653,41 @@ export const adminApi = {
     }
   },
 
-  grantPro: async (token, targetUserEmail, months) => {
+  grantPro: async (token, targetUserId, months) => {
     await verifyToken(token)
-
     const expiry = new Date()
     expiry.setMonth(expiry.getMonth() + Number(months || 1))
-
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
-      .eq('email', targetUserEmail)
+      .eq('id', targetUserId)
     if (error) handleError(error)
-
     return { success: true, message: `Pro aktif ${months} bulan` }
   },
 
-  revokePro: async (token, targetUserEmail) => {
+  revokePro: async (token, targetUserId) => {
     await verifyToken(token)
-
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
-      .eq('email', targetUserEmail)
+      .eq('id', targetUserId)
     if (error) handleError(error)
-
     return { success: true, message: 'Pro berhasil dicabut' }
   },
 
-  deleteUser: async (token, targetUserEmail) => {
+  deleteUser: async (token, targetUserId) => {
     await verifyToken(token)
-
-    const { data: targetUser } = await supabaseAdmin
-      .from('users').select('id').eq('email', targetUserEmail).single()
-    if (!targetUser) throw new ApiError('User tidak ditemukan', 404)
-    const targetUserId = targetUser.id
-
     const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', targetUserId).single()
     const tokoId = toko?.id || null
-
     await supabaseAdmin.from('tokens').delete().eq('user_id', targetUserId)
     await supabaseAdmin.from('produk').delete().eq('user_id', targetUserId)
-
     if (tokoId) {
       await supabaseAdmin.from('pesanan').delete().eq('toko_id', tokoId)
       await supabaseAdmin.from('toko_info').delete().eq('toko_id', tokoId)
       await supabaseAdmin.from('toko').delete().eq('id', tokoId)
     }
-
     const { error } = await supabaseAdmin.from('users').delete().eq('id', targetUserId)
     if (error) handleError(error)
-
     return { success: true, message: 'User berhasil dihapus' }
   },
 }
