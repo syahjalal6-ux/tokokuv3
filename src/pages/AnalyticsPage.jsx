@@ -8,7 +8,7 @@ import {
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { useAuthStore } from '../lib/store.js'
-import { analyticsApi } from '../lib/api/index.js'
+import { analyticsApi, authApi } from '../lib/api/index.js'
 import { formatRupiah, isPro } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
@@ -18,8 +18,18 @@ const CHAT_STORAGE_KEY = 'exora_ai_chat_history'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
 export default function AnalyticsPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const { user, tokenSupabase, tokenGas, isLoading, updateUser } = useAuthStore()
   const tokenObj = { tokenSupabase, tokenGas }
+  const [checking, setChecking] = useState(true)
+
+  useEffect(() => {
+    authApi.getMe(tokenObj).then(res => {
+      if (res?.data) updateUser(res.data)
+    }).catch(() => {}).finally(() => setChecking(false))
+  }, [])
+
+  if (isLoading || checking) return null
+
   const pro = isPro(user)
   if (!pro) return <AnalyticsGate />
   return <AnalyticsDashboard tokenObj={tokenObj} tokenGas={tokenGas} />
@@ -105,9 +115,9 @@ function AnalyticsDashboard({ tokenObj, tokenGas }) {
         const topRows = [['Produk', 'Qty Terjual'], ...data.topProduk.map(p => [p.nama, p.qty])]
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(topRows), 'Top Produk')
       }
-      if (data.revenueMinggu?.length > 0) {
-        const mingguRows = [['Minggu', 'Revenue'], ...data.revenueMinggu.map(d => [d.label, d.total])]
-        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(mingguRows), 'Revenue Mingguan')
+      if (data.revenueHarian?.length > 0) {
+        const harianRows = [['Tanggal', 'Revenue'], ...data.revenueHarian.map(d => [d.label, d.total])]
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(harianRows), 'Revenue Harian')
       }
       if (data.revenueBulanan?.length > 0) {
         const bulananRows = [['Bulan', 'Revenue'], ...data.revenueBulanan.map(d => [d.label, d.total])]
@@ -204,6 +214,7 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
     totalPesanan = 0, pesananPending = 0, pesananSelesai = 0,
     totalRevenue = 0, topProduk = [],
     revenueHarian = [], revenueBulanan = [],
+    revenueMingguIni = 0, revenueMingguLalu = 0,
   } = data
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
@@ -244,18 +255,26 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
   const totalPeriode = useMemo(() => chartData.reduce((s, d) => s + (d.total || 0), 0), [chartData])
   const rataRata = chartData.length > 0 ? totalPeriode / chartData.length : 0
 
+  // Pakai data dari backend langsung untuk pct change
   const pctChange = useMemo(() => {
-    if (chartData.length < 2) return null
-    const current = chartData[chartData.length - 1].total || 0
-    const previous = chartData[chartData.length - 2].total || 0
-    if (previous === 0) {
-      if (current === 0) return null
-      return 100
+    if (period !== 'minggu') {
+      if (revenueBulanan.length < 2) return null
+      const cur = revenueBulanan[revenueBulanan.length - 1]?.total || 0
+      const prev = revenueBulanan[revenueBulanan.length - 2]?.total || 0
+      if (prev === 0) return cur > 0 ? 100 : null
+      return Math.round(((cur - prev) / prev) * 100)
     }
-    return Math.round(((current - previous) / previous) * 100)
-  }, [chartData])
+    if (revenueMingguLalu === 0) return revenueMingguIni > 0 ? 100 : null
+    return Math.round(((revenueMingguIni - revenueMingguLalu) / revenueMingguLalu) * 100)
+  }, [period, revenueMingguIni, revenueMingguLalu, revenueBulanan])
 
   const pctLabel = period === 'minggu' ? 'vs minggu lalu' : 'vs bulan lalu'
+
+  // Angka utama: minggu pakai revenueMingguIni, bulan pakai bulan ini
+  const revenueUtama = useMemo(() => {
+    if (period === 'minggu') return revenueMingguIni
+    return revenueBulanan.length > 0 ? revenueBulanan[revenueBulanan.length - 1]?.total || 0 : 0
+  }, [period, revenueMingguIni, revenueBulanan])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -294,14 +313,14 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
 
         {/* Kolom 1: Revenue chart */}
         <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 8 }}>
             <div>
               <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                 Revenue
               </p>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
                 <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>
-                  {formatRupiah(totalPeriode)}
+                  {formatRupiah(revenueUtama)}
                 </h3>
                 {pctChange !== null && (
                   <span style={{
@@ -331,6 +350,7 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
             </div>
           </div>
 
+          {/* Summary chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
             <SummaryChip label="Rata-rata" value={formatRupiah(Math.round(rataRata))} />
             <SummaryChip label="Tertinggi" value={formatRupiah(maxRevenue)} color="#fbbf24" />
@@ -364,7 +384,7 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
             )}
           </div>
 
-          {chartData.length > 0 ? (
+          {chartData.length > 0 && maxRevenue > 0 ? (
             <LineChartCustom data={chartData} maxVal={maxRevenue} />
           ) : (
             <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
@@ -433,16 +453,10 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
                     border: `1px solid ${s.border}`,
                     display: 'flex', flexDirection: 'column', gap: 2,
                   }}>
-                    <p style={{
-                      fontSize: '0.65rem', color: 'var(--text-tertiary)',
-                      fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em',
-                    }}>
+                    <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {s.label}
                     </p>
-                    <p style={{
-                      fontFamily: 'var(--font-display)', fontWeight: 800,
-                      fontSize: '1.3rem', color: s.color,
-                    }}>
+                    <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: s.color }}>
                       {value}
                     </p>
                     {totalPesanan > 0 && (
@@ -461,17 +475,14 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
         <AIChatCard tokenGas={tokenGas} data={data} />
 
       </div>
-
     </div>
   )
 }
 
 // ============ AI INSIGHT CARD ============
-// FIX: ambil tokenGas langsung dari store sebagai fallback
-// kalau prop tokenGas null (misal GAS gagal saat login)
 function AIInsightCard({ tokenGas: tokenGasProp, data }) {
   const { tokenGas: tokenGasStore } = useAuthStore()
-  const tokenGas = tokenGasProp || tokenGasStore  // ← FIX
+  const tokenGas = tokenGasProp || tokenGasStore
 
   const [insight, setInsight] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -547,12 +558,7 @@ function AIInsightCard({ tokenGas: tokenGasProp, data }) {
           ))}
         </div>
       ) : insight ? (
-        <div style={{
-          fontSize: '0.83rem',
-          color: 'var(--text-secondary)',
-          lineHeight: 1.75,
-          whiteSpace: 'pre-line',
-        }}>
+        <div style={{ fontSize: '0.83rem', color: 'var(--text-secondary)', lineHeight: 1.75, whiteSpace: 'pre-line' }}>
           {insight}
         </div>
       ) : null}
@@ -561,10 +567,9 @@ function AIInsightCard({ tokenGas: tokenGasProp, data }) {
 }
 
 // ============ AI CHAT CARD ============
-// FIX: ambil tokenGas langsung dari store sebagai fallback
 function AIChatCard({ tokenGas: tokenGasProp, data }) {
   const { tokenGas: tokenGasStore } = useAuthStore()
-  const tokenGas = tokenGasProp || tokenGasStore  // ← FIX
+  const tokenGas = tokenGasProp || tokenGasStore
 
   const [messages, setMessages] = useState(() => {
     try {
@@ -577,44 +582,30 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
-    try {
-      localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages))
-    } catch {}
+    try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages)) } catch {}
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const handleSend = async () => {
     const text = input.trim()
     if (!text || loading) return
-
     if (!tokenGas) {
       setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Sesi tidak valid, silakan login ulang.' }])
       return
     }
-
     const newMessages = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
     setInput('')
     setLoading(true)
-
     try {
       const res = await fetch(CONFIG.GAS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'getAIInsight',
-          token: tokenGas,
-          type: 'chat',
-          messages: newMessages,
-          analyticsData: data,
-        }),
+        body: JSON.stringify({ action: 'getAIInsight', token: tokenGas, type: 'chat', messages: newMessages, analyticsData: data }),
       })
       const json = await res.json()
-      if (json.success) {
-        setMessages(prev => [...prev, { role: 'assistant', content: json.reply }])
-      } else {
-        throw new Error(json.message)
-      }
+      if (json.success) setMessages(prev => [...prev, { role: 'assistant', content: json.reply }])
+      else throw new Error(json.message)
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Gagal: ' + err.message }])
     } finally {
@@ -629,21 +620,14 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
-    }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
   return (
     <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 'var(--radius-md)',
-            background: 'var(--accent-gradient)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-md)', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Bot size={14} color="#fff" />
           </div>
           <div>
@@ -652,120 +636,61 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
           </div>
         </div>
         {messages.length > 0 && (
-          <button
-            onClick={handleClear}
-            className="btn btn-ghost btn-sm"
-            style={{ color: 'var(--danger)', fontSize: '0.72rem', gap: 4, padding: '4px 8px' }}
-          >
-            <Trash2 size={11} />
-            Hapus
+          <button onClick={handleClear} className="btn btn-ghost btn-sm" style={{ color: 'var(--danger)', fontSize: '0.72rem', gap: 4, padding: '4px 8px' }}>
+            <Trash2 size={11} /> Hapus
           </button>
         )}
       </div>
 
-      <div style={{
-        height: 320,
-        overflowY: 'auto',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 12,
-        marginBottom: 16,
-        paddingRight: 2,
-      }}>
+      <div style={{ height: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, paddingRight: 2 }}>
         {messages.length === 0 && (
-          <div style={{
-            textAlign: 'center', padding: '24px 0',
-            color: 'var(--text-tertiary)', fontSize: '0.82rem',
-          }}>
+          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>
             <Bot size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
             <p>Tanya apa saja tentang toko kamu</p>
             <p style={{ fontSize: '0.72rem', marginTop: 4 }}>Misal: "Kenapa revenue saya nol?" atau "Produk mana yang perlu dioptimasi?"</p>
           </div>
         )}
-
         {messages.map((m, i) => (
-          <div key={i} style={{
-            display: 'flex',
-            justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start',
-            gap: 8,
-            alignItems: 'flex-end',
-          }}>
+          <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start', gap: 8, alignItems: 'flex-end' }}>
             {m.role === 'assistant' && (
-              <div style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: 'var(--accent-gradient)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Bot size={12} color="#fff" />
               </div>
             )}
             <div style={{
-              maxWidth: '78%',
-              padding: '10px 14px',
-              borderRadius: m.role === 'user'
-                ? 'var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)'
-                : 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px',
+              maxWidth: '78%', padding: '10px 14px',
+              borderRadius: m.role === 'user' ? 'var(--radius-lg) var(--radius-lg) 4px var(--radius-lg)' : 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px',
               background: m.role === 'user' ? 'var(--accent-gradient)' : 'var(--surface)',
               border: m.role === 'user' ? 'none' : '1px solid var(--glass-border)',
-              fontSize: '0.83rem',
-              lineHeight: 1.65,
+              fontSize: '0.83rem', lineHeight: 1.65,
               color: m.role === 'user' ? '#fff' : 'var(--text-primary)',
               whiteSpace: 'pre-line',
             }}>
               {m.content}
             </div>
             {m.role === 'user' && (
-              <div style={{
-                width: 24, height: 24, borderRadius: '50%',
-                background: 'var(--surface)',
-                border: '1px solid var(--glass-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexShrink: 0,
-              }}>
+              <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <User size={12} color="var(--text-secondary)" />
               </div>
             )}
           </div>
         ))}
-
         {loading && (
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%',
-              background: 'var(--accent-gradient)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
-            }}>
+            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Bot size={12} color="#fff" />
             </div>
-            <div style={{
-              padding: '10px 14px',
-              borderRadius: 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px',
-              background: 'var(--surface)',
-              border: '1px solid var(--glass-border)',
-              display: 'flex', gap: 4, alignItems: 'center',
-            }}>
-              {[0, 1, 2].map(i => (
-                <div key={i} style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: 'var(--text-tertiary)',
-                  animation: 'pulse 1.2s ease-in-out infinite',
-                  animationDelay: `${i * 0.2}s`,
-                }} />
+            <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', gap: 4, alignItems: 'center' }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'pulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
           </div>
         )}
-
         <div ref={bottomRef} />
       </div>
 
-      <div style={{
-        display: 'flex', gap: 8, alignItems: 'flex-end',
-        borderTop: '1px solid var(--glass-border)',
-        paddingTop: 14,
-      }}>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', borderTop: '1px solid var(--glass-border)', paddingTop: 14 }}>
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
@@ -773,19 +698,11 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
           placeholder="Tanya sesuatu tentang toko kamu..."
           rows={1}
           style={{
-            flex: 1,
-            padding: '10px 14px',
-            background: 'var(--surface)',
-            border: '1px solid var(--glass-border)',
-            borderRadius: 'var(--radius-lg)',
-            color: 'var(--text-primary)',
-            fontSize: '0.85rem',
-            resize: 'none',
-            fontFamily: PJS,
-            outline: 'none',
-            lineHeight: 1.5,
-            maxHeight: 120,
-            overflowY: 'auto',
+            flex: 1, padding: '10px 14px',
+            background: 'var(--surface)', border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-lg)', color: 'var(--text-primary)',
+            fontSize: '0.85rem', resize: 'none', fontFamily: PJS,
+            outline: 'none', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto',
           }}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
           onBlur={e => e.target.style.borderColor = 'var(--glass-border)'}
@@ -799,8 +716,7 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
             border: '1px solid var(--glass-border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: input.trim() && !loading ? 'pointer' : 'not-allowed',
-            opacity: input.trim() && !loading ? 1 : 0.5,
-            flexShrink: 0,
+            opacity: input.trim() && !loading ? 1 : 0.5, flexShrink: 0,
             transition: 'all var(--transition-fast)',
           }}
         >
@@ -817,28 +733,11 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
 // ============ SUMMARY CHIP ============
 function SummaryChip({ label, value, color }) {
   return (
-    <div style={{
-      padding: '10px 12px',
-      borderRadius: 'var(--radius-lg)',
-      background: 'var(--surface)',
-      border: '1px solid var(--glass-border)',
-      display: 'flex', flexDirection: 'column', gap: 4,
-      minWidth: 0,
-    }}>
-      <p style={{
-        fontSize: '0.62rem', color: 'var(--text-tertiary)',
-        fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-      }}>
+    <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
+      <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
         {label}
       </p>
-      <p style={{
-        fontFamily: 'var(--font-display)', fontWeight: 800,
-        fontSize: value.length > 11 ? '0.78rem' : '0.92rem',
-        color: color || 'var(--text-primary)',
-        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        lineHeight: 1.3,
-      }}>
+      <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: String(value).length > 11 ? '0.78rem' : '0.92rem', color: color || 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.3 }}>
         {value}
       </p>
     </div>
@@ -847,14 +746,8 @@ function SummaryChip({ label, value, color }) {
 
 function shortRupiah(value) {
   if (!value || value <= 0) return 'Rp 0'
-  if (value >= 1000000) {
-    const v = value / 1000000
-    return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}jt`
-  }
-  if (value >= 1000) {
-    const v = value / 1000
-    return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}k`
-  }
+  if (value >= 1000000) { const v = value / 1000000; return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}jt` }
+  if (value >= 1000) { const v = value / 1000; return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}k` }
   return `Rp ${Math.round(value)}`
 }
 
@@ -882,35 +775,25 @@ function LineChartCustom({ data, maxVal }) {
 
   if (!data || data.length === 0) return null
 
-  const W = 640
-  const H = 220
-  const padLeft = 46
-  const padRight = 8
-  const padTop = 14
-  const padBottom = 26
+  const W = 640, H = 220
+  const padLeft = 46, padRight = 8, padTop = 14, padBottom = 26
   const innerW = W - padLeft - padRight
   const innerH = H - padTop - padBottom
-
   const yMax = maxVal > 0 ? maxVal * 1.15 : 1
   const n = data.length
 
-  const points = data.map((d, i) => {
-    const x = n > 1 ? padLeft + (innerW * i) / (n - 1) : padLeft + innerW / 2
-    const total = Math.max(d.total || 0, 0)
-    const y = padTop + innerH - (total / yMax) * innerH
-    return { x, y, label: d.label, total }
-  })
+  const points = data.map((d, i) => ({
+    x: n > 1 ? padLeft + (innerW * i) / (n - 1) : padLeft + innerW / 2,
+    y: padTop + innerH - (Math.max(d.total || 0, 0) / yMax) * innerH,
+    label: d.label,
+    total: d.total || 0,
+  }))
 
   const linePath = buildSmoothPath(points)
   const last = points[points.length - 1]
   const first = points[0]
   const areaPath = `${linePath} L ${last.x} ${padTop + innerH} L ${first.x} ${padTop + innerH} Z`
-
-  const gridLines = [0, 1 / 3, 2 / 3, 1].map(f => ({
-    y: padTop + innerH - f * innerH,
-    value: yMax * f,
-  }))
-
+  const gridLines = [0, 1/3, 2/3, 1].map(f => ({ y: padTop + innerH - f * innerH, value: yMax * f }))
   const selectedItem = selected !== null ? data[selected] : null
   const isHighestSelected = selectedItem && maxVal > 0 && (selectedItem.total || 0) === maxVal && (selectedItem.total || 0) > 0
 
@@ -923,92 +806,42 @@ function LineChartCustom({ data, maxVal }) {
             <stop offset="100%" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
           </linearGradient>
         </defs>
-
         {gridLines.map((g, i) => (
           <g key={i}>
-            <line
-              x1={padLeft} x2={W - padRight} y1={g.y} y2={g.y}
-              stroke="var(--glass-border)" strokeWidth="1"
-              strokeDasharray={i === 0 ? '0' : '3 4'}
-            />
-            <text x={padLeft - 8} y={g.y + 3} textAnchor="end" fontSize="9" fill="var(--text-tertiary)">
-              {shortRupiah(g.value)}
-            </text>
+            <line x1={padLeft} x2={W - padRight} y1={g.y} y2={g.y} stroke="var(--glass-border)" strokeWidth="1" strokeDasharray={i === 0 ? '0' : '3 4'} />
+            <text x={padLeft - 8} y={g.y + 3} textAnchor="end" fontSize="9" fill="var(--text-tertiary)">{shortRupiah(g.value)}</text>
           </g>
         ))}
-
         <path d={areaPath} fill="url(#revenueAreaGrad)" stroke="none" />
         <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-
         {points.map((p, i) => {
           const isHighest = maxVal > 0 && p.total === maxVal && p.total > 0
           const isActive = selected === i
           return (
             <g key={i} style={{ cursor: 'pointer' }} onClick={() => setSelected(prev => prev === i ? null : i)}>
               <circle cx={p.x} cy={p.y} r={14} fill="transparent" />
-              {isHighest && (
-                <circle cx={p.x} cy={p.y} r={9} fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.5" />
-              )}
-              <circle
-                cx={p.x} cy={p.y}
-                r={isHighest ? 5 : isActive ? 5 : 3.5}
-                fill={isHighest ? '#fbbf24' : 'var(--accent)'}
-                stroke={isActive && !isHighest ? 'rgba(167,139,250,0.6)' : 'var(--surface)'}
-                strokeWidth={isActive ? 3 : 1.5}
-              />
+              {isHighest && <circle cx={p.x} cy={p.y} r={9} fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.5" />}
+              <circle cx={p.x} cy={p.y} r={isHighest ? 5 : isActive ? 5 : 3.5} fill={isHighest ? '#fbbf24' : 'var(--accent)'} stroke={isActive && !isHighest ? 'rgba(167,139,250,0.6)' : 'var(--surface)'} strokeWidth={isActive ? 3 : 1.5} />
             </g>
           )
         })}
-
         {points.map((p, i) => (
-          <text
-            key={i} x={p.x} y={H - 6} textAnchor="middle" fontSize="9"
-            fill={selected === i ? 'var(--text-primary)' : 'var(--text-tertiary)'}
-            fontWeight={selected === i ? 700 : 400}
-          >
+          <text key={i} x={p.x} y={H - 6} textAnchor="middle" fontSize="9" fill={selected === i ? 'var(--text-primary)' : 'var(--text-tertiary)'} fontWeight={selected === i ? 700 : 400}>
             {p.label}
           </text>
         ))}
       </svg>
-
-      <div style={{
-        overflow: 'hidden',
-        maxHeight: selectedItem ? 70 : 0,
-        opacity: selectedItem ? 1 : 0,
-        transition: 'max-height 0.25s ease, opacity 0.2s ease',
-      }}>
+      <div style={{ overflow: 'hidden', maxHeight: selectedItem ? 70 : 0, opacity: selectedItem ? 1 : 0, transition: 'max-height 0.25s ease, opacity 0.2s ease' }}>
         {selectedItem && (
-          <div style={{
-            padding: '10px 16px',
-            background: 'linear-gradient(135deg, rgba(30,32,48,0.95) 0%, rgba(20,22,36,0.95) 100%)',
-            border: '1px solid rgba(167,139,250,0.25)',
-            borderRadius: 'var(--radius-lg)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-          }}>
+          <div style={{ padding: '10px 16px', background: 'linear-gradient(135deg, rgba(30,32,48,0.95) 0%, rgba(20,22,36,0.95) 100%)', border: '1px solid rgba(167,139,250,0.25)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {selectedItem.label}
-              </p>
-              <p style={{
-                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem',
-                color: isHighestSelected ? '#fbbf24' : '#fff',
-              }}>
-                {formatRupiah(selectedItem.total || 0)}
-              </p>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{selectedItem.label}</p>
+              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem', color: isHighestSelected ? '#fbbf24' : '#fff' }}>{formatRupiah(selectedItem.total || 0)}</p>
             </div>
             {isHighestSelected ? (
-              <div style={{
-                fontSize: '0.62rem', fontWeight: 700, color: '#fbbf24',
-                background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)',
-                borderRadius: 'var(--radius-full)', padding: '3px 8px',
-                letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
-              }}>
-                Tertinggi
-              </div>
+              <div style={{ fontSize: '0.62rem', fontWeight: 700, color: '#fbbf24', background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--radius-full)', padding: '3px 8px', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Tertinggi</div>
             ) : maxVal > 0 && (selectedItem.total || 0) > 0 ? (
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                {Math.round((selectedItem.total / maxVal) * 100)}% dari tertinggi
-              </p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>{Math.round((selectedItem.total / maxVal) * 100)}% dari tertinggi</p>
             ) : null}
           </div>
         )}
