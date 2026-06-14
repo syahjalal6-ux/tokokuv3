@@ -5,7 +5,13 @@ const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
 
 const supabaseAdmin = createClient(
   CONFIG.SUPABASE_URL,
-  CONFIG.SUPABASE_SERVICE_ROLE_KEY
+  CONFIG.SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    }
+  }
 )
 
 // ================================================
