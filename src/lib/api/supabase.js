@@ -1,7 +1,3 @@
-// ================================================
-// Supabase API Provider
-// ================================================
-
 import { createClient } from '@supabase/supabase-js'
 import { CONFIG } from '../config.js'
 
@@ -93,6 +89,7 @@ function mapPesanan(p) {
   return {
     id: p.id,
     tokoId: p.toko_id,
+    tokoSlug: p.toko?.slug || null,
     produkId: p.produk_id,
     produkNama: p.produk_nama,
     harga: p.harga,
@@ -422,7 +419,7 @@ export const pesananApi = {
 
   getMine: async (token, status = 'all') => {
     const userId = await verifyToken(token)
-    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    const { data: toko } = await supabaseAdmin.from('toko').select('id, slug').eq('user_id', userId).single()
     if (!toko) return { success: true, data: [] }
 
     let query = supabaseAdmin
@@ -435,7 +432,12 @@ export const pesananApi = {
 
     const { data, error } = await query
     if (error) handleError(error)
-    return { success: true, data: (data || []).map(mapPesanan) }
+
+    // inject tokoSlug ke setiap pesanan
+    return {
+      success: true,
+      data: (data || []).map(p => mapPesanan({ ...p, toko: { slug: toko.slug } }))
+    }
   },
 
   updateStatus: async (token, pesananId, status, kurir, resi) => {
