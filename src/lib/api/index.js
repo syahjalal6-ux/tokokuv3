@@ -8,6 +8,30 @@ function splitToken(tokenObj) {
   return [tokenObj, tokenObj]
 }
 
+function isProActive(user) {
+  if (!user || user.plan !== 'pro') return false
+  const expiry = user.planExpiry ?? user.plan_expiry
+  if (!expiry) return false
+  const d = new Date(expiry)
+  return !Number.isNaN(d.getTime()) && d > new Date()
+}
+
+// Gabung profil Supabase + GAS — plan Pro dari mana pun yang aktif menang
+function mergeUsers(sbUser, gasUser) {
+  if (!sbUser && !gasUser) return null
+  const merged = { ...(gasUser || {}), ...(sbUser || {}) }
+
+  if (isProActive(gasUser)) {
+    merged.plan = 'pro'
+    merged.planExpiry = gasUser.planExpiry ?? gasUser.plan_expiry
+  } else if (isProActive(sbUser)) {
+    merged.plan = 'pro'
+    merged.planExpiry = sbUser.planExpiry ?? sbUser.plan_expiry
+  }
+
+  return merged
+}
+
 async function readWith(apiName, method, tokenObj, ...args) {
   const [tokenSb, tokenGas] = splitToken(tokenObj)
   try {
@@ -89,7 +113,9 @@ export const authApi = {
       throw new Error(sb.reason?.message || g.reason?.message || 'Login gagal di kedua provider')
     }
 
-    const user = sbOk ? sb.value.data.user : g.value.data.user
+    const sbUser = sbOk ? sb.value.data.user : null
+    const gasUser = gOk ? g.value.data.user : null
+    const user = mergeUsers(sbUser, gasUser)
 
     return {
       success: true,
@@ -101,7 +127,18 @@ export const authApi = {
     }
   },
 
-  getMe: (tokenObj) => readWith('authApi', 'getMe', tokenObj),
+  getMe: async (tokenObj) => {
+    const [tokenSb, tokenGas] = splitToken(tokenObj)
+    const [sb, g] = await Promise.allSettled([
+      tokenSb ? supabase.authApi.getMe(tokenSb) : Promise.reject(new Error('no sb token')),
+      tokenGas ? gas.authApi.getMe(tokenGas) : Promise.reject(new Error('no gas token')),
+    ])
+    const sbUser = sb.status === 'fulfilled' ? sb.value.data : null
+    const gasUser = g.status === 'fulfilled' ? g.value.data : null
+    const user = mergeUsers(sbUser, gasUser)
+    if (!user) throw sb.reason || g.reason
+    return { success: true, data: user }
+  },
   logout: (tokenObj) => writeWith('authApi', 'logout', tokenObj),
 }
 
