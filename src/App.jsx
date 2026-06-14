@@ -15,6 +15,7 @@ import StorefrontPage from './pages/StorefrontPage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import AnalyticsPage from './pages/AnalyticsPage.jsx'
+import RedirectResi from './pages/RedirectResi.jsx'
 
 const ExoraIcon = () => (
   <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -97,6 +98,9 @@ export default function App() {
         {/* Public */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+
+        {/* Redirect resi → toko */}
+        <Route path="/r/:resi" element={<RedirectResi />} />
 
         {/* Storefront publik */}
         <Route path="/:slug" element={<StorefrontPage />} />
