@@ -51,7 +51,7 @@ function generatePesananWAMessage(p, tokoSlug) {
 }
 
 function generateShippingWAMessage(p, kurir, resi, tokoSlug) {
-  const trackUrl = CONFIG.APP_URL + '/toko/' + tokoSlug + '?resi=' + resi
+  const trackUrl = CONFIG.APP_URL + '/r/' + resi
   const lines = [
     'Halo ' + p.buyerNama + ', pesanan kamu sudah kami kirim! 🚚',
     '',
