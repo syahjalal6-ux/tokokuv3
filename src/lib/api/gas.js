@@ -126,7 +126,6 @@ export const pesananApi = {
   getMine: (token, status = 'all') => request('getMyPesanan', { token, status }),
   updateStatus: (token, pesananId, status, kurir, resi) => request('updatePesananStatus', { token, pesananId, status, kurir, resi }),
   getById: (pesananId, buyerWa) => request('getPesananById', { pesananId, buyerWa }),
-  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
   getSlugByResi: (resi) => request('getSlugByResi', { resi }),
 }
 
@@ -145,9 +144,9 @@ export const ratingApi = {
 }
 
 export const adminApi = {
-  getUsers: (token) => request('adminGetUsers', { token }),
-  getStats: (token) => request('adminGetStats', { token }),
-  grantPro: (token, targetUserEmail, months) => request('adminGrantPro', { token, targetUserEmail, months }),
-  revokePro: (token, targetUserEmail) => request('adminRevokePro', { token, targetUserEmail }),
-  deleteUser: (token, targetUserEmail) => request('adminDeleteUser', { token, targetUserEmail }),
+  getUsers:   (token) => request('adminGetUsers', { token }),
+  getStats:   (token) => request('adminGetStats', { token }),
+  grantPro:   (token, targetUserId, months, targetUserEmail) => request('adminGrantPro', { token, targetUserEmail, months }),
+  revokePro:  (token, targetUserId, targetUserEmail) => request('adminRevokePro', { token, targetUserEmail }),
+  deleteUser: (token, targetUserId, targetUserEmail) => request('adminDeleteUser', { token, targetUserEmail }),
 }
