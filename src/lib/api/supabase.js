@@ -471,7 +471,6 @@ export const pesananApi = {
     return { success: true, data: mapPesanan(data) }
   },
 
-  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
   getSlugByResi: async (resi) => {
     const { data, error } = await supabase
       .from('pesanan')
@@ -654,7 +653,7 @@ export const adminApi = {
     }
   },
 
-  grantPro: async (token, targetUserId, months) => {
+  grantPro: async (token, targetUserEmail, months) => {
     await verifyToken(token)
 
     const expiry = new Date()
@@ -663,26 +662,31 @@ export const adminApi = {
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
-      .eq('id', targetUserId)
+      .eq('email', targetUserEmail)
     if (error) handleError(error)
 
     return { success: true, message: `Pro aktif ${months} bulan` }
   },
 
-  revokePro: async (token, targetUserId) => {
+  revokePro: async (token, targetUserEmail) => {
     await verifyToken(token)
 
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
-      .eq('id', targetUserId)
+      .eq('email', targetUserEmail)
     if (error) handleError(error)
 
     return { success: true, message: 'Pro berhasil dicabut' }
   },
 
-  deleteUser: async (token, targetUserId) => {
+  deleteUser: async (token, targetUserEmail) => {
     await verifyToken(token)
+
+    const { data: targetUser } = await supabaseAdmin
+      .from('users').select('id').eq('email', targetUserEmail).single()
+    if (!targetUser) throw new ApiError('User tidak ditemukan', 404)
+    const targetUserId = targetUser.id
 
     const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', targetUserId).single()
     const tokoId = toko?.id || null
