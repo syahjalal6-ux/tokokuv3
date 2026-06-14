@@ -241,11 +241,9 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
   const canGoForward = offset > 0
   const periodLabel = period === 'minggu' ? `${WINDOW} minggu terakhir` : `${WINDOW} bulan terakhir`
 
-  // Total & rata-rata revenue untuk periode yang sedang ditampilkan
   const totalPeriode = useMemo(() => chartData.reduce((s, d) => s + (d.total || 0), 0), [chartData])
   const rataRata = chartData.length > 0 ? totalPeriode / chartData.length : 0
 
-  // Persentase perubahan dibanding periode sebelumnya (data terakhir vs sebelumnya)
   const pctChange = useMemo(() => {
     if (chartData.length < 2) return null
     const current = chartData[chartData.length - 1].total || 0
@@ -273,7 +271,6 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
         <KpiCard label="Produk Aktif" value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" />
       </div>
 
-      {/* Desktop: 3 kolom | Mobile: single column */}
       <style>{`
         .analytics-3col {
           display: grid;
@@ -297,8 +294,6 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
 
         {/* Kolom 1: Revenue chart */}
         <div className="glass-card" style={{ padding: '20px' }}>
-
-          {/* Header: total revenue + perubahan + toggle */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             <div>
               <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
@@ -336,14 +331,12 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
             </div>
           </div>
 
-          {/* Summary chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
             <SummaryChip label="Rata-rata" value={formatRupiah(Math.round(rataRata))} />
             <SummaryChip label="Tertinggi" value={formatRupiah(maxRevenue)} color="#fbbf24" />
             <SummaryChip label="Transaksi" value={`${totalPesanan} pesanan`} />
           </div>
 
-          {/* Periode label + navigasi */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{periodLabel}</span>
             {totalItems > WINDOW && (
@@ -474,7 +467,12 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
 }
 
 // ============ AI INSIGHT CARD ============
-function AIInsightCard({ tokenGas, data }) {
+// FIX: ambil tokenGas langsung dari store sebagai fallback
+// kalau prop tokenGas null (misal GAS gagal saat login)
+function AIInsightCard({ tokenGas: tokenGasProp, data }) {
+  const { tokenGas: tokenGasStore } = useAuthStore()
+  const tokenGas = tokenGasProp || tokenGasStore  // ← FIX
+
   const [insight, setInsight] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -483,6 +481,10 @@ function AIInsightCard({ tokenGas, data }) {
   }, [data])
 
   const generateInsight = async () => {
+    if (!tokenGas) {
+      setInsight('Gagal memuat insight: Sesi tidak valid, silakan login ulang.')
+      return
+    }
     setLoading(true)
     setInsight(null)
     try {
@@ -559,7 +561,11 @@ function AIInsightCard({ tokenGas, data }) {
 }
 
 // ============ AI CHAT CARD ============
-function AIChatCard({ tokenGas, data }) {
+// FIX: ambil tokenGas langsung dari store sebagai fallback
+function AIChatCard({ tokenGas: tokenGasProp, data }) {
+  const { tokenGas: tokenGasStore } = useAuthStore()
+  const tokenGas = tokenGasProp || tokenGasStore  // ← FIX
+
   const [messages, setMessages] = useState(() => {
     try {
       const saved = localStorage.getItem(CHAT_STORAGE_KEY)
@@ -580,6 +586,11 @@ function AIChatCard({ tokenGas, data }) {
   const handleSend = async () => {
     const text = input.trim()
     if (!text || loading) return
+
+    if (!tokenGas) {
+      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Sesi tidak valid, silakan login ulang.' }])
+      return
+    }
 
     const newMessages = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
@@ -834,9 +845,6 @@ function SummaryChip({ label, value, color }) {
   )
 }
 
-// ============ HELPERS UNTUK LINE CHART ============
-
-// Format angka rupiah singkat untuk label sumbu Y (mis. 175000 -> "Rp 175k")
 function shortRupiah(value) {
   if (!value || value <= 0) return 'Rp 0'
   if (value >= 1000000) {
@@ -850,7 +858,6 @@ function shortRupiah(value) {
   return `Rp ${Math.round(value)}`
 }
 
-// Membuat path SVG melengkung (smooth) dari sekumpulan titik menggunakan Catmull-Rom -> Bezier
 function buildSmoothPath(points) {
   if (!points || points.length === 0) return ''
   if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
@@ -869,7 +876,6 @@ function buildSmoothPath(points) {
   return path
 }
 
-// ============ LINE / AREA CHART ============
 function LineChartCustom({ data, maxVal }) {
   const [selected, setSelected] = useState(null)
   useEffect(() => { setSelected(null) }, [data])
@@ -918,7 +924,6 @@ function LineChartCustom({ data, maxVal }) {
           </linearGradient>
         </defs>
 
-        {/* Grid lines + label sumbu Y */}
         {gridLines.map((g, i) => (
           <g key={i}>
             <line
@@ -932,17 +937,14 @@ function LineChartCustom({ data, maxVal }) {
           </g>
         ))}
 
-        {/* Area + garis */}
         <path d={areaPath} fill="url(#revenueAreaGrad)" stroke="none" />
         <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
 
-        {/* Titik data (interaktif) */}
         {points.map((p, i) => {
           const isHighest = maxVal > 0 && p.total === maxVal && p.total > 0
           const isActive = selected === i
           return (
             <g key={i} style={{ cursor: 'pointer' }} onClick={() => setSelected(prev => prev === i ? null : i)}>
-              {/* area klik lebih besar dari titik visualnya */}
               <circle cx={p.x} cy={p.y} r={14} fill="transparent" />
               {isHighest && (
                 <circle cx={p.x} cy={p.y} r={9} fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.5" />
@@ -958,7 +960,6 @@ function LineChartCustom({ data, maxVal }) {
           )
         })}
 
-        {/* Label sumbu X */}
         {points.map((p, i) => (
           <text
             key={i} x={p.x} y={H - 6} textAnchor="middle" fontSize="9"
@@ -970,7 +971,6 @@ function LineChartCustom({ data, maxVal }) {
         ))}
       </svg>
 
-      {/* Tooltip detail titik terpilih */}
       <div style={{
         overflow: 'hidden',
         maxHeight: selectedItem ? 70 : 0,
