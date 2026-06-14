@@ -139,7 +139,7 @@ export default function Sidebar() {
 
       {/* Toko info */}
       {toko && (
-        
+        <a
           href={'/' + toko.slug}
           target="_blank"
           rel="noreferrer"
