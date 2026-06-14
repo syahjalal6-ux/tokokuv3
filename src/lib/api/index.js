@@ -91,7 +91,37 @@ export const authApi = {
     }
   },
 
-  getMe: (tokenObj) => readWith('authApi', 'getMe', tokenObj),
+  // FIX: merge data dari Supabase & GAS
+  // GAS jadi sumber kebenaran untuk field plan & planExpiry
+  getMe: async (tokenObj) => {
+    const [tokenSb, tokenGas] = splitToken(tokenObj)
+    const [sb, g] = await Promise.allSettled([
+      supabase.authApi.getMe(tokenSb),
+      gas.authApi.getMe(tokenGas),
+    ])
+
+    const sbOk = sb.status === 'fulfilled'
+    const gOk = g.status === 'fulfilled'
+
+    if (!sbOk && !gOk) {
+      throw new Error(sb.reason?.message || g.reason?.message || 'Gagal verifikasi sesi')
+    }
+
+    const sbUser = sbOk ? (sb.value.data || {}) : {}
+    const gasUser = gOk ? (g.value.data || {}) : {}
+
+    // Merge: Supabase sebagai base, GAS override plan & planExpiry
+    // supaya status Pro dari GAS selalu dipakai
+    const merged = {
+      ...sbUser,
+      ...gasUser,
+      // Kalau salah satu punya data lebih lengkap, ambil yang ada
+      plan: gasUser.plan || sbUser.plan || 'free',
+      planExpiry: gasUser.planExpiry || sbUser.planExpiry || null,
+    }
+
+    return { success: true, data: merged }
+  },
 
   logout: (tokenObj) => writeWith('authApi', 'logout', tokenObj),
 }
@@ -130,15 +160,26 @@ export const pesananApi = {
   getMine:        (tokenObj, ...args) => readWith('pesananApi', 'getMine', tokenObj, ...args),
   updateStatus:   (tokenObj, ...args) => writeWith('pesananApi', 'updateStatus', tokenObj, ...args),
   getById:        (...args) => readWithNoToken('pesananApi', 'getById', ...args),
-  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
   getSlugByResi:  (...args) => readWithNoToken('pesananApi', 'getSlugByResi', ...args),
 }
 
 // ================================================
 // ANALYTICS
+// FIX: bypass Supabase, langsung ke GAS
+// karena Supabase analyticsApi tidak return data lengkap
+// (tidak ada revenueHarian, revenueBulanan, topProduk, dll)
+// dan tidak ada cek Pro
 // ================================================
 export const analyticsApi = {
-  getDashboard: (tokenObj) => readWith('analyticsApi', 'getDashboard', tokenObj),
+  getDashboard: (tokenObj) => {
+    const [, tokenGas] = splitToken(tokenObj)
+    if (!tokenGas) {
+      // Fallback ke Supabase kalau tokenGas null (edge case)
+      const [tokenSb] = splitToken(tokenObj)
+      return supabase.analyticsApi.getDashboard(tokenSb)
+    }
+    return gas.analyticsApi.getDashboard(tokenGas)
+  },
 }
 
 // ================================================
