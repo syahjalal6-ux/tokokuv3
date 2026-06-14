@@ -110,6 +110,17 @@ function mapPesanan(p) {
   }
 }
 
+function mapTokoInfo(d) {
+  if (!d) return null
+  return {
+    tokoId: d.toko_id,
+    faq: d.faq || '',
+    garansi: d.garansi || '',
+    policy: d.policy || '',
+    infoLain: d.info_lain || '',
+  }
+}
+
 // ================================================
 // AUTH
 // ================================================
@@ -300,7 +311,6 @@ export const produkApi = {
   update: async (token, produkId, data) => {
     const userId = await verifyToken(token)
 
-    // Map camelCase → snake_case untuk update
     const updatePayload = {}
     if (data.nama !== undefined) updatePayload.nama = data.nama
     if (data.deskripsi !== undefined) updatePayload.deskripsi = data.deskripsi
@@ -502,7 +512,10 @@ export const tokoInfoApi = {
       .single()
 
     if (error && error.code !== 'PGRST116') handleError(error)
-    return { success: true, data: data || { toko_id: toko.id, faq: '', garansi: '', policy: '', info_lain: '' } }
+    return {
+      success: true,
+      data: mapTokoInfo(data) || { tokoId: toko.id, faq: '', garansi: '', policy: '', infoLain: '' }
+    }
   },
 
   update: async (token, data) => {
@@ -512,7 +525,13 @@ export const tokoInfoApi = {
 
     const { error } = await supabaseAdmin
       .from('toko_info')
-      .upsert({ toko_id: toko.id, ...data }, { onConflict: 'toko_id' })
+      .upsert({
+        toko_id: toko.id,
+        faq: data.faq || '',
+        garansi: data.garansi || '',
+        policy: data.policy || '',
+        info_lain: data.infoLain || '',
+      }, { onConflict: 'toko_id' })
 
     if (error) handleError(error)
     return { success: true }
