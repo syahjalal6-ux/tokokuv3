@@ -126,6 +126,8 @@ export const pesananApi = {
   getMine: (token, status = 'all') => request('getMyPesanan', { token, status }),
   updateStatus: (token, pesananId, status, kurir, resi) => request('updatePesananStatus', { token, pesananId, status, kurir, resi }),
   getById: (pesananId, buyerWa) => request('getPesananById', { pesananId, buyerWa }),
+  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
+  getSlugByResi: (resi) => request('getSlugByResi', { resi }),
 }
 
 export const analyticsApi = {
