@@ -433,7 +433,6 @@ export const pesananApi = {
     const { data, error } = await query
     if (error) handleError(error)
 
-    // inject tokoSlug ke setiap pesanan
     return {
       success: true,
       data: (data || []).map(p => mapPesanan({ ...p, toko: { slug: toko.slug } }))
@@ -464,6 +463,17 @@ export const pesananApi = {
       .single()
     if (error) handleError(error)
     return { success: true, data: mapPesanan(data) }
+  },
+
+  // ← TAMBAHAN: untuk redirect /r/:resi → /toko/:slug
+  getSlugByResi: async (resi) => {
+    const { data, error } = await supabase
+      .from('pesanan')
+      .select('resi, toko:toko_id(slug)')
+      .eq('resi', resi)
+      .single()
+    if (error) handleError(error)
+    return { success: true, data: { slug: data.toko?.slug || null } }
   },
 }
 
