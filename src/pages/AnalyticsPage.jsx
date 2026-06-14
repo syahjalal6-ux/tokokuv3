@@ -237,10 +237,27 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
   }, [rawChartData, offset, WINDOW, totalItems])
 
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.total || 0)) : 0
-  const maxRevenueAll = rawChartData.length > 0 ? Math.max(...rawChartData.map(d => d.total || 0)) : 0
   const canGoBack = offset < maxOffset
   const canGoForward = offset > 0
   const periodLabel = period === 'minggu' ? `${WINDOW} minggu terakhir` : `${WINDOW} bulan terakhir`
+
+  // Total & rata-rata revenue untuk periode yang sedang ditampilkan
+  const totalPeriode = useMemo(() => chartData.reduce((s, d) => s + (d.total || 0), 0), [chartData])
+  const rataRata = chartData.length > 0 ? totalPeriode / chartData.length : 0
+
+  // Persentase perubahan dibanding periode sebelumnya (data terakhir vs sebelumnya)
+  const pctChange = useMemo(() => {
+    if (chartData.length < 2) return null
+    const current = chartData[chartData.length - 1].total || 0
+    const previous = chartData[chartData.length - 2].total || 0
+    if (previous === 0) {
+      if (current === 0) return null
+      return 100
+    }
+    return Math.round(((current - previous) / previous) * 100)
+  }, [chartData])
+
+  const pctLabel = period === 'minggu' ? 'vs minggu lalu' : 'vs bulan lalu'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -280,10 +297,30 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
 
         {/* Kolom 1: Revenue chart */}
         <div className="glass-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+
+          {/* Header: total revenue + perubahan + toggle */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
             <div>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>Revenue</h3>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{periodLabel}</p>
+              <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                Revenue
+              </p>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>
+                  {formatRupiah(totalPeriode)}
+                </h3>
+                {pctChange !== null && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    fontSize: '0.75rem', fontWeight: 700,
+                    color: pctChange >= 0 ? 'var(--success)' : 'var(--danger)',
+                  }}>
+                    {pctChange >= 0 ? '▲' : '▼'} {Math.abs(pctChange)}%
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', marginTop: 2 }}>
+                {pctChange !== null ? `${pctLabel} · dari pesanan selesai` : 'dari pesanan selesai'}
+              </p>
             </div>
             <div style={{ display: 'flex', gap: 4 }}>
               {[{ key: 'minggu', label: 'Mingguan' }, { key: 'bulan', label: 'Bulanan' }].map(p => (
@@ -299,34 +336,45 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
             </div>
           </div>
 
-          {totalItems > WINDOW && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
-              <button onClick={() => setOffset(o => Math.min(o + 1, maxOffset))} disabled={!canGoBack} style={{
-                width: 26, height: 26, borderRadius: 'var(--radius-md)',
-                background: 'var(--surface)', border: '1px solid var(--glass-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.3, color: 'var(--text-secondary)',
-              }}>
-                <ChevronLeft size={13} />
-              </button>
-              <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-                {chartData[0]?.label} – {chartData[chartData.length - 1]?.label}
-              </span>
-              <button onClick={() => setOffset(o => Math.max(o - 1, 0))} disabled={!canGoForward} style={{
-                width: 26, height: 26, borderRadius: 'var(--radius-md)',
-                background: 'var(--surface)', border: '1px solid var(--glass-border)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.3, color: 'var(--text-secondary)',
-              }}>
-                <ChevronRight size={13} />
-              </button>
-            </div>
-          )}
+          {/* Summary chips */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
+            <SummaryChip label="Rata-rata" value={formatRupiah(Math.round(rataRata))} />
+            <SummaryChip label="Tertinggi" value={formatRupiah(maxRevenue)} color="#fbbf24" />
+            <SummaryChip label="Transaksi" value={`${totalPesanan} pesanan`} />
+          </div>
+
+          {/* Periode label + navigasi */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{periodLabel}</span>
+            {totalItems > WINDOW && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => setOffset(o => Math.min(o + 1, maxOffset))} disabled={!canGoBack} style={{
+                  width: 26, height: 26, borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.3, color: 'var(--text-secondary)',
+                }}>
+                  <ChevronLeft size={13} />
+                </button>
+                <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
+                  {chartData[0]?.label} – {chartData[chartData.length - 1]?.label}
+                </span>
+                <button onClick={() => setOffset(o => Math.max(o - 1, 0))} disabled={!canGoForward} style={{
+                  width: 26, height: 26, borderRadius: 'var(--radius-md)',
+                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.3, color: 'var(--text-secondary)',
+                }}>
+                  <ChevronRight size={13} />
+                </button>
+              </div>
+            )}
+          </div>
 
           {chartData.length > 0 ? (
-            <BarChartCustom data={chartData} maxVal={maxRevenue} globalMax={maxRevenueAll} />
+            <LineChartCustom data={chartData} maxVal={maxRevenue} />
           ) : (
-            <div style={{ height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
+            <div style={{ height: 180, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
               <BarChart2 size={32} style={{ opacity: 0.3 }} />
               <p style={{ fontSize: '0.82rem' }}>Belum ada data revenue</p>
             </div>
@@ -755,170 +803,215 @@ function AIChatCard({ tokenGas, data }) {
   )
 }
 
-function BarChartCustom({ data, maxVal, globalMax }) {
+// ============ SUMMARY CHIP ============
+function SummaryChip({ label, value, color }) {
+  return (
+    <div style={{
+      padding: '10px 12px',
+      borderRadius: 'var(--radius-lg)',
+      background: 'var(--surface)',
+      border: '1px solid var(--glass-border)',
+      display: 'flex', flexDirection: 'column', gap: 4,
+      minWidth: 0,
+    }}>
+      <p style={{
+        fontSize: '0.62rem', color: 'var(--text-tertiary)',
+        fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>
+        {label}
+      </p>
+      <p style={{
+        fontFamily: 'var(--font-display)', fontWeight: 800,
+        fontSize: value.length > 11 ? '0.78rem' : '0.92rem',
+        color: color || 'var(--text-primary)',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        lineHeight: 1.3,
+      }}>
+        {value}
+      </p>
+    </div>
+  )
+}
+
+// ============ HELPERS UNTUK LINE CHART ============
+
+// Format angka rupiah singkat untuk label sumbu Y (mis. 175000 -> "Rp 175k")
+function shortRupiah(value) {
+  if (!value || value <= 0) return 'Rp 0'
+  if (value >= 1000000) {
+    const v = value / 1000000
+    return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}jt`
+  }
+  if (value >= 1000) {
+    const v = value / 1000
+    return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}k`
+  }
+  return `Rp ${Math.round(value)}`
+}
+
+// Membuat path SVG melengkung (smooth) dari sekumpulan titik menggunakan Catmull-Rom -> Bezier
+function buildSmoothPath(points) {
+  if (!points || points.length === 0) return ''
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`
+  let path = `M ${points[0].x} ${points[0].y}`
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i === 0 ? i : i - 1]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[i + 2 < points.length ? i + 2 : i + 1]
+    const cp1x = p1.x + (p2.x - p0.x) / 6
+    const cp1y = p1.y + (p2.y - p0.y) / 6
+    const cp2x = p2.x - (p3.x - p1.x) / 6
+    const cp2y = p2.y - (p3.y - p1.y) / 6
+    path += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2.x} ${p2.y}`
+  }
+  return path
+}
+
+// ============ LINE / AREA CHART ============
+function LineChartCustom({ data, maxVal }) {
   const [selected, setSelected] = useState(null)
+  useEffect(() => { setSelected(null) }, [data])
 
   if (!data || data.length === 0) return null
 
-  const totalPeriod = data.reduce((s, d) => s + (d.total || 0), 0)
+  const W = 640
+  const H = 220
+  const padLeft = 46
+  const padRight = 8
+  const padTop = 14
+  const padBottom = 26
+  const innerW = W - padLeft - padRight
+  const innerH = H - padTop - padBottom
+
+  const yMax = maxVal > 0 ? maxVal * 1.15 : 1
+  const n = data.length
+
+  const points = data.map((d, i) => {
+    const x = n > 1 ? padLeft + (innerW * i) / (n - 1) : padLeft + innerW / 2
+    const total = Math.max(d.total || 0, 0)
+    const y = padTop + innerH - (total / yMax) * innerH
+    return { x, y, label: d.label, total }
+  })
+
+  const linePath = buildSmoothPath(points)
+  const last = points[points.length - 1]
+  const first = points[0]
+  const areaPath = `${linePath} L ${last.x} ${padTop + innerH} L ${first.x} ${padTop + innerH} Z`
+
+  const gridLines = [0, 1 / 3, 2 / 3, 1].map(f => ({
+    y: padTop + innerH - f * innerH,
+    value: yMax * f,
+  }))
+
   const selectedItem = selected !== null ? data[selected] : null
-  const isHighestSelected = selectedItem && maxVal > 0 && selectedItem.total === maxVal && selectedItem.total > 0
-
-  const handleBarClick = (i) => {
-    setSelected(prev => prev === i ? null : i)
-  }
-
-  useEffect(() => { setSelected(null) }, [data])
+  const isHighestSelected = selectedItem && maxVal > 0 && (selectedItem.total || 0) === maxVal && (selectedItem.total || 0) > 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 140 }}>
-        {data.map((d, i) => {
-          const pct = maxVal > 0 ? (d.total / maxVal) * 100 : 0
-          const isHighest = maxVal > 0 && d.total === maxVal && d.total > 0
-          const isEmpty = d.total === 0
-          const isActive = selected === i
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: 'auto', display: 'block', overflow: 'visible' }}>
+        <defs>
+          <linearGradient id="revenueAreaGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" style={{ stopColor: 'var(--accent)', stopOpacity: 0.35 }} />
+            <stop offset="100%" style={{ stopColor: 'var(--accent)', stopOpacity: 0 }} />
+          </linearGradient>
+        </defs>
 
+        {/* Grid lines + label sumbu Y */}
+        {gridLines.map((g, i) => (
+          <g key={i}>
+            <line
+              x1={padLeft} x2={W - padRight} y1={g.y} y2={g.y}
+              stroke="var(--glass-border)" strokeWidth="1"
+              strokeDasharray={i === 0 ? '0' : '3 4'}
+            />
+            <text x={padLeft - 8} y={g.y + 3} textAnchor="end" fontSize="9" fill="var(--text-tertiary)">
+              {shortRupiah(g.value)}
+            </text>
+          </g>
+        ))}
+
+        {/* Area + garis */}
+        <path d={areaPath} fill="url(#revenueAreaGrad)" stroke="none" />
+        <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Titik data (interaktif) */}
+        {points.map((p, i) => {
+          const isHighest = maxVal > 0 && p.total === maxVal && p.total > 0
+          const isActive = selected === i
           return (
-            <div
-              key={i}
-              style={{
-                flex: 1, display: 'flex', flexDirection: 'column',
-                alignItems: 'center', height: '100%', justifyContent: 'flex-end',
-                position: 'relative', cursor: 'pointer',
-              }}
-              onClick={() => handleBarClick(i)}
-            >
+            <g key={i} style={{ cursor: 'pointer' }} onClick={() => setSelected(prev => prev === i ? null : i)}>
+              {/* area klik lebih besar dari titik visualnya */}
+              <circle cx={p.x} cy={p.y} r={14} fill="transparent" />
               {isHighest && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: `${Math.max(pct, 2)}%`,
-                  left: '50%', transform: 'translateX(-50%) translateY(-4px)',
-                  background: '#fbbf24', borderRadius: '50%',
-                  width: 6, height: 6,
-                  boxShadow: '0 0 8px rgba(251,191,36,0.7)',
-                }} />
+                <circle cx={p.x} cy={p.y} r={9} fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.5" />
               )}
-              <div style={{
-                width: '100%', minWidth: 4,
-                height: `${Math.max(pct, isEmpty ? 1 : 2)}%`,
-                background: isHighest
-                  ? 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
-                  : isEmpty
-                    ? 'var(--glass-border-hover)'
-                    : `rgba(91,138,245,${0.25 + (pct / 100) * 0.5})`,
-                borderRadius: '3px 3px 0 0',
-                transition: 'height 0.5s ease, opacity 0.15s ease',
-                opacity: selected !== null && !isActive ? 0.4 : 1,
-                boxShadow: isHighest ? '0 0 10px rgba(251,191,36,0.4)' : 'none',
-                outline: isActive ? '2px solid rgba(167,139,250,0.6)' : 'none',
-                outlineOffset: '2px',
-              }} />
-            </div>
+              <circle
+                cx={p.x} cy={p.y}
+                r={isHighest ? 5 : isActive ? 5 : 3.5}
+                fill={isHighest ? '#fbbf24' : 'var(--accent)'}
+                stroke={isActive && !isHighest ? 'rgba(167,139,250,0.6)' : 'var(--surface)'}
+                strokeWidth={isActive ? 3 : 1.5}
+              />
+            </g>
           )
         })}
-      </div>
 
-      <div style={{ display: 'flex', gap: 4 }}>
-        {data.map((d, i) => (
-          <div key={i} style={{ flex: 1, textAlign: 'center', overflow: 'hidden' }}>
-            <span style={{
-              fontSize: '0.6rem',
-              color: selected === i ? 'var(--text-primary)' : 'var(--text-secondary)',
-              fontWeight: selected === i ? 700 : 400,
-              whiteSpace: 'nowrap',
-              display: 'block',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              transition: 'color 0.15s, font-weight 0.15s',
-            }}>
-              {d.label}
-            </span>
-          </div>
+        {/* Label sumbu X */}
+        {points.map((p, i) => (
+          <text
+            key={i} x={p.x} y={H - 6} textAnchor="middle" fontSize="9"
+            fill={selected === i ? 'var(--text-primary)' : 'var(--text-tertiary)'}
+            fontWeight={selected === i ? 700 : 400}
+          >
+            {p.label}
+          </text>
         ))}
-      </div>
+      </svg>
 
+      {/* Tooltip detail titik terpilih */}
       <div style={{
         overflow: 'hidden',
-        maxHeight: selectedItem ? 80 : 0,
+        maxHeight: selectedItem ? 70 : 0,
         opacity: selectedItem ? 1 : 0,
         transition: 'max-height 0.25s ease, opacity 0.2s ease',
       }}>
         {selectedItem && (
           <div style={{
-            marginTop: 4,
-            padding: '12px 16px',
+            padding: '10px 16px',
             background: 'linear-gradient(135deg, rgba(30,32,48,0.95) 0%, rgba(20,22,36,0.95) 100%)',
             border: '1px solid rgba(167,139,250,0.25)',
             borderRadius: 'var(--radius-lg)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {selectedItem.label}
               </p>
               <p style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 800,
-                fontSize: '1rem',
+                fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1rem',
                 color: isHighestSelected ? '#fbbf24' : '#fff',
               }}>
                 {formatRupiah(selectedItem.total || 0)}
               </p>
             </div>
-            {isHighestSelected && (
+            {isHighestSelected ? (
               <div style={{
-                fontSize: '0.62rem', fontWeight: 700,
-                color: '#fbbf24',
-                background: 'rgba(251,191,36,0.12)',
-                border: '1px solid rgba(251,191,36,0.25)',
-                borderRadius: 'var(--radius-full)',
-                padding: '3px 8px',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
+                fontSize: '0.62rem', fontWeight: 700, color: '#fbbf24',
+                background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)',
+                borderRadius: 'var(--radius-full)', padding: '3px 8px',
+                letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap',
               }}>
                 Tertinggi
               </div>
-            )}
-            {!isHighestSelected && maxVal > 0 && selectedItem.total > 0 && (
-              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>
+            ) : maxVal > 0 && (selectedItem.total || 0) > 0 ? (
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                 {Math.round((selectedItem.total / maxVal) * 100)}% dari tertinggi
               </p>
-            )}
+            ) : null}
           </div>
         )}
-      </div>
-
-      <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
-
-      <div style={{ display: 'flex', gap: 0 }}>
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, paddingRight: 12 }}>
-          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Tertinggi
-          </p>
-          <p style={{
-            fontWeight: 800, fontFamily: 'var(--font-display)', color: '#fbbf24',
-            fontSize: formatRupiah(maxVal).length > 12 ? '0.75rem' : '0.88rem',
-            wordBreak: 'break-all', lineHeight: 1.2,
-          }}>
-            {formatRupiah(maxVal)}
-          </p>
-        </div>
-        <div style={{ width: 1, background: 'var(--glass-border)', flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 12 }}>
-          <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Total Periode
-          </p>
-          <p style={{
-            fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--accent)',
-            fontSize: formatRupiah(totalPeriod).length > 12 ? '0.75rem' : '0.88rem',
-            wordBreak: 'break-all', lineHeight: 1.2,
-          }}>
-            {formatRupiah(totalPeriod)}
-          </p>
-        </div>
       </div>
     </div>
   )
