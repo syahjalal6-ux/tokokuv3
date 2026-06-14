@@ -45,20 +45,23 @@ export default function DashboardPage() {
     }
   }, [tokenSupabase, tokenGas])
 
+  // ✅ FIX: hapus && pro — pesanan masuk tampil untuk semua user
   useEffect(() => {
-    if ((tokenSupabase || tokenGas) && pro) {
+    if (tokenSupabase || tokenGas) {
       pesananApi.getMine(tokenObj, 'all')
         .then(res => {
           const data = res.data || []
           setPesananCount(data.length)
-          const revenue = data
-            .filter(p => p.status === 'done')
-            .reduce((s, p) => s + Number(p.total), 0)
-          setTotalRevenue(revenue)
+          if (pro) {
+            const revenue = data
+              .filter(p => p.status === 'done')
+              .reduce((s, p) => s + Number(p.total), 0)
+            setTotalRevenue(revenue)
+          }
         })
         .catch(() => {})
     }
-  }, [tokenSupabase, tokenGas, pro])
+  }, [tokenSupabase, tokenGas])
 
   const handleCopyLink = async () => {
     await copyToClipboard(getStorefrontUrl(toko.slug))
@@ -142,7 +145,7 @@ export default function DashboardPage() {
                     : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
                 </p>
               </div>
-              <a
+              
                 href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
                 target="_blank"
                 rel="noreferrer"
@@ -201,11 +204,12 @@ export default function DashboardPage() {
               icon={<Eye size={18} />}
               color="var(--success)"
             />
+            {/* ✅ FIX: tampil untuk semua user, bukan cuma Pro */}
             <StatCard
               label="Pesanan Masuk"
-              value={pro ? (pesananCount !== null ? pesananCount : '...') : '—'}
+              value={pesananCount !== null ? pesananCount : '...'}
               icon={<ShoppingBag size={18} />}
-              trend={pro ? 'Lihat detail' : 'Fitur Pro'}
+              trend="Lihat detail"
               color="var(--warning)"
             />
             <StatCard
