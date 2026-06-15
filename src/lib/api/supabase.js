@@ -203,6 +203,13 @@ export const tokoApi = {
       .single()
 
     if (error) handleError(error)
+
+    // simpan toko_id ke tabel users
+    await supabaseAdmin
+      .from('users')
+      .update({ toko_id: toko.id, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+
     return { success: true, data: mapToko(toko) }
   },
 
@@ -275,7 +282,6 @@ export const tokoApi = {
       .eq('id', userId)
     if (error) handleError(error)
 
-    // sync plan ke tabel toko
     const { data: tokoSync, error: tokoSyncErr } = await supabaseAdmin
       .from('toko')
       .update({ plan: 'pro', updated_at: new Date().toISOString() })
@@ -677,24 +683,27 @@ export const adminApi = {
       .eq('id', targetUserId)
     if (userErr) handleError(userErr)
 
-    // 2. Sync plan ke tabel toko (pakai .select() biar kelihatan hasilnya)
-    const { data: tokoUpdate, error: tokoErr } = await supabaseAdmin
+    // 2. Cari toko langsung dari tabel toko by user_id
+    const { data: tokoData, error: tokoFindErr } = await supabaseAdmin
       .from('toko')
-      .update({ plan: 'pro', updated_at: new Date().toISOString() })
+      .select('id')
       .eq('user_id', targetUserId)
-      .select()
+      .single()
 
     console.log('[grantPro] target user_id:', targetUserId)
-    console.log('[grantPro] toko update result:', tokoUpdate, tokoErr)
+    console.log('[grantPro] toko found:', tokoData, tokoFindErr)
 
-    if (tokoErr) {
-      // kalau update toko gagal, jangan biarkan diam-diam — lempar error
-      handleError(tokoErr)
+    if (tokoFindErr || !tokoData) {
+      throw new ApiError('Toko tidak ditemukan untuk user ini', 404)
     }
-    if (!tokoUpdate || tokoUpdate.length === 0) {
-      // update "berhasil" tapi 0 baris kena — kemungkinan user_id ga match
-      throw new ApiError('User plan diupdate, tapi tidak ada toko dengan user_id tersebut', 404)
-    }
+
+    // 3. Update plan toko by id (lebih presisi)
+    const { error: tokoErr } = await supabaseAdmin
+      .from('toko')
+      .update({ plan: 'pro', updated_at: new Date().toISOString() })
+      .eq('id', tokoData.id)
+
+    if (tokoErr) handleError(tokoErr)
 
     return { success: true, message: `Pro aktif ${months} bulan` }
   },
@@ -702,27 +711,34 @@ export const adminApi = {
   revokePro: async (token, targetUserId) => {
     await verifyToken(token)
 
+    // 1. Update plan di tabel users
     const { error: userErr } = await supabaseAdmin
       .from('users')
       .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
     if (userErr) handleError(userErr)
 
-    const { data: tokoUpdate, error: tokoErr } = await supabaseAdmin
+    // 2. Cari toko langsung dari tabel toko by user_id
+    const { data: tokoData, error: tokoFindErr } = await supabaseAdmin
       .from('toko')
-      .update({ plan: 'free', updated_at: new Date().toISOString() })
+      .select('id')
       .eq('user_id', targetUserId)
-      .select()
+      .single()
 
     console.log('[revokePro] target user_id:', targetUserId)
-    console.log('[revokePro] toko update result:', tokoUpdate, tokoErr)
+    console.log('[revokePro] toko found:', tokoData, tokoFindErr)
 
-    if (tokoErr) {
-      handleError(tokoErr)
+    if (tokoFindErr || !tokoData) {
+      throw new ApiError('Toko tidak ditemukan untuk user ini', 404)
     }
-    if (!tokoUpdate || tokoUpdate.length === 0) {
-      throw new ApiError('User plan diupdate, tapi tidak ada toko dengan user_id tersebut', 404)
-    }
+
+    // 3. Update plan toko by id (lebih presisi)
+    const { error: tokoErr } = await supabaseAdmin
+      .from('toko')
+      .update({ plan: 'free', updated_at: new Date().toISOString() })
+      .eq('id', tokoData.id)
+
+    if (tokoErr) handleError(tokoErr)
 
     return { success: true, message: 'Pro berhasil dicabut' }
   },
