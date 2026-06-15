@@ -275,11 +275,15 @@ export const tokoApi = {
       .eq('id', userId)
     if (error) handleError(error)
 
-    // FIX: sync plan ke tabel toko
-    await supabaseAdmin
+    // sync plan ke tabel toko
+    const { data: tokoSync, error: tokoSyncErr } = await supabaseAdmin
       .from('toko')
       .update({ plan: 'pro', updated_at: new Date().toISOString() })
       .eq('user_id', userId)
+      .select()
+
+    console.log('[confirmUpgrade] toko sync result:', tokoSync, tokoSyncErr)
+    if (tokoSyncErr) handleError(tokoSyncErr)
 
     return { success: true }
   },
@@ -666,17 +670,31 @@ export const adminApi = {
     const expiry = new Date()
     expiry.setMonth(expiry.getMonth() + Number(months || 1))
 
-    const { error } = await supabaseAdmin
+    // 1. Update plan di tabel users
+    const { error: userErr } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
-    if (error) handleError(error)
+    if (userErr) handleError(userErr)
 
-    // FIX: sync plan ke tabel toko
-    await supabaseAdmin
+    // 2. Sync plan ke tabel toko (pakai .select() biar kelihatan hasilnya)
+    const { data: tokoUpdate, error: tokoErr } = await supabaseAdmin
       .from('toko')
       .update({ plan: 'pro', updated_at: new Date().toISOString() })
       .eq('user_id', targetUserId)
+      .select()
+
+    console.log('[grantPro] target user_id:', targetUserId)
+    console.log('[grantPro] toko update result:', tokoUpdate, tokoErr)
+
+    if (tokoErr) {
+      // kalau update toko gagal, jangan biarkan diam-diam — lempar error
+      handleError(tokoErr)
+    }
+    if (!tokoUpdate || tokoUpdate.length === 0) {
+      // update "berhasil" tapi 0 baris kena — kemungkinan user_id ga match
+      throw new ApiError('User plan diupdate, tapi tidak ada toko dengan user_id tersebut', 404)
+    }
 
     return { success: true, message: `Pro aktif ${months} bulan` }
   },
@@ -684,17 +702,27 @@ export const adminApi = {
   revokePro: async (token, targetUserId) => {
     await verifyToken(token)
 
-    const { error } = await supabaseAdmin
+    const { error: userErr } = await supabaseAdmin
       .from('users')
       .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
-    if (error) handleError(error)
+    if (userErr) handleError(userErr)
 
-    // FIX: sync plan ke tabel toko
-    await supabaseAdmin
+    const { data: tokoUpdate, error: tokoErr } = await supabaseAdmin
       .from('toko')
       .update({ plan: 'free', updated_at: new Date().toISOString() })
       .eq('user_id', targetUserId)
+      .select()
+
+    console.log('[revokePro] target user_id:', targetUserId)
+    console.log('[revokePro] toko update result:', tokoUpdate, tokoErr)
+
+    if (tokoErr) {
+      handleError(tokoErr)
+    }
+    if (!tokoUpdate || tokoUpdate.length === 0) {
+      throw new ApiError('User plan diupdate, tapi tidak ada toko dengan user_id tersebut', 404)
+    }
 
     return { success: true, message: 'Pro berhasil dicabut' }
   },
