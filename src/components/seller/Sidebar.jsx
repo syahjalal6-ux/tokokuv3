@@ -35,7 +35,7 @@ export default function Sidebar() {
   const [mobileOpen, setMobileOpen] = useState(false)
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark')
   const [pendingCount, setPendingCount] = useState(0)
-  const { user, token, logout } = useAuthStore()
+  const { user, tokenSupabase, logout } = useAuthStore()
   const { toko, clear: clearToko } = useTokoStore()
   const navigate = useNavigate()
 
@@ -51,14 +51,13 @@ export default function Sidebar() {
     localStorage.setItem('theme', theme)
   }, [theme])
 
-  // ✅ FIX: hapus && pro — fetch pesanan untuk semua user
   useEffect(() => {
-    if (token) {
-      pesananApi.getMine(token, 'pending')
+    if (tokenSupabase) {
+      pesananApi.getMine({ tokenSupabase }, 'pending')
         .then(res => setPendingCount((res.data || []).length))
         .catch(() => {})
     }
-  }, [token])
+  }, [tokenSupabase])
 
   const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark')
 
