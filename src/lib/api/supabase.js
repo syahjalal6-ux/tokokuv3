@@ -268,11 +268,19 @@ export const tokoApi = {
     await verifyToken(adminToken)
     const expiry = new Date()
     expiry.setMonth(expiry.getMonth() + 1)
+
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
       .eq('id', userId)
     if (error) handleError(error)
+
+    // FIX: sync plan ke tabel toko
+    await supabaseAdmin
+      .from('toko')
+      .update({ plan: 'pro', updated_at: new Date().toISOString() })
+      .eq('user_id', userId)
+
     return { success: true }
   },
 }
@@ -657,21 +665,37 @@ export const adminApi = {
     await verifyToken(token)
     const expiry = new Date()
     expiry.setMonth(expiry.getMonth() + Number(months || 1))
+
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
     if (error) handleError(error)
+
+    // FIX: sync plan ke tabel toko
+    await supabaseAdmin
+      .from('toko')
+      .update({ plan: 'pro', updated_at: new Date().toISOString() })
+      .eq('user_id', targetUserId)
+
     return { success: true, message: `Pro aktif ${months} bulan` }
   },
 
   revokePro: async (token, targetUserId) => {
     await verifyToken(token)
+
     const { error } = await supabaseAdmin
       .from('users')
       .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
     if (error) handleError(error)
+
+    // FIX: sync plan ke tabel toko
+    await supabaseAdmin
+      .from('toko')
+      .update({ plan: 'free', updated_at: new Date().toISOString() })
+      .eq('user_id', targetUserId)
+
     return { success: true, message: 'Pro berhasil dicabut' }
   },
 
