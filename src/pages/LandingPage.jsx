@@ -28,7 +28,7 @@ const FAQ = [
   { q: 'Apakah benar-benar gratis?', a: 'Ya! Paket gratis tidak ada batas waktu. Kamu bisa buka toko dan jual hingga 25 produk tanpa biaya apapun.' },
   { q: 'Bagaimana cara checkout pembeli?', a: 'Pembeli klik tombol "Beli via WhatsApp" di toko kamu, lalu akan diarahkan ke chat WA kamu dengan pesan otomatis berisi detail pesanan.' },
   { q: 'Asisten AI itu apa?', a: 'Fitur cerdas yang otomatis menjawab pertanyaan calon pembeli mengenai produk atau tokomu selama 24/7 berdasarkan bank data yang sudah kamu siapkan.' },
-  { q: 'Foto produk disimpan di mana?', a: 'Foto disimpan di Google Drive (milik pengelola platform), sehingga kamu tidak perlu punya hosting sendiri.' },
+  { q: 'Foto produk disimpan di mana?', a: 'Foto disimpan di Supabase Storage (cloud milik Exora), sehingga kamu tidak perlu punya hosting sendiri.' },
   { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.PRO_PRICE}.` },
 ]
 
