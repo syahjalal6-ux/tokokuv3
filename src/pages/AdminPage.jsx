@@ -195,7 +195,7 @@ export default function AdminPage() {
                   Estimasi Pendapatan Platform
                 </p>
                 <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: 'var(--accent)' }}>
-                  {formatRupiah(proCount * 49000)}/bulan
+                  {formatRupiah(proCount * 19000)}/bulan
                 </p>
               </div>
             </div>
