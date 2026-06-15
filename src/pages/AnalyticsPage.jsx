@@ -17,6 +17,64 @@ import * as XLSX from 'xlsx'
 const CHAT_STORAGE_KEY = 'exora_ai_chat_history'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
+// ============ GROQ HELPER ============
+async function callGroq(messages) {
+  let lastError = ''
+  for (const model of CONFIG.GROQ_MODELS) {
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({ model, messages, max_tokens: 512, temperature: 0.75 }),
+      })
+      const data = await res.json()
+      if (data.error) { lastError = data.error.message; continue }
+      const reply = data.choices?.[0]?.message?.content
+      if (!reply) { lastError = 'Reply kosong'; continue }
+      return reply
+    } catch (e) {
+      lastError = e.message
+      continue
+    }
+  }
+  throw new Error('Semua model gagal. Error: ' + lastError)
+}
+
+function buildSystemPrompt(data, tokoNama = 'toko kamu') {
+  const dataContext = `
+Data toko "${tokoNama}" saat ini:
+- Total Revenue: Rp ${Number(data.totalRevenue || 0).toLocaleString('id-ID')}
+- Total Pesanan: ${data.totalPesanan || 0} (${data.pesananPending || 0} menunggu, ${data.pesananSelesai || 0} selesai)
+- Conversion Rate: ${data.totalPesanan > 0 ? Math.round((data.pesananSelesai / data.totalPesanan) * 100) : 0}%
+- Produk Aktif: ${data.produkAktif || 0} dari ${data.totalProduk || 0} produk
+- Pesanan Dikonfirmasi: ${data.pesananConfirmed || 0}
+- Pesanan Diproses: ${data.pesananProcessing || 0}
+- Pesanan Dikirim: ${data.pesananShipped || 0}
+- Pesanan Dibatalkan: ${data.pesananCancelled || 0}
+- Top Produk Terlaris: ${data.topProduk && data.topProduk.length > 0
+    ? data.topProduk.map((p, i) => `${i + 1}. ${p.nama} (${p.qty}x)`).join(', ')
+    : 'belum ada data'}
+- Revenue Minggu Ini: Rp ${Number(data.revenueMingguIni || 0).toLocaleString('id-ID')}
+- Revenue Minggu Lalu: Rp ${Number(data.revenueMingguLalu || 0).toLocaleString('id-ID')}
+`.trim()
+
+  return `Kamu adalah Aira, konsultan bisnis UMKM Indonesia yang blak-blakan, analitis, dan ngomongnya kayak teman dekat — bukan robot korporat. Nama kamu adalah Aira. Kalau ditanya siapa kamu, jawab "Aku Aira, konsultan bisnis toko kamu."
+
+${dataContext}
+
+ATURAN WAJIB:
+1. Semua jawaban HARUS spesifik berdasarkan data di atas. Dilarang jawaban generik seperti "tingkatkan pemasaran" tanpa konteks data.
+2. Sebut angka nyata dari data. Contoh: "Revenue kamu Rp 0 — artinya belum ada pesanan selesai nih."
+3. Variasikan cara ngomong: kadang pakai analogi, kadang langsung to the point, kadang humor ringan tapi tetap relevan.
+4. Bahasa Indonesia casual, singkat, padat. Maksimal 4 kalimat per respons kecuali diminta lebih.
+5. Kalau data masih kosong/nol, jujur bilang dan kasih saran konkret apa yang harus dilakukan pertama.
+6. Jangan pernai mulai jawaban dengan "Tentu!", "Baik!", "Halo!" atau sapaan basa-basi lainnya.
+7. Kalau ditanya di luar konteks bisnis/toko, tolak dengan santai dan arahkan balik ke topik toko.`
+}
+
 export default function AnalyticsPage() {
   const { user, tokenSupabase, tokenGas, isLoading, updateUser } = useAuthStore()
   const tokenObj = { tokenSupabase, tokenGas }
@@ -32,7 +90,7 @@ export default function AnalyticsPage() {
 
   const pro = isPro(user)
   if (!pro) return <AnalyticsGate />
-  return <AnalyticsDashboard tokenObj={tokenObj} tokenGas={tokenGas} />
+  return <AnalyticsDashboard tokenObj={tokenObj} />
 }
 
 function AnalyticsGate() {
@@ -61,7 +119,7 @@ function AnalyticsGate() {
             Pantau performa toko kamu: revenue, produk terlaris, tren pesanan, dan lebih banyak lagi.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
-            {['Grafik revenue mingguan & bulanan','Produk terlaris','Statistik pesanan lengkap','Export data ke Excel','AI Insight & Chat Konsultan'].map(f => (
+            {['Grafik revenue mingguan & bulanan', 'Produk terlaris', 'Statistik pesanan lengkap', 'Export data ke Excel', 'AI Insight & Chat Konsultan'].map(f => (
               <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
                 {f}
@@ -77,13 +135,13 @@ function AnalyticsGate() {
   )
 }
 
-function AnalyticsDashboard({ tokenObj, tokenGas }) {
+function AnalyticsDashboard({ tokenObj }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('minggu')
   const [exporting, setExporting] = useState(false)
 
-  useEffect(() => { load() }, [tokenObj.tokenSupabase, tokenObj.tokenGas])
+  useEffect(() => { load() }, [tokenObj.tokenSupabase])
 
   const load = async () => {
     setLoading(true)
@@ -150,7 +208,7 @@ function AnalyticsDashboard({ tokenObj, tokenGas }) {
       }
     >
       {loading ? <AnalyticsSkeleton /> : data ? (
-        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} tokenGas={tokenGas} />
+        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} />
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
           <BarChart2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
@@ -172,7 +230,7 @@ function groupByWeek(revenueHarian = []) {
     const month = date.getMonth()
     const weekOfMonth = Math.ceil(date.getDate() / 7)
     const key = `${year}-${month}-W${weekOfMonth}`
-    const monthNames = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
     if (!weeks[key]) {
       weeks[key] = { label: `W${weekOfMonth} ${monthNames[month]}`, total: 0, key }
     }
@@ -183,16 +241,16 @@ function groupByWeek(revenueHarian = []) {
 
 function shortenMonthLabel(label = '') {
   const monthMap = {
-    january:'Jan', february:'Feb', march:'Mar', april:'Apr',
-    may:'Mei', june:'Jun', july:'Jul', august:'Agu',
-    september:'Sep', october:'Okt', november:'Nov', december:'Des',
-    jan:'Jan', feb:'Feb', mar:'Mar', apr:'Apr',
-    mei:'Mei', jun:'Jun', jul:'Jul', agu:'Agu',
-    sep:'Sep', okt:'Okt', nov:'Nov', des:'Des',
+    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr',
+    may: 'Mei', june: 'Jun', july: 'Jul', august: 'Agu',
+    september: 'Sep', october: 'Okt', november: 'Nov', december: 'Des',
+    jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr',
+    mei: 'Mei', jun: 'Jun', jul: 'Jul', agu: 'Agu',
+    sep: 'Sep', okt: 'Okt', nov: 'Nov', des: 'Des',
   }
   const isoMatch = label.match(/^(\d{4})-(\d{2})/)
   if (isoMatch) {
-    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
     return months[parseInt(isoMatch[2]) - 1] || label
   }
   const word = label.split(/[\s,]/)[0].toLowerCase()
@@ -200,15 +258,15 @@ function shortenMonthLabel(label = '') {
 }
 
 const STATUS_PESANAN = [
-  { key: 'pesananPending',    label: 'Menunggu',    color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',   border: 'rgba(245,158,11,0.18)'   },
-  { key: 'pesananConfirmed',  label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)',  border: 'rgba(91,138,245,0.18)'   },
-  { key: 'pesananProcessing', label: 'Diproses',    color: '#a78bfa', bg: 'rgba(167,139,250,0.08)',  border: 'rgba(167,139,250,0.18)'  },
-  { key: 'pesananShipped',    label: 'Dikirim',     color: '#38bdf8', bg: 'rgba(56,189,248,0.08)',   border: 'rgba(56,189,248,0.18)'   },
-  { key: 'pesananSelesai',    label: 'Selesai',     color: '#34d399', bg: 'rgba(52,211,153,0.08)',   border: 'rgba(52,211,153,0.18)'   },
-  { key: 'pesananCancelled',  label: 'Dibatalkan',  color: '#f87171', bg: 'rgba(248,113,113,0.08)',  border: 'rgba(248,113,113,0.18)'  },
+  { key: 'pesananPending', label: 'Menunggu', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)' },
+  { key: 'pesananConfirmed', label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)', border: 'rgba(91,138,245,0.18)' },
+  { key: 'pesananProcessing', label: 'Diproses', color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
+  { key: 'pesananShipped', label: 'Dikirim', color: '#38bdf8', bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.18)' },
+  { key: 'pesananSelesai', label: 'Selesai', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.18)' },
+  { key: 'pesananCancelled', label: 'Dibatalkan', color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
 ]
 
-function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
+function AnalyticsContent({ data, period, setPeriod }) {
   const {
     totalProduk = 0, produkAktif = 0,
     totalPesanan = 0, pesananPending = 0, pesananSelesai = 0,
@@ -255,7 +313,6 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
   const totalPeriode = useMemo(() => chartData.reduce((s, d) => s + (d.total || 0), 0), [chartData])
   const rataRata = chartData.length > 0 ? totalPeriode / chartData.length : 0
 
-  // Pakai data dari backend langsung untuk pct change
   const pctChange = useMemo(() => {
     if (period !== 'minggu') {
       if (revenueBulanan.length < 2) return null
@@ -270,7 +327,6 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
 
   const pctLabel = period === 'minggu' ? 'vs minggu lalu' : 'vs bulan lalu'
 
-  // Angka utama: minggu pakai revenueMingguIni, bulan pakai bulan ini
   const revenueUtama = useMemo(() => {
     if (period === 'minggu') return revenueMingguIni
     return revenueBulanan.length > 0 ? revenueBulanan[revenueBulanan.length - 1]?.total || 0 : 0
@@ -279,10 +335,8 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* AI Insight Card */}
-      <AIInsightCard tokenGas={tokenGas} data={data} />
+      <AIInsightCard data={data} />
 
-      {/* KPI cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         <KpiCard label="Total Revenue" value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" />
         <KpiCard label="Total Pesanan" value={totalPesanan} icon={<ShoppingBag size={15} />} color="var(--accent)" sub={`${pesananPending} menunggu`} />
@@ -350,7 +404,6 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
             </div>
           </div>
 
-          {/* Summary chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
             <SummaryChip label="Rata-rata" value={formatRupiah(Math.round(rataRata))} />
             <SummaryChip label="Tertinggi" value={formatRupiah(maxRevenue)} color="#fbbf24" />
@@ -472,18 +525,14 @@ function AnalyticsContent({ data, period, setPeriod, tokenGas }) {
         </div>
 
         {/* Kolom 3: AI Chat */}
-        <AIChatCard tokenGas={tokenGas} data={data} />
-
+        <AIChatCard data={data} />
       </div>
     </div>
   )
 }
 
 // ============ AI INSIGHT CARD ============
-function AIInsightCard({ tokenGas: tokenGasProp, data }) {
-  const { tokenGas: tokenGasStore } = useAuthStore()
-  const tokenGas = tokenGasProp || tokenGasStore
-
+function AIInsightCard({ data }) {
   const [insight, setInsight] = useState(null)
   const [loading, setLoading] = useState(false)
 
@@ -492,26 +541,16 @@ function AIInsightCard({ tokenGas: tokenGasProp, data }) {
   }, [data])
 
   const generateInsight = async () => {
-    if (!tokenGas) {
-      setInsight('Gagal memuat insight: Sesi tidak valid, silakan login ulang.')
-      return
-    }
     setLoading(true)
     setInsight(null)
     try {
-      const res = await fetch(CONFIG.GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({
-          action: 'getAIInsight',
-          token: tokenGas,
-          type: 'insight',
-          analyticsData: data,
-        }),
-      })
-      const json = await res.json()
-      if (json.success) setInsight(json.reply)
-      else throw new Error(json.message)
+      const systemPrompt = buildSystemPrompt(data)
+      const insightPrompt = `Berikan 3 insight singkat dan actionable tentang performa toko ini sekarang. Format: tiap insight 1-2 kalimat, langsung ke poin, pakai emoji yang relevan di depan. Jangan pakai numbering, cukup bullet dengan emoji.`
+      const reply = await callGroq([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: insightPrompt },
+      ])
+      setInsight(reply)
     } catch (err) {
       setInsight('Gagal memuat insight: ' + err.message)
     } finally {
@@ -567,10 +606,7 @@ function AIInsightCard({ tokenGas: tokenGasProp, data }) {
 }
 
 // ============ AI CHAT CARD ============
-function AIChatCard({ tokenGas: tokenGasProp, data }) {
-  const { tokenGas: tokenGasStore } = useAuthStore()
-  const tokenGas = tokenGasProp || tokenGasStore
-
+function AIChatCard({ data }) {
   const [messages, setMessages] = useState(() => {
     try {
       const saved = localStorage.getItem(CHAT_STORAGE_KEY)
@@ -589,23 +625,20 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
   const handleSend = async () => {
     const text = input.trim()
     if (!text || loading) return
-    if (!tokenGas) {
-      setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Sesi tidak valid, silakan login ulang.' }])
-      return
-    }
+
     const newMessages = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
     setInput('')
     setLoading(true)
+
     try {
-      const res = await fetch(CONFIG.GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ action: 'getAIInsight', token: tokenGas, type: 'chat', messages: newMessages, analyticsData: data }),
-      })
-      const json = await res.json()
-      if (json.success) setMessages(prev => [...prev, { role: 'assistant', content: json.reply }])
-      else throw new Error(json.message)
+      const systemPrompt = buildSystemPrompt(data)
+      const groqMessages = [
+        { role: 'system', content: systemPrompt },
+        ...newMessages.slice(-20).map(m => ({ role: m.role, content: m.content })),
+      ]
+      const reply = await callGroq(groqMessages)
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Gagal: ' + err.message }])
     } finally {
@@ -681,7 +714,7 @@ function AIChatCard({ tokenGas: tokenGasProp, data }) {
               <Bot size={12} color="#fff" />
             </div>
             <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', gap: 4, alignItems: 'center' }}>
-              {[0,1,2].map(i => (
+              {[0, 1, 2].map(i => (
                 <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animation: 'pulse 1.2s ease-in-out infinite', animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
@@ -793,7 +826,7 @@ function LineChartCustom({ data, maxVal }) {
   const last = points[points.length - 1]
   const first = points[0]
   const areaPath = `${linePath} L ${last.x} ${padTop + innerH} L ${first.x} ${padTop + innerH} Z`
-  const gridLines = [0, 1/3, 2/3, 1].map(f => ({ y: padTop + innerH - f * innerH, value: yMax * f }))
+  const gridLines = [0, 1 / 3, 2 / 3, 1].map(f => ({ y: padTop + innerH - f * innerH, value: yMax * f }))
   const selectedItem = selected !== null ? data[selected] : null
   const isHighestSelected = selectedItem && maxVal > 0 && (selectedItem.total || 0) === maxVal && (selectedItem.total || 0) > 0
 
