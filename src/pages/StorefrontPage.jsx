@@ -117,53 +117,142 @@ async function searchArea(query) {
   return data.areas || []
 }
 
-function OngkirModal({ onClose, toko }) {
+// =============================================
+// Input pencarian area (dipakai untuk asal & tujuan)
+// =============================================
+function AreaSearchInput({ label, icon, placeholder, value, onInputChange, options, searching, onSelect }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+        {icon}{label}
+      </label>
+      <div style={{ position: 'relative' }}>
+        <input
+          className="form-input"
+          placeholder={placeholder}
+          value={value}
+          onChange={e => onInputChange(e.target.value)}
+          style={{ fontSize: '0.875rem', paddingRight: searching ? 36 : 12 }}
+        />
+        {searching && (
+          <span className="spinner" style={{ width: 14, height: 14, position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }} />
+        )}
+      </div>
+
+      {options.length > 0 && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+          maxHeight: 200, overflowY: 'auto',
+          marginTop: 4,
+        }}>
+          {options.map(area => (
+            <div
+              key={area.id}
+              onClick={() => onSelect(area)}
+              style={{
+                padding: '9px 12px',
+                fontSize: '0.82rem',
+                cursor: 'pointer',
+                borderBottom: '1px solid var(--glass-border)',
+                transition: 'background 0.1s',
+                color: 'var(--text-primary)',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <span style={{ fontWeight: 600 }}>{area.name}</span>
+              {area.administrative_division_level_1_name && (
+                <span style={{ color: 'var(--text-tertiary)', marginLeft: 6, fontSize: '0.75rem' }}>
+                  {area.administrative_division_level_1_name}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function OngkirModal({ onClose }) {
+  const [origin, setOrigin] = useState('')
+  const [originAreaId, setOriginAreaId] = useState(null)
+  const [originAreaOptions, setOriginAreaOptions] = useState([])
+  const [searchingOriginArea, setSearchingOriginArea] = useState(false)
+  const originSearchTimeout = useRef(null)
+
   const [destination, setDestination] = useState('')
   const [destinationAreaId, setDestinationAreaId] = useState(null)
-  const [destinationLabel, setDestinationLabel] = useState('')
+  const [destinationAreaOptions, setDestinationAreaOptions] = useState([])
+  const [searchingDestinationArea, setSearchingDestinationArea] = useState(false)
+  const destinationSearchTimeout = useRef(null)
+
   const [weight, setWeight] = useState(1000)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
-  const [areaOptions, setAreaOptions] = useState([])
-  const [searchingArea, setSearchingArea] = useState(false)
-  const searchTimeout = useRef(null)
 
   const isMobile = window.innerWidth < 640
 
-  const handleDestinationInput = (val) => {
-    setDestination(val)
-    setDestinationAreaId(null)
-    setDestinationLabel('')
-    setAreaOptions([])
+  const handleOriginInput = (val) => {
+    setOrigin(val)
+    setOriginAreaId(null)
+    setOriginAreaOptions([])
     setResult(null)
     setError(null)
 
-    clearTimeout(searchTimeout.current)
+    clearTimeout(originSearchTimeout.current)
     if (val.length >= 3) {
-      setSearchingArea(true)
-      searchTimeout.current = setTimeout(async () => {
+      setSearchingOriginArea(true)
+      originSearchTimeout.current = setTimeout(async () => {
         const areas = await searchArea(val)
-        setAreaOptions(areas)
-        setSearchingArea(false)
+        setOriginAreaOptions(areas)
+        setSearchingOriginArea(false)
       }, 400)
     }
   }
 
-  const selectArea = (area) => {
+  const selectOriginArea = (area) => {
+    setOriginAreaId(area.id)
+    setOrigin(area.name)
+    setOriginAreaOptions([])
+  }
+
+  const handleDestinationInput = (val) => {
+    setDestination(val)
+    setDestinationAreaId(null)
+    setDestinationAreaOptions([])
+    setResult(null)
+    setError(null)
+
+    clearTimeout(destinationSearchTimeout.current)
+    if (val.length >= 3) {
+      setSearchingDestinationArea(true)
+      destinationSearchTimeout.current = setTimeout(async () => {
+        const areas = await searchArea(val)
+        setDestinationAreaOptions(areas)
+        setSearchingDestinationArea(false)
+      }, 400)
+    }
+  }
+
+  const selectDestinationArea = (area) => {
     setDestinationAreaId(area.id)
-    setDestinationLabel(area.name)
     setDestination(area.name)
-    setAreaOptions([])
+    setDestinationAreaOptions([])
   }
 
   const handleCek = async () => {
-    if (!destinationAreaId) {
-      setError('Pilih kota/kecamatan tujuan dari daftar')
+    if (!originAreaId) {
+      setError('Pilih kota/kecamatan asal pengiriman dari daftar')
       return
     }
-    if (!toko?.biteship_area_id) {
-      setError('Data lokasi toko belum diatur oleh penjual')
+    if (!destinationAreaId) {
+      setError('Pilih kota/kecamatan tujuan dari daftar')
       return
     }
     setLoading(true)
@@ -171,7 +260,7 @@ function OngkirModal({ onClose, toko }) {
     setResult(null)
     try {
       const data = await fetchOngkir({
-        originAreaId: toko.biteship_area_id,
+        originAreaId,
         destinationAreaId,
         weight,
       })
@@ -227,75 +316,29 @@ function OngkirModal({ onClose, toko }) {
 
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {/* Origin (read-only) */}
-          <div>
-            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'block' }}>Dikirim dari</label>
-            <div style={{
-              padding: '9px 12px',
-              background: 'var(--surface)',
-              border: '1px solid var(--glass-border)',
-              borderRadius: 'var(--radius-md)',
-              fontSize: '0.82rem',
-              color: toko?.kota ? 'var(--text-primary)' : 'var(--text-tertiary)',
-              display: 'flex', alignItems: 'center', gap: 7,
-            }}>
-              <Truck size={13} color="var(--text-tertiary)" />
-              {toko?.kota || 'Lokasi toko belum diatur'}
-            </div>
-          </div>
+          {/* Origin (input pencarian terbuka) */}
+          <AreaSearchInput
+            label="Dikirim dari"
+            icon={<Truck size={12} />}
+            placeholder="Contoh: Jakarta, Surabaya, Medan..."
+            value={origin}
+            onInputChange={handleOriginInput}
+            options={originAreaOptions}
+            searching={searchingOriginArea}
+            onSelect={selectOriginArea}
+          />
 
           {/* Destination input */}
-          <div style={{ position: 'relative' }}>
-            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'block' }}>Kota/Kecamatan Tujuan</label>
-            <div style={{ position: 'relative' }}>
-              <input
-                className="form-input"
-                placeholder="Contoh: Bandung, Cimahi, Depok..."
-                value={destination}
-                onChange={e => handleDestinationInput(e.target.value)}
-                style={{ fontSize: '0.875rem', paddingRight: searchingArea ? 36 : 12 }}
-              />
-              {searchingArea && (
-                <span className="spinner" style={{ width: 14, height: 14, position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }} />
-              )}
-            </div>
-
-            {areaOptions.length > 0 && (
-              <div style={{
-                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--glass-border)',
-                borderRadius: 'var(--radius-md)',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                maxHeight: 200, overflowY: 'auto',
-                marginTop: 4,
-              }}>
-                {areaOptions.map(area => (
-                  <div
-                    key={area.id}
-                    onClick={() => selectArea(area)}
-                    style={{
-                      padding: '9px 12px',
-                      fontSize: '0.82rem',
-                      cursor: 'pointer',
-                      borderBottom: '1px solid var(--glass-border)',
-                      transition: 'background 0.1s',
-                      color: 'var(--text-primary)',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
-                    <span style={{ fontWeight: 600 }}>{area.name}</span>
-                    {area.administrative_division_level_1_name && (
-                      <span style={{ color: 'var(--text-tertiary)', marginLeft: 6, fontSize: '0.75rem' }}>
-                        {area.administrative_division_level_1_name}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <AreaSearchInput
+            label="Kota/Kecamatan Tujuan"
+            icon={<MapPin size={12} />}
+            placeholder="Contoh: Bandung, Cimahi, Depok..."
+            value={destination}
+            onInputChange={handleDestinationInput}
+            options={destinationAreaOptions}
+            searching={searchingDestinationArea}
+            onSelect={selectDestinationArea}
+          />
 
           {/* Berat */}
           <div>
@@ -333,7 +376,7 @@ function OngkirModal({ onClose, toko }) {
           {/* Tombol Cek */}
           <button
             onClick={handleCek}
-            disabled={loading || !destinationAreaId}
+            disabled={loading || !destinationAreaId || !originAreaId}
             className="btn btn-primary"
             style={{ width: '100%', height: 42, fontSize: '0.875rem', fontWeight: 700 }}
           >
@@ -388,7 +431,7 @@ function OngkirModal({ onClose, toko }) {
 
           {!result && !loading && !error && (
             <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.82rem', padding: '12px 0' }}>
-              Pilih tujuan dan berat untuk melihat estimasi ongkir
+              Pilih asal, tujuan, dan berat untuk melihat estimasi ongkir
             </p>
           )}
         </div>
@@ -1086,7 +1129,6 @@ export default function StorefrontPage() {
       {ongkirOpen && (
         <OngkirModal
           onClose={() => setOngkirOpen(false)}
-          toko={toko}
         />
       )}
 
