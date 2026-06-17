@@ -287,22 +287,27 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
 
-  // Build chart data — weekly: W1-W4 dari revenueHarian | bulanan: Jan-Des dari revenueBulanan
+  const WEEKLY_SKELETON = [
+    { label: "W1", total: 0 }, { label: "W2", total: 0 },
+    { label: "W3", total: 0 }, { label: "W4", total: 0 },
+  ]
+  const MONTHLY_SKELETON = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+    .map(label => ({ label, total: 0 }))
+
   const chartData = useMemo(() => {
     if (period === 'minggu') {
       const grouped = groupByWeek(revenueHarian)
       if (grouped.length > 0) return grouped
-      // fallback: chunk per 7 hari
       const result = []
       for (let i = 0; i < revenueHarian.length; i += 7) {
         const chunk = revenueHarian.slice(i, i + 7)
         const total = chunk.reduce((s, d) => s + (d.total || 0), 0)
         result.push({ label: `W${result.length + 1}`, total })
       }
-      return result
+      return result.length > 0 ? result : WEEKLY_SKELETON
     }
-    // bulanan: semua bulan Jan-Des
-    return (revenueBulanan || []).map(d => ({ ...d, label: shortenMonthLabel(d.label) }))
+    const bulanan = (revenueBulanan || []).map(d => ({ ...d, label: shortenMonthLabel(d.label) }))
+    return bulanan.length > 0 ? bulanan : MONTHLY_SKELETON
   }, [period, revenueHarian, revenueBulanan])
 
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.total || 0)) : 0
@@ -407,19 +412,12 @@ function AnalyticsContent({ data, period, setPeriod }) {
             </div>
           </div>
 
-          {/* Bar chart */}
-          {chartData.length > 0 ? (
-            <BarChartRevenue
-              data={chartData}
-              maxVal={maxRevenue}
-              period={period}
-            />
-          ) : (
-            <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
-              <BarChart2 size={32} style={{ opacity: 0.3 }} />
-              <p style={{ fontSize: '0.82rem' }}>Belum ada data revenue</p>
-            </div>
-          )}
+          {/* Bar chart — selalu render, skeleton jika data kosong */}
+          <BarChartRevenue
+            data={chartData}
+            maxVal={maxRevenue}
+            period={period}
+          />
 
           {/* 4 KPI chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
@@ -590,13 +588,14 @@ function BarChartRevenue({ data, maxVal, period }) {
         }}>
           {data.map((d, i) => {
             const total = d.total || 0
-            const heightPct = total === 0 ? 3 : Math.max((total / yMax) * 100, 5)
+            const allZero = maxVal === 0
+            const heightPct = total === 0 ? (allZero ? 30 : 3) : Math.max((total / yMax) * 100, 5)
             const isBarHighest = maxVal > 0 && total === maxVal && total > 0
             const isSelected = selected === i
             const dimmed = selected !== null && !isSelected
 
             let barBg
-            if (total === 0) barBg = 'var(--surface)'
+            if (total === 0) barBg = allZero ? 'rgba(91,138,245,0.12)' : 'var(--surface)'
             else if (isSelected) barBg = '#7da4ff'
             else if (isBarHighest) barBg = '#fbbf24'
             else barBg = 'linear-gradient(180deg, #5b8af5 0%, #3d6de0 100%)'
