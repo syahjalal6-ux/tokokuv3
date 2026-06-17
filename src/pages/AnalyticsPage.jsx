@@ -2,8 +2,7 @@ import React, { useEffect, useState, useMemo, useRef } from 'react'
 import {
   TrendingUp, Package, ShoppingBag, DollarSign,
   BarChart2, Award, RefreshCw, Download, Zap,
-  ChevronLeft, ChevronRight, Sparkles, Send,
-  Trash2, Bot, User, Loader
+  Sparkles, Send, Trash2, Bot, User, Loader
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
@@ -75,6 +74,61 @@ ATURAN WAJIB:
 7. Kalau ditanya di luar konteks bisnis/toko, tolak dengan santai dan arahkan balik ke topik toko.`
 }
 
+// ============ UTILS ============
+function groupByWeek(revenueHarian = []) {
+  if (!revenueHarian.length) return []
+  const weeks = {}
+  revenueHarian.forEach(d => {
+    const dateStr = d.date || d.label
+    const date = new Date(dateStr)
+    if (isNaN(date)) return
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const weekOfMonth = Math.ceil(date.getDate() / 7)
+    const key = `${year}-${month}-W${weekOfMonth}`
+    if (!weeks[key]) {
+      weeks[key] = { label: `W${weekOfMonth}`, total: 0, key }
+    }
+    weeks[key].total += d.total || 0
+  })
+  return Object.values(weeks)
+}
+
+function shortenMonthLabel(label = '') {
+  const monthMap = {
+    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr',
+    may: 'Mei', june: 'Jun', july: 'Jul', august: 'Agu',
+    september: 'Sep', october: 'Okt', november: 'Nov', december: 'Des',
+    jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr',
+    mei: 'Mei', jun: 'Jun', jul: 'Jul', agu: 'Agu',
+    sep: 'Sep', okt: 'Okt', nov: 'Nov', des: 'Des',
+  }
+  const isoMatch = label.match(/^(\d{4})-(\d{2})/)
+  if (isoMatch) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    return months[parseInt(isoMatch[2]) - 1] || label
+  }
+  const word = label.split(/[\s,]/)[0].toLowerCase()
+  return monthMap[word] || label.slice(0, 3)
+}
+
+function shortRupiah(value) {
+  if (!value || value <= 0) return 'Rp 0'
+  if (value >= 1000000) { const v = value / 1000000; return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}jt` }
+  if (value >= 1000) { const v = value / 1000; return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}rb` }
+  return `Rp ${Math.round(value)}`
+}
+
+const STATUS_PESANAN = [
+  { key: 'pesananPending', label: 'Menunggu', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)' },
+  { key: 'pesananConfirmed', label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)', border: 'rgba(91,138,245,0.18)' },
+  { key: 'pesananProcessing', label: 'Diproses', color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
+  { key: 'pesananShipped', label: 'Dikirim', color: '#38bdf8', bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.18)' },
+  { key: 'pesananSelesai', label: 'Selesai', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.18)' },
+  { key: 'pesananCancelled', label: 'Dibatalkan', color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
+]
+
+// ============ PAGE ENTRY ============
 export default function AnalyticsPage() {
   const { user, tokenSupabase, tokenGas, isLoading, updateUser } = useAuthStore()
   const tokenObj = { tokenSupabase, tokenGas }
@@ -93,6 +147,7 @@ export default function AnalyticsPage() {
   return <AnalyticsDashboard tokenObj={tokenObj} />
 }
 
+// ============ GATE ============
 function AnalyticsGate() {
   return (
     <DashboardLayout title="Analytics">
@@ -135,6 +190,7 @@ function AnalyticsGate() {
   )
 }
 
+// ============ DASHBOARD ============
 function AnalyticsDashboard({ tokenObj }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -219,60 +275,7 @@ function AnalyticsDashboard({ tokenObj }) {
   )
 }
 
-function groupByWeek(revenueHarian = []) {
-  if (!revenueHarian.length) return []
-  const weeks = {}
-  revenueHarian.forEach(d => {
-    const dateStr = d.date || d.label
-    const date = new Date(dateStr)
-    if (isNaN(date)) return
-    const year = date.getFullYear()
-    const month = date.getMonth()
-    const weekOfMonth = Math.ceil(date.getDate() / 7)
-    const key = `${year}-${month}-W${weekOfMonth}`
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-    if (!weeks[key]) {
-      weeks[key] = { label: `W${weekOfMonth} ${monthNames[month]}`, total: 0, key }
-    }
-    weeks[key].total += d.total || 0
-  })
-  return Object.values(weeks)
-}
-
-function shortenMonthLabel(label = '') {
-  const monthMap = {
-    january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr',
-    may: 'Mei', june: 'Jun', july: 'Jul', august: 'Agu',
-    september: 'Sep', october: 'Okt', november: 'Nov', december: 'Des',
-    jan: 'Jan', feb: 'Feb', mar: 'Mar', apr: 'Apr',
-    mei: 'Mei', jun: 'Jun', jul: 'Jul', agu: 'Agu',
-    sep: 'Sep', okt: 'Okt', nov: 'Nov', des: 'Des',
-  }
-  const isoMatch = label.match(/^(\d{4})-(\d{2})/)
-  if (isoMatch) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-    return months[parseInt(isoMatch[2]) - 1] || label
-  }
-  const word = label.split(/[\s,]/)[0].toLowerCase()
-  return monthMap[word] || label.slice(0, 3)
-}
-
-const STATUS_PESANAN = [
-  { key: 'pesananPending', label: 'Menunggu', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)' },
-  { key: 'pesananConfirmed', label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)', border: 'rgba(91,138,245,0.18)' },
-  { key: 'pesananProcessing', label: 'Diproses', color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
-  { key: 'pesananShipped', label: 'Dikirim', color: '#38bdf8', bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.18)' },
-  { key: 'pesananSelesai', label: 'Selesai', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.18)' },
-  { key: 'pesananCancelled', label: 'Dibatalkan', color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
-]
-
-function shortRupiah(value) {
-  if (!value || value <= 0) return 'Rp 0'
-  if (value >= 1000000) { const v = value / 1000000; return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}jt` }
-  if (value >= 1000) { const v = value / 1000; return `Rp ${v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)}rb` }
-  return `Rp ${Math.round(value)}`
-}
-
+// ============ CONTENT ============
 function AnalyticsContent({ data, period, setPeriod }) {
   const {
     totalProduk = 0, produkAktif = 0,
@@ -284,42 +287,28 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
 
-  const rawChartData = useMemo(() => {
+  // Build chart data — weekly: W1-W4 dari revenueHarian | bulanan: Jan-Des dari revenueBulanan
+  const chartData = useMemo(() => {
     if (period === 'minggu') {
       const grouped = groupByWeek(revenueHarian)
       if (grouped.length > 0) return grouped
+      // fallback: chunk per 7 hari
       const result = []
       for (let i = 0; i < revenueHarian.length; i += 7) {
         const chunk = revenueHarian.slice(i, i + 7)
         const total = chunk.reduce((s, d) => s + (d.total || 0), 0)
-        result.push({ label: chunk[0]?.label || `W${result.length + 1}`, total })
+        result.push({ label: `W${result.length + 1}`, total })
       }
       return result
     }
+    // bulanan: semua bulan Jan-Des
     return (revenueBulanan || []).map(d => ({ ...d, label: shortenMonthLabel(d.label) }))
   }, [period, revenueHarian, revenueBulanan])
 
-  // 4 minggu untuk weekly, 6 bulan untuk bulanan
-  const WINDOW = period === 'minggu' ? 4 : 6
-  const [offset, setOffset] = useState(0)
-  useEffect(() => { setOffset(0) }, [period])
-
-  const totalItems = rawChartData.length
-  const maxOffset = Math.max(0, totalItems - WINDOW)
-
-  const chartData = useMemo(() => {
-    const start = Math.max(0, totalItems - WINDOW - offset)
-    const end = totalItems - offset
-    return rawChartData.slice(start, end)
-  }, [rawChartData, offset, WINDOW, totalItems])
-
   const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.total || 0)) : 0
-  const canGoBack = offset < maxOffset
-  const canGoForward = offset > 0
-  const periodLabel = period === 'minggu' ? '4 minggu terakhir' : '6 bulan terakhir'
-
   const totalPeriode = useMemo(() => chartData.reduce((s, d) => s + (d.total || 0), 0), [chartData])
-  const rataRata = chartData.length > 0 ? totalPeriode / chartData.length : 0
+  const nonZero = chartData.filter(d => d.total > 0)
+  const rataRata = nonZero.length ? totalPeriode / nonZero.length : 0
 
   const pctChange = useMemo(() => {
     if (period !== 'minggu') {
@@ -333,12 +322,12 @@ function AnalyticsContent({ data, period, setPeriod }) {
     return Math.round(((revenueMingguIni - revenueMingguLalu) / revenueMingguLalu) * 100)
   }, [period, revenueMingguIni, revenueMingguLalu, revenueBulanan])
 
-  const pctLabel = period === 'minggu' ? 'vs minggu lalu' : 'vs bulan lalu'
-
   const revenueUtama = useMemo(() => {
     if (period === 'minggu') return revenueMingguIni
     return revenueBulanan.length > 0 ? revenueBulanan[revenueBulanan.length - 1]?.total || 0 : 0
   }, [period, revenueMingguIni, revenueBulanan])
+
+  const periodLabel = period === 'minggu' ? '4 minggu terakhir' : 'tahun ini'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -369,20 +358,11 @@ function AnalyticsContent({ data, period, setPeriod }) {
           flex-direction: column;
           gap: 20px;
         }
-        .revenue-bar-chart {
-          width: 100%;
-          height: 140px;
-        }
-        @media (max-width: 640px) {
-          .revenue-bar-chart {
-            height: 110px;
-          }
-        }
       `}</style>
 
       <div className="analytics-3col">
 
-        {/* Kolom 1: Revenue card — Opsi B */}
+        {/* Kolom 1: Revenue card */}
         <div className="glass-card" style={{ padding: '20px' }}>
 
           {/* Header: label + toggle */}
@@ -390,13 +370,15 @@ function AnalyticsContent({ data, period, setPeriod }) {
             <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Revenue
             </p>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--surface)', borderRadius: 'var(--radius-full)', padding: 3 }}>
               {[{ key: 'minggu', label: 'Min' }, { key: 'bulan', label: 'Bln' }].map(p => (
                 <button key={p.key} onClick={() => setPeriod(p.key)} className="btn btn-sm" style={{
-                  borderRadius: 'var(--radius-full)', fontSize: '0.7rem', padding: '3px 10px',
-                  background: period === p.key ? 'var(--surface-active)' : 'var(--surface)',
-                  color: period === p.key ? 'var(--text-primary)' : 'var(--text-tertiary)',
-                  border: `1px solid ${period === p.key ? 'var(--glass-border-hover)' : 'var(--glass-border)'}`,
+                  borderRadius: 'var(--radius-full)', fontSize: '0.7rem', padding: '4px 12px',
+                  background: period === p.key ? 'var(--accent)' : 'transparent',
+                  color: period === p.key ? '#fff' : 'var(--text-tertiary)',
+                  border: 'none',
+                  boxShadow: period === p.key ? '0 2px 8px rgba(91,138,245,0.4)' : 'none',
+                  transition: 'all 0.2s',
                 }}>
                   {p.label}
                 </button>
@@ -405,7 +387,7 @@ function AnalyticsContent({ data, period, setPeriod }) {
           </div>
 
           {/* Revenue amount + badge */}
-          <div style={{ marginBottom: 12 }}>
+          <div style={{ marginBottom: 14 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.1 }}>
               {formatRupiah(revenueUtama)}
             </h3>
@@ -427,18 +409,11 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
           {/* Bar chart */}
           {chartData.length > 0 ? (
-            <>
-              <BarChartRevenue
-                data={chartData}
-                maxVal={maxRevenue}
-                canGoBack={canGoBack}
-                canGoForward={canGoForward}
-                onBack={() => setOffset(o => Math.min(o + 1, maxOffset))}
-                onForward={() => setOffset(o => Math.max(o - 1, 0))}
-                totalItems={totalItems}
-                WINDOW={WINDOW}
-              />
-            </>
+            <BarChartRevenue
+              data={chartData}
+              maxVal={maxRevenue}
+              period={period}
+            />
           ) : (
             <div style={{ height: 140, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', flexDirection: 'column', gap: 8 }}>
               <BarChart2 size={32} style={{ opacity: 0.3 }} />
@@ -539,110 +514,174 @@ function AnalyticsContent({ data, period, setPeriod }) {
   )
 }
 
-// ============ BAR CHART REVENUE (Opsi B) ============
-function BarChartRevenue({ data, maxVal, canGoBack, canGoForward, onBack, onForward, totalItems, WINDOW }) {
+// ============ BAR CHART REVENUE — NEW ============
+function BarChartRevenue({ data, maxVal, period }) {
   const [selected, setSelected] = useState(null)
-  useEffect(() => { setSelected(null) }, [data])
+  const scrollRef = useRef(null)
+  const isDragging = useRef(false)
+  const dragStartX = useRef(0)
+  const dragScrollLeft = useRef(0)
+
+  useEffect(() => { setSelected(null) }, [period])
 
   if (!data || data.length === 0) return null
 
-  const yMax = maxVal > 0 ? maxVal * 1.15 : 1
-  const BAR_COLOR = '#5b8af5'
-  const HIGHLIGHT_COLOR = '#fbbf24'
+  const isMonthly = period === 'bulan'
+  const BAR_W = 32
+  const BAR_GAP = 10
+  const CHART_H = 130
+  const yMax = maxVal > 0 ? maxVal * 1.1 : 1
 
   const selectedItem = selected !== null ? data[selected] : null
   const isHighestSelected = selectedItem && maxVal > 0 && (selectedItem.total || 0) === maxVal && maxVal > 0
 
+  const handleMouseDown = (e) => {
+    if (!isMonthly) return
+    isDragging.current = false
+    dragStartX.current = e.pageX
+    dragScrollLeft.current = scrollRef.current.scrollLeft
+    const onMove = (ev) => {
+      const diff = ev.pageX - dragStartX.current
+      if (Math.abs(diff) > 4) isDragging.current = true
+      scrollRef.current.scrollLeft = dragScrollLeft.current - diff
+    }
+    const onUp = () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
+
+  const handleTouchStart = (e) => {
+    if (!isMonthly) return
+    dragStartX.current = e.touches[0].pageX
+    dragScrollLeft.current = scrollRef.current.scrollLeft
+  }
+  const handleTouchMove = (e) => {
+    if (!isMonthly) return
+    const diff = e.touches[0].pageX - dragStartX.current
+    scrollRef.current.scrollLeft = dragScrollLeft.current - diff
+  }
+
   return (
     <div>
-      {/* Nav header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <span style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>
-          {data[0]?.label} – {data[data.length - 1]?.label}
-        </span>
-        {totalItems > WINDOW && (
-          <div style={{ display: 'flex', gap: 4 }}>
-            <button onClick={onBack} disabled={!canGoBack} style={{
-              width: 24, height: 24, borderRadius: 'var(--radius-md)',
-              background: 'var(--surface)', border: '1px solid var(--glass-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: canGoBack ? 'pointer' : 'not-allowed', opacity: canGoBack ? 1 : 0.3,
-              color: 'var(--text-secondary)',
-            }}>
-              <ChevronLeft size={12} />
-            </button>
-            <button onClick={onForward} disabled={!canGoForward} style={{
-              width: 24, height: 24, borderRadius: 'var(--radius-md)',
-              background: 'var(--surface)', border: '1px solid var(--glass-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: canGoForward ? 'pointer' : 'not-allowed', opacity: canGoForward ? 1 : 0.3,
-              color: 'var(--text-secondary)',
-            }}>
-              <ChevronRight size={12} />
-            </button>
-          </div>
-        )}
+      {/* Scrollable bar wrapper */}
+      <div
+        ref={scrollRef}
+        onMouseDown={handleMouseDown}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        style={{
+          overflowX: isMonthly ? 'auto' : 'hidden',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+          cursor: isMonthly ? 'grab' : 'default',
+        }}
+      >
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: isMonthly ? BAR_GAP : 10,
+          height: CHART_H,
+          width: isMonthly ? `${data.length * (BAR_W + BAR_GAP)}px` : '100%',
+          minWidth: '100%',
+          paddingTop: 8,
+        }}>
+          {data.map((d, i) => {
+            const total = d.total || 0
+            const heightPct = total === 0 ? 3 : Math.max((total / yMax) * 100, 5)
+            const isBarHighest = maxVal > 0 && total === maxVal && total > 0
+            const isSelected = selected === i
+            const dimmed = selected !== null && !isSelected
+
+            let barBg
+            if (total === 0) barBg = 'var(--surface)'
+            else if (isSelected) barBg = '#7da4ff'
+            else if (isBarHighest) barBg = '#fbbf24'
+            else barBg = 'linear-gradient(180deg, #5b8af5 0%, #3d6de0 100%)'
+
+            return (
+              <div
+                key={i}
+                onClick={() => {
+                  if (isDragging.current) return
+                  setSelected(selected === i ? null : i)
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: 7,
+                  flex: isMonthly ? 'none' : 1,
+                  width: isMonthly ? BAR_W : undefined,
+                  height: '100%',
+                  cursor: 'pointer',
+                  opacity: dimmed ? 0.3 : 1,
+                  transition: 'opacity 0.15s',
+                }}
+              >
+                <div style={{
+                  width: isMonthly ? BAR_W : '100%',
+                  maxWidth: isMonthly ? BAR_W : 44,
+                  height: `${heightPct}%`,
+                  minHeight: 3,
+                  borderRadius: '5px 5px 3px 3px',
+                  background: barBg,
+                  transition: 'height 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                  boxShadow: isSelected
+                    ? '0 0 12px rgba(125,164,255,0.5)'
+                    : isBarHighest
+                      ? '0 0 10px rgba(251,191,36,0.3)'
+                      : 'none',
+                  position: 'relative',
+                }}>
+                  {isSelected && (
+                    <div style={{
+                      position: 'absolute', top: -5, left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 7, height: 7, borderRadius: '50%',
+                      background: '#7da4ff',
+                      boxShadow: '0 0 6px rgba(125,164,255,0.8)',
+                    }} />
+                  )}
+                </div>
+                <span style={{
+                  fontSize: isMonthly ? 9 : 11,
+                  color: isSelected ? 'var(--text-primary)' : isBarHighest ? '#fbbf24' : 'var(--text-tertiary)',
+                  fontWeight: isSelected || isBarHighest ? 700 : 500,
+                  userSelect: 'none',
+                }}>
+                  {d.label}
+                </span>
+              </div>
+            )
+          })}
+        </div>
       </div>
 
-      {/* SVG bar chart */}
-      <svg
-        viewBox="0 0 320 110"
-        className="revenue-bar-chart"
-        style={{ display: 'block', overflow: 'visible' }}
-      >
-        {data.map((d, i) => {
-          const n = data.length
-          const barW = Math.max(20, Math.floor(260 / n) - 8)
-          const gap = Math.floor(260 / n)
-          const x = 30 + i * gap + (gap - barW) / 2
-          const barMaxH = 70
-          const total = d.total || 0
-          const barH = yMax > 0 ? Math.max(total > 0 ? 4 : 0, (total / yMax) * barMaxH) : 0
-          const y = 10 + barMaxH - barH
-          const isHighest = maxVal > 0 && total === maxVal && total > 0
-          const isSelected = selected === i
-          const color = isHighest ? HIGHLIGHT_COLOR : BAR_COLOR
-          const opacity = selected !== null && !isSelected ? 0.4 : 1
-
-          return (
-            <g key={i} style={{ cursor: 'pointer' }} onClick={() => setSelected(prev => prev === i ? null : i)}>
-              {/* Hit area */}
-              <rect x={x - 4} y={8} width={barW + 8} height={80} fill="transparent" />
-              {/* Bar */}
-              <rect
-                x={x} y={y}
-                width={barW} height={barH}
-                rx={3}
-                fill={color}
-                opacity={opacity}
-                style={{ transition: 'opacity 0.15s' }}
-              />
-              {/* Selected indicator dot */}
-              {isSelected && (
-                <circle cx={x + barW / 2} cy={y - 5} r={3} fill={color} />
-              )}
-              {/* Label */}
-              <text
-                x={x + barW / 2} y={98}
-                textAnchor="middle"
-                fontSize={9}
-                fill={isSelected ? 'var(--text-primary)' : 'var(--text-tertiary)'}
-                fontWeight={isSelected ? 700 : 400}
-              >
-                {d.label}
-              </text>
-            </g>
-          )
-        })}
-      </svg>
+      {/* Scroll hint dots — monthly only */}
+      {isMonthly && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginTop: 8 }}>
+          {data.map((_, i) => (
+            <div key={i} style={{
+              width: selected === i ? 14 : 4,
+              height: 3, borderRadius: 3,
+              background: selected === i ? 'var(--accent)' : 'var(--surface)',
+              transition: 'width 0.2s, background 0.2s',
+            }} />
+          ))}
+        </div>
+      )}
 
       {/* Tooltip */}
       <div style={{
         overflow: 'hidden',
-        maxHeight: selectedItem ? 60 : 0,
+        maxHeight: selectedItem ? 64 : 0,
         opacity: selectedItem ? 1 : 0,
         transition: 'max-height 0.2s ease, opacity 0.15s ease',
-        marginTop: 6,
+        marginTop: 10,
       }}>
         {selectedItem && (
           <div style={{
@@ -654,7 +693,7 @@ function BarChartRevenue({ data, maxVal, canGoBack, canGoForward, onBack, onForw
           }}>
             <div>
               <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                {selectedItem.label}
+                {isMonthly ? selectedItem.label : `Minggu ${selectedItem.label}`}
               </p>
               <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.95rem', color: isHighestSelected ? '#fbbf24' : 'var(--text-primary)' }}>
                 {formatRupiah(selectedItem.total || 0)}
@@ -669,9 +708,11 @@ function BarChartRevenue({ data, maxVal, canGoBack, canGoForward, onBack, onForw
               }}>Tertinggi</span>
             ) : maxVal > 0 && (selectedItem.total || 0) > 0 ? (
               <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
-                {Math.round((selectedItem.total / maxVal) * 100)}% dari tertinggi
+                {Math.round(((selectedItem.total || 0) / maxVal) * 100)}% dari tertinggi
               </p>
-            ) : null}
+            ) : (
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Belum ada transaksi</p>
+            )}
           </div>
         )}
       </div>
@@ -737,7 +778,6 @@ function AIInsightCard({ data }) {
           {loading ? 'Menganalisis...' : 'Refresh'}
         </button>
       </div>
-
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[80, 60, 70].map((w, i) => (
@@ -773,12 +813,10 @@ function AIChatCard({ data }) {
   const handleSend = async () => {
     const text = input.trim()
     if (!text || loading) return
-
     const newMessages = [...messages, { role: 'user', content: text }]
     setMessages(newMessages)
     setInput('')
     setLoading(true)
-
     try {
       const systemPrompt = buildSystemPrompt(data)
       const groqMessages = [
@@ -901,7 +939,10 @@ function AIChatCard({ data }) {
             transition: 'all var(--transition-fast)',
           }}
         >
-          {loading ? <Loader size={14} color="var(--text-tertiary)" style={{ animation: 'spin 0.7s linear infinite' }} /> : <Send size={14} color={input.trim() ? '#fff' : 'var(--text-tertiary)'} />}
+          {loading
+            ? <Loader size={14} color="var(--text-tertiary)" style={{ animation: 'spin 0.7s linear infinite' }} />
+            : <Send size={14} color={input.trim() ? '#fff' : 'var(--text-tertiary)'} />
+          }
         </button>
       </div>
       <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: 8, textAlign: 'center' }}>
@@ -925,6 +966,7 @@ function SummaryChip({ label, value, color }) {
   )
 }
 
+// ============ KPI CARD ============
 function KpiCard({ label, value, icon, color, sub }) {
   return (
     <div className="glass-card" style={{ padding: '14px 16px' }}>
@@ -938,6 +980,7 @@ function KpiCard({ label, value, icon, color, sub }) {
   )
 }
 
+// ============ SKELETON ============
 function AnalyticsSkeleton() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
