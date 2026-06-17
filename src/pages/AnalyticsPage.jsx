@@ -562,15 +562,16 @@ function BarChartRevenue({ data, maxVal, period }) {
   }
 
   return (
-    <div style={{ width: '100%' }}>
-      {/* Scrollable bars */}
+    <div style={{ width: '100%', overflow: 'hidden' }}>
+      {/* Scrollable bars — overflow hidden di luar biar card gak melebar */}
       <div
         ref={scrollRef}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         style={{
-          overflowX: isMonthly ? 'auto' : 'hidden',
+          overflowX: isMonthly ? 'scroll' : 'hidden',
+          overflowY: 'visible',
           width: '100%',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
@@ -583,7 +584,7 @@ function BarChartRevenue({ data, maxVal, period }) {
           alignItems: 'flex-end',
           gap: BAR_GAP,
           height: CHART_H,
-          width: isMonthly ? `${data.length * (BAR_W + BAR_GAP)}px` : '100%',
+          width: isMonthly ? `${data.length * (BAR_W + BAR_GAP) + 8}px` : '100%',
           paddingTop: 8,
           boxSizing: 'border-box',
         }}>
