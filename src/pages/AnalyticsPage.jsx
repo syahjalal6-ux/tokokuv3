@@ -571,6 +571,7 @@ function BarChartRevenue({ data, maxVal, period }) {
         onTouchMove={handleTouchMove}
         style={{
           overflowX: isMonthly ? 'auto' : 'hidden',
+          width: '100%',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
@@ -583,7 +584,6 @@ function BarChartRevenue({ data, maxVal, period }) {
           gap: BAR_GAP,
           height: CHART_H,
           width: isMonthly ? `${data.length * (BAR_W + BAR_GAP)}px` : '100%',
-          minWidth: '100%',
           paddingTop: 8,
           boxSizing: 'border-box',
         }}>
