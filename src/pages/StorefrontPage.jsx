@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck } from 'lucide-react'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi } from '../lib/api/index.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
@@ -68,6 +68,333 @@ async function fetchTracking(resi) {
   TRACKING_CACHE[key] = { data, ts: now }
 
   return data
+}
+
+// =============================================
+// BITESHIP ONGKIR
+// =============================================
+const ONGKIR_CACHE = {}
+
+async function fetchOngkir({ originAreaId, destinationAreaId, weight }) {
+  const key = `${originAreaId}-${destinationAreaId}-${weight}`
+  const now = Date.now()
+
+  if (ONGKIR_CACHE[key] && now - ONGKIR_CACHE[key].ts < CACHE_TTL) {
+    return ONGKIR_CACHE[key].data
+  }
+
+  const res = await fetch('https://api.biteship.com/v1/rates/couriers', {
+    method: 'POST',
+    headers: {
+      'Authorization': CONFIG.BITESHIP_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      origin_area_id: originAreaId,
+      destination_area_id: destinationAreaId,
+      couriers: 'jne,jnt,sicepat,anteraja,lion,ninja,tiki,pos,grab,gosend',
+      items: [{ name: 'Produk', description: '', value: 10000, length: 10, width: 10, height: 10, weight }],
+    }),
+  })
+  if (!res.ok) throw new Error('Gagal mengambil data ongkir')
+  const data = await res.json()
+  if (!data.success) throw new Error(data.error || 'Gagal menghitung ongkir')
+
+  ONGKIR_CACHE[key] = { data, ts: now }
+  return data
+}
+
+async function searchArea(query) {
+  if (!query || query.length < 3) return []
+  const res = await fetch(`https://api.biteship.com/v1/maps/areas?countries=ID&input=${encodeURIComponent(query)}&type=single`, {
+    headers: {
+      'Authorization': CONFIG.BITESHIP_KEY,
+      'Content-Type': 'application/json',
+    },
+  })
+  if (!res.ok) return []
+  const data = await res.json()
+  return data.areas || []
+}
+
+function OngkirModal({ onClose, toko }) {
+  const [destination, setDestination] = useState('')
+  const [destinationAreaId, setDestinationAreaId] = useState(null)
+  const [destinationLabel, setDestinationLabel] = useState('')
+  const [weight, setWeight] = useState(1000)
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+  const [error, setError] = useState(null)
+  const [areaOptions, setAreaOptions] = useState([])
+  const [searchingArea, setSearchingArea] = useState(false)
+  const searchTimeout = useRef(null)
+
+  const isMobile = window.innerWidth < 640
+
+  const handleDestinationInput = (val) => {
+    setDestination(val)
+    setDestinationAreaId(null)
+    setDestinationLabel('')
+    setAreaOptions([])
+    setResult(null)
+    setError(null)
+
+    clearTimeout(searchTimeout.current)
+    if (val.length >= 3) {
+      setSearchingArea(true)
+      searchTimeout.current = setTimeout(async () => {
+        const areas = await searchArea(val)
+        setAreaOptions(areas)
+        setSearchingArea(false)
+      }, 400)
+    }
+  }
+
+  const selectArea = (area) => {
+    setDestinationAreaId(area.id)
+    setDestinationLabel(area.name)
+    setDestination(area.name)
+    setAreaOptions([])
+  }
+
+  const handleCek = async () => {
+    if (!destinationAreaId) {
+      setError('Pilih kota/kecamatan tujuan dari daftar')
+      return
+    }
+    if (!toko?.biteship_area_id) {
+      setError('Data lokasi toko belum diatur oleh penjual')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    setResult(null)
+    try {
+      const data = await fetchOngkir({
+        originAreaId: toko.biteship_area_id,
+        destinationAreaId,
+        weight,
+      })
+      setResult(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const pricings = result?.pricing || []
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 700,
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
+        display: 'flex',
+        alignItems: isMobile ? 'flex-end' : 'center',
+        justifyContent: 'center',
+        animation: 'fadeIn 0.2s ease',
+        padding: isMobile ? 0 : 24,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%',
+          maxWidth: isMobile ? '100%' : 480,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)',
+          maxHeight: isMobile ? '92vh' : '80vh',
+          overflow: 'auto',
+          animation: isMobile ? 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'fadeIn 0.25s ease',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          padding: '16px 20px',
+          borderBottom: '1px solid var(--glass-border)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          position: 'sticky', top: 0, background: 'var(--bg-secondary)', zIndex: 1,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <MapPin size={18} color="var(--accent)" />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem' }}>Estimasi Ongkir</span>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+        </div>
+
+        <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Origin (read-only) */}
+          <div>
+            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'block' }}>Dikirim dari</label>
+            <div style={{
+              padding: '9px 12px',
+              background: 'var(--surface)',
+              border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-md)',
+              fontSize: '0.82rem',
+              color: toko?.kota ? 'var(--text-primary)' : 'var(--text-tertiary)',
+              display: 'flex', alignItems: 'center', gap: 7,
+            }}>
+              <Truck size={13} color="var(--text-tertiary)" />
+              {toko?.kota || 'Lokasi toko belum diatur'}
+            </div>
+          </div>
+
+          {/* Destination input */}
+          <div style={{ position: 'relative' }}>
+            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'block' }}>Kota/Kecamatan Tujuan</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                className="form-input"
+                placeholder="Contoh: Bandung, Cimahi, Depok..."
+                value={destination}
+                onChange={e => handleDestinationInput(e.target.value)}
+                style={{ fontSize: '0.875rem', paddingRight: searchingArea ? 36 : 12 }}
+              />
+              {searchingArea && (
+                <span className="spinner" style={{ width: 14, height: 14, position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }} />
+              )}
+            </div>
+
+            {areaOptions.length > 0 && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: 'var(--radius-md)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+                maxHeight: 200, overflowY: 'auto',
+                marginTop: 4,
+              }}>
+                {areaOptions.map(area => (
+                  <div
+                    key={area.id}
+                    onClick={() => selectArea(area)}
+                    style={{
+                      padding: '9px 12px',
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      borderBottom: '1px solid var(--glass-border)',
+                      transition: 'background 0.1s',
+                      color: 'var(--text-primary)',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <span style={{ fontWeight: 600 }}>{area.name}</span>
+                    {area.administrative_division_level_1_name && (
+                      <span style={{ color: 'var(--text-tertiary)', marginLeft: 6, fontSize: '0.75rem' }}>
+                        {area.administrative_division_level_1_name}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Berat */}
+          <div>
+            <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <Weight size={12} /> Berat Paket (gram)
+            </label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {[500, 1000, 2000, 5000].map(w => (
+                <button
+                  key={w}
+                  onClick={() => setWeight(w)}
+                  className="btn btn-sm"
+                  style={{
+                    background: weight === w ? 'var(--accent)' : 'var(--surface)',
+                    color: weight === w ? '#fff' : 'var(--text-secondary)',
+                    border: `1px solid ${weight === w ? 'var(--accent)' : 'var(--glass-border)'}`,
+                    borderRadius: 'var(--radius-full)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  {w >= 1000 ? `${w / 1000}kg` : `${w}g`}
+                </button>
+              ))}
+              <input
+                type="number"
+                className="form-input"
+                placeholder="Custom (g)"
+                value={weight}
+                onChange={e => setWeight(Number(e.target.value) || 1000)}
+                style={{ width: 90, fontSize: '0.8rem', padding: '5px 10px' }}
+              />
+            </div>
+          </div>
+
+          {/* Tombol Cek */}
+          <button
+            onClick={handleCek}
+            disabled={loading || !destinationAreaId}
+            className="btn btn-primary"
+            style={{ width: '100%', height: 42, fontSize: '0.875rem', fontWeight: 700 }}
+          >
+            {loading ? <span className="spinner" style={{ width: 16, height: 16 }} /> : 'Cek Ongkir'}
+          </button>
+
+          {/* Error */}
+          {error && (
+            <div style={{ padding: '10px 14px', background: 'var(--danger-bg)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--danger)' }}>
+              {error}
+            </div>
+          )}
+
+          {/* Hasil */}
+          {pricings.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {pricings.length} layanan tersedia
+              </p>
+              {pricings.map((item, i) => (
+                <div
+                  key={i}
+                  style={{
+                    padding: '11px 14px',
+                    background: 'var(--surface)',
+                    border: '1px solid var(--glass-border)',
+                    borderRadius: 'var(--radius-lg)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}
+                >
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 2 }}>
+                      {item.courier_name} — <span style={{ fontWeight: 500 }}>{item.courier_service_name}</span>
+                    </p>
+                    {item.duration && (
+                      <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>Estimasi {item.duration}</p>
+                    )}
+                  </div>
+                  <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--accent)', whiteSpace: 'nowrap' }}>
+                    {formatRupiah(item.price)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {result && pricings.length === 0 && !error && (
+            <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.82rem', padding: '12px 0' }}>
+              Tidak ada layanan kurir tersedia untuk rute ini
+            </p>
+          )}
+
+          {!result && !loading && !error && (
+            <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.82rem', padding: '12px 0' }}>
+              Pilih tujuan dan berat untuk melihat estimasi ongkir
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function TrackingModal({ onClose, initialResi = '' }) {
@@ -489,6 +816,7 @@ export default function StorefrontPage() {
   const [checkoutOpen, setCheckoutOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [trackingOpen, setTrackingOpen] = useState(false)
+  const [ongkirOpen, setOngkirOpen] = useState(false)
   const [initialResi, setInitialResi] = useState('')
 
   useEffect(() => {
@@ -651,6 +979,27 @@ export default function StorefrontPage() {
             </div>
             <span style={{ fontSize: '0.75rem', color: tema.accent, fontWeight: 700 }}>→</span>
           </div>
+
+          {/* Estimasi Ongkir bar */}
+          <div
+            onClick={() => setOngkirOpen(true)}
+            style={{
+              marginTop: 6, padding: '8px 12px',
+              background: 'var(--surface)', border: '1px solid var(--glass-border)',
+              borderRadius: 'var(--radius-md)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              cursor: 'pointer', transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'var(--surface)'}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+              <MapPin size={14} color={tema.accent} />
+              <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>Estimasi ongkir</span>
+            </div>
+            <span style={{ fontSize: '0.75rem', color: tema.accent, fontWeight: 700 }}>→</span>
+          </div>
+
         </div>
       </div>
 
@@ -731,6 +1080,13 @@ export default function StorefrontPage() {
         <TrackingModal
           onClose={() => { setTrackingOpen(false); setInitialResi('') }}
           initialResi={initialResi}
+        />
+      )}
+
+      {ongkirOpen && (
+        <OngkirModal
+          onClose={() => setOngkirOpen(false)}
+          toko={toko}
         />
       )}
 
