@@ -346,12 +346,12 @@ function AnalyticsContent({ data, period, setPeriod }) {
       <style>{`
         .analytics-3col {
           display: grid;
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
           gap: 20px;
         }
         @media (min-width: 1024px) {
           .analytics-3col {
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
             align-items: start;
           }
         }
@@ -359,13 +359,14 @@ function AnalyticsContent({ data, period, setPeriod }) {
           display: flex;
           flex-direction: column;
           gap: 20px;
+          min-width: 0;
         }
       `}</style>
 
       <div className="analytics-3col">
 
         {/* Kolom 1: Revenue card */}
-        <div className="glass-card" style={{ padding: '20px' }}>
+        <div className="glass-card" style={{ padding: '20px', minWidth: 0, overflow: 'hidden' }}>
 
           {/* Header: label + toggle */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
@@ -562,7 +563,7 @@ function BarChartRevenue({ data, maxVal, period }) {
   }
 
   return (
-    <div style={{ width: '100%', overflow: 'hidden' }}>
+    <div style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
       {/* Scrollable bars — overflow hidden di luar biar card gak melebar */}
       <div
         ref={scrollRef}
@@ -573,6 +574,7 @@ function BarChartRevenue({ data, maxVal, period }) {
           overflowX: isMonthly ? 'scroll' : 'hidden',
           overflowY: 'visible',
           width: '100%',
+          minWidth: 0,
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
