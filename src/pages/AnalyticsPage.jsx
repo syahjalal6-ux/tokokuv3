@@ -86,9 +86,7 @@ function groupByWeek(revenueHarian = []) {
     const month = date.getMonth()
     const weekOfMonth = Math.ceil(date.getDate() / 7)
     const key = `${year}-${month}-W${weekOfMonth}`
-    if (!weeks[key]) {
-      weeks[key] = { label: `W${weekOfMonth}`, total: 0, key }
-    }
+    if (!weeks[key]) weeks[key] = { label: `W${weekOfMonth}`, total: 0, key }
     weeks[key].total += d.total || 0
   })
   return Object.values(weeks)
@@ -105,7 +103,7 @@ function shortenMonthLabel(label = '') {
   }
   const isoMatch = label.match(/^(\d{4})-(\d{2})/)
   if (isoMatch) {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
+    const months = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
     return months[parseInt(isoMatch[2]) - 1] || label
   }
   const word = label.split(/[\s,]/)[0].toLowerCase()
@@ -119,13 +117,20 @@ function shortRupiah(value) {
   return `Rp ${Math.round(value)}`
 }
 
+const WEEKLY_SKELETON = [
+  { label: 'W1', total: 0 }, { label: 'W2', total: 0 },
+  { label: 'W3', total: 0 }, { label: 'W4', total: 0 },
+]
+const MONTHLY_SKELETON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des']
+  .map(label => ({ label, total: 0 }))
+
 const STATUS_PESANAN = [
-  { key: 'pesananPending', label: 'Menunggu', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.18)' },
-  { key: 'pesananConfirmed', label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)', border: 'rgba(91,138,245,0.18)' },
-  { key: 'pesananProcessing', label: 'Diproses', color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
-  { key: 'pesananShipped', label: 'Dikirim', color: '#38bdf8', bg: 'rgba(56,189,248,0.08)', border: 'rgba(56,189,248,0.18)' },
-  { key: 'pesananSelesai', label: 'Selesai', color: '#34d399', bg: 'rgba(52,211,153,0.08)', border: 'rgba(52,211,153,0.18)' },
-  { key: 'pesananCancelled', label: 'Dibatalkan', color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
+  { key: 'pesananPending',   label: 'Menunggu',     color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.18)' },
+  { key: 'pesananConfirmed', label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)',  border: 'rgba(91,138,245,0.18)' },
+  { key: 'pesananProcessing',label: 'Diproses',     color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
+  { key: 'pesananShipped',   label: 'Dikirim',      color: '#38bdf8', bg: 'rgba(56,189,248,0.08)',  border: 'rgba(56,189,248,0.18)' },
+  { key: 'pesananSelesai',   label: 'Selesai',      color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.18)' },
+  { key: 'pesananCancelled', label: 'Dibatalkan',   color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
 ]
 
 // ============ PAGE ENTRY ============
@@ -141,7 +146,6 @@ export default function AnalyticsPage() {
   }, [tokenSupabase, tokenGas])
 
   if (isLoading || checking) return null
-
   const pro = isPro(user)
   if (!pro) return <AnalyticsGate />
   return <AnalyticsDashboard tokenObj={tokenObj} />
@@ -287,13 +291,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
 
-  const WEEKLY_SKELETON = [
-    { label: "W1", total: 0 }, { label: "W2", total: 0 },
-    { label: "W3", total: 0 }, { label: "W4", total: 0 },
-  ]
-  const MONTHLY_SKELETON = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-    .map(label => ({ label, total: 0 }))
-
   const chartData = useMemo(() => {
     if (period === 'minggu') {
       const grouped = groupByWeek(revenueHarian)
@@ -310,7 +307,7 @@ function AnalyticsContent({ data, period, setPeriod }) {
     return bulanan.length > 0 ? bulanan : MONTHLY_SKELETON
   }, [period, revenueHarian, revenueBulanan])
 
-  const maxRevenue = chartData.length > 0 ? Math.max(...chartData.map(d => d.total || 0)) : 0
+  const maxRevenue = Math.max(...chartData.map(d => d.total || 0), 0)
   const totalPeriode = useMemo(() => chartData.reduce((s, d) => s + (d.total || 0), 0), [chartData])
   const nonZero = chartData.filter(d => d.total > 0)
   const rataRata = nonZero.length ? totalPeriode / nonZero.length : 0
@@ -413,11 +410,7 @@ function AnalyticsContent({ data, period, setPeriod }) {
           </div>
 
           {/* Bar chart — selalu render, skeleton jika data kosong */}
-          <BarChartRevenue
-            data={chartData}
-            maxVal={maxRevenue}
-            period={period}
-          />
+          <BarChartRevenue data={chartData} maxVal={maxRevenue} period={period} />
 
           {/* 4 KPI chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
@@ -512,7 +505,7 @@ function AnalyticsContent({ data, period, setPeriod }) {
   )
 }
 
-// ============ BAR CHART REVENUE — NEW ============
+// ============ BAR CHART REVENUE ============
 function BarChartRevenue({ data, maxVal, period }) {
   const [selected, setSelected] = useState(null)
   const scrollRef = useRef(null)
@@ -525,13 +518,16 @@ function BarChartRevenue({ data, maxVal, period }) {
   if (!data || data.length === 0) return null
 
   const isMonthly = period === 'bulan'
-  const BAR_W = 32
-  const BAR_GAP = 10
-  const CHART_H = 130
+  const allZero = maxVal === 0
   const yMax = maxVal > 0 ? maxVal * 1.1 : 1
 
+  // Mobile-friendly sizing
+  const BAR_W = isMonthly ? 28 : 0
+  const BAR_GAP = isMonthly ? 8 : 8
+  const CHART_H = 120
+
   const selectedItem = selected !== null ? data[selected] : null
-  const isHighestSelected = selectedItem && maxVal > 0 && (selectedItem.total || 0) === maxVal && maxVal > 0
+  const isHighestSelected = selectedItem && !allZero && (selectedItem.total || 0) === maxVal && maxVal > 0
 
   const handleMouseDown = (e) => {
     if (!isMonthly) return
@@ -553,18 +549,21 @@ function BarChartRevenue({ data, maxVal, period }) {
 
   const handleTouchStart = (e) => {
     if (!isMonthly) return
+    isDragging.current = false
     dragStartX.current = e.touches[0].pageX
     dragScrollLeft.current = scrollRef.current.scrollLeft
   }
+
   const handleTouchMove = (e) => {
     if (!isMonthly) return
     const diff = e.touches[0].pageX - dragStartX.current
+    if (Math.abs(diff) > 4) isDragging.current = true
     scrollRef.current.scrollLeft = dragScrollLeft.current - diff
   }
 
   return (
-    <div>
-      {/* Scrollable bar wrapper */}
+    <div style={{ width: '100%' }}>
+      {/* Scrollable bars */}
       <div
         ref={scrollRef}
         onMouseDown={handleMouseDown}
@@ -574,30 +573,33 @@ function BarChartRevenue({ data, maxVal, period }) {
           overflowX: isMonthly ? 'auto' : 'hidden',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
+          WebkitOverflowScrolling: 'touch',
           cursor: isMonthly ? 'grab' : 'default',
         }}
       >
         <div style={{
           display: 'flex',
           alignItems: 'flex-end',
-          gap: isMonthly ? BAR_GAP : 10,
+          gap: BAR_GAP,
           height: CHART_H,
           width: isMonthly ? `${data.length * (BAR_W + BAR_GAP)}px` : '100%',
           minWidth: '100%',
           paddingTop: 8,
+          boxSizing: 'border-box',
         }}>
           {data.map((d, i) => {
             const total = d.total || 0
-            const allZero = maxVal === 0
-            const heightPct = total === 0 ? (allZero ? 30 : 3) : Math.max((total / yMax) * 100, 5)
-            const isBarHighest = maxVal > 0 && total === maxVal && total > 0
+            const heightPct = total === 0
+              ? (allZero ? 35 : 4)
+              : Math.max((total / yMax) * 100, 6)
+            const isBarHighest = !allZero && total === maxVal && total > 0
             const isSelected = selected === i
             const dimmed = selected !== null && !isSelected
 
             let barBg
-            if (total === 0) barBg = allZero ? 'rgba(91,138,245,0.12)' : 'var(--surface)'
-            else if (isSelected) barBg = '#7da4ff'
-            else if (isBarHighest) barBg = '#fbbf24'
+            if (isSelected) barBg = '#7da4ff'
+            else if (total === 0) barBg = allZero ? 'rgba(91,138,245,0.15)' : 'rgba(255,255,255,0.06)'
+            else if (isBarHighest) barBg = 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
             else barBg = 'linear-gradient(180deg, #5b8af5 0%, #3d6de0 100%)'
 
             return (
@@ -612,27 +614,28 @@ function BarChartRevenue({ data, maxVal, period }) {
                   flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'flex-end',
-                  gap: 7,
+                  gap: 6,
                   flex: isMonthly ? 'none' : 1,
                   width: isMonthly ? BAR_W : undefined,
                   height: '100%',
                   cursor: 'pointer',
-                  opacity: dimmed ? 0.3 : 1,
+                  opacity: dimmed ? 0.25 : 1,
                   transition: 'opacity 0.15s',
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <div style={{
                   width: isMonthly ? BAR_W : '100%',
-                  maxWidth: isMonthly ? BAR_W : 44,
+                  maxWidth: isMonthly ? BAR_W : 40,
                   height: `${heightPct}%`,
                   minHeight: 3,
-                  borderRadius: '5px 5px 3px 3px',
+                  borderRadius: '4px 4px 2px 2px',
                   background: barBg,
-                  transition: 'height 0.3s cubic-bezier(0.34,1.56,0.64,1)',
+                  transition: 'height 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.2s',
                   boxShadow: isSelected
-                    ? '0 0 12px rgba(125,164,255,0.5)'
+                    ? '0 0 10px rgba(125,164,255,0.5)'
                     : isBarHighest
-                      ? '0 0 10px rgba(251,191,36,0.3)'
+                      ? '0 0 8px rgba(251,191,36,0.35)'
                       : 'none',
                   position: 'relative',
                 }}>
@@ -640,17 +643,23 @@ function BarChartRevenue({ data, maxVal, period }) {
                     <div style={{
                       position: 'absolute', top: -5, left: '50%',
                       transform: 'translateX(-50%)',
-                      width: 7, height: 7, borderRadius: '50%',
+                      width: 6, height: 6, borderRadius: '50%',
                       background: '#7da4ff',
-                      boxShadow: '0 0 6px rgba(125,164,255,0.8)',
+                      boxShadow: '0 0 5px rgba(125,164,255,0.9)',
                     }} />
                   )}
                 </div>
                 <span style={{
-                  fontSize: isMonthly ? 9 : 11,
-                  color: isSelected ? 'var(--text-primary)' : isBarHighest ? '#fbbf24' : 'var(--text-tertiary)',
-                  fontWeight: isSelected || isBarHighest ? 700 : 500,
+                  fontSize: isMonthly ? 8 : 10,
+                  lineHeight: 1,
+                  color: isSelected
+                    ? 'var(--text-primary)'
+                    : isBarHighest
+                      ? '#fbbf24'
+                      : 'var(--text-tertiary)',
+                  fontWeight: isSelected || isBarHighest ? 700 : 400,
                   userSelect: 'none',
+                  letterSpacing: 0.2,
                 }}>
                   {d.label}
                 </span>
@@ -660,57 +669,66 @@ function BarChartRevenue({ data, maxVal, period }) {
         </div>
       </div>
 
-      {/* Scroll hint dots — monthly only */}
+      {/* Scroll dots — monthly only */}
       {isMonthly && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginTop: 8 }}>
           {data.map((_, i) => (
             <div key={i} style={{
-              width: selected === i ? 14 : 4,
+              width: selected === i ? 12 : 3,
               height: 3, borderRadius: 3,
               background: selected === i ? 'var(--accent)' : 'var(--surface)',
-              transition: 'width 0.2s, background 0.2s',
+              transition: 'width 0.2s',
             }} />
           ))}
         </div>
       )}
 
-      {/* Tooltip */}
+      {/* Tooltip slide bawah */}
       <div style={{
         overflow: 'hidden',
-        maxHeight: selectedItem ? 64 : 0,
+        maxHeight: selectedItem ? 72 : 0,
         opacity: selectedItem ? 1 : 0,
-        transition: 'max-height 0.2s ease, opacity 0.15s ease',
-        marginTop: 10,
+        transition: 'max-height 0.25s ease, opacity 0.2s ease',
+        marginTop: selectedItem ? 10 : 0,
       }}>
         {selectedItem && (
           <div style={{
-            padding: '8px 14px',
+            padding: '10px 14px',
             background: 'var(--surface)',
             border: '1px solid var(--glass-border)',
             borderRadius: 'var(--radius-lg)',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <div>
-              <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              <p style={{
+                fontSize: '0.62rem', color: 'var(--text-tertiary)',
+                fontWeight: 600, textTransform: 'uppercase',
+                letterSpacing: '0.06em', marginBottom: 3,
+              }}>
                 {isMonthly ? selectedItem.label : `Minggu ${selectedItem.label}`}
               </p>
-              <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '0.95rem', color: isHighestSelected ? '#fbbf24' : 'var(--text-primary)' }}>
+              <p style={{
+                fontFamily: 'var(--font-display)', fontWeight: 800,
+                fontSize: '1rem', lineHeight: 1,
+                color: isHighestSelected ? '#fbbf24' : 'var(--text-primary)',
+              }}>
                 {formatRupiah(selectedItem.total || 0)}
               </p>
             </div>
             {isHighestSelected ? (
               <span style={{
-                fontSize: '0.6rem', fontWeight: 700, color: '#fbbf24',
-                background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.25)',
-                borderRadius: 'var(--radius-full)', padding: '2px 7px',
-                textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap',
+                fontSize: '0.58rem', fontWeight: 700, color: '#fbbf24',
+                background: 'rgba(251,191,36,0.12)',
+                border: '1px solid rgba(251,191,36,0.3)',
+                borderRadius: 'var(--radius-full)', padding: '3px 8px',
+                textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap',
               }}>Tertinggi</span>
-            ) : maxVal > 0 && (selectedItem.total || 0) > 0 ? (
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
+            ) : (selectedItem.total || 0) > 0 ? (
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)', whiteSpace: 'nowrap' }}>
                 {Math.round(((selectedItem.total || 0) / maxVal) * 100)}% dari tertinggi
               </p>
             ) : (
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Belum ada transaksi</p>
+              <p style={{ fontSize: '0.68rem', color: 'var(--text-tertiary)' }}>Belum ada transaksi</p>
             )}
           </div>
         )}
@@ -724,19 +742,15 @@ function AIInsightCard({ data }) {
   const [insight, setInsight] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => {
-    if (data) generateInsight()
-  }, [data])
+  useEffect(() => { if (data) generateInsight() }, [data])
 
   const generateInsight = async () => {
     setLoading(true)
     setInsight(null)
     try {
-      const systemPrompt = buildSystemPrompt(data)
-      const insightPrompt = `Berikan 3 insight singkat dan actionable tentang performa toko ini sekarang. Format: tiap insight 1-2 kalimat, langsung ke poin, pakai emoji yang relevan di depan. Jangan pakai numbering, cukup bullet dengan emoji.`
       const reply = await callGroq([
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: insightPrompt },
+        { role: 'system', content: buildSystemPrompt(data) },
+        { role: 'user', content: 'Berikan 3 insight singkat dan actionable tentang performa toko ini sekarang. Format: tiap insight 1-2 kalimat, langsung ke poin, pakai emoji yang relevan di depan. Jangan pakai numbering, cukup bullet dengan emoji.' },
       ])
       setInsight(reply)
     } catch (err) {
@@ -755,11 +769,7 @@ function AIInsightCard({ data }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 'var(--radius-md)',
-            background: 'var(--accent-gradient-soft)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
+          <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-md)', background: 'var(--accent-gradient-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Sparkles size={14} color="var(--accent-3)" />
           </div>
           <div>
@@ -767,12 +777,7 @@ function AIInsightCard({ data }) {
             <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>oleh Aira — diperbarui tiap refresh</p>
           </div>
         </div>
-        <button
-          onClick={generateInsight}
-          disabled={loading}
-          className="btn btn-secondary btn-sm"
-          style={{ fontSize: '0.72rem', padding: '4px 10px' }}
-        >
+        <button onClick={generateInsight} disabled={loading} className="btn btn-secondary btn-sm" style={{ fontSize: '0.72rem', padding: '4px 10px' }}>
           <RefreshCw size={11} style={{ animation: loading ? 'spin 0.7s linear infinite' : 'none' }} />
           {loading ? 'Menganalisis...' : 'Refresh'}
         </button>
@@ -795,10 +800,7 @@ function AIInsightCard({ data }) {
 // ============ AI CHAT CARD ============
 function AIChatCard({ data }) {
   const [messages, setMessages] = useState(() => {
-    try {
-      const saved = localStorage.getItem(CHAT_STORAGE_KEY)
-      return saved ? JSON.parse(saved) : []
-    } catch { return [] }
+    try { return JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY)) || [] } catch { return [] }
   })
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -817,12 +819,10 @@ function AIChatCard({ data }) {
     setInput('')
     setLoading(true)
     try {
-      const systemPrompt = buildSystemPrompt(data)
-      const groqMessages = [
-        { role: 'system', content: systemPrompt },
+      const reply = await callGroq([
+        { role: 'system', content: buildSystemPrompt(data) },
         ...newMessages.slice(-20).map(m => ({ role: m.role, content: m.content })),
-      ]
-      const reply = await callGroq(groqMessages)
+      ])
       setMessages(prev => [...prev, { role: 'assistant', content: reply }])
     } catch (err) {
       setMessages(prev => [...prev, { role: 'assistant', content: '⚠️ Gagal: ' + err.message }])
@@ -835,10 +835,6 @@ function AIChatCard({ data }) {
     setMessages([])
     localStorage.removeItem(CHAT_STORAGE_KEY)
     toast.success('Riwayat chat dihapus')
-  }
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
   }
 
   return (
@@ -912,7 +908,7 @@ function AIChatCard({ data }) {
         <textarea
           value={input}
           onChange={e => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
           placeholder="Tanya sesuatu tentang toko kamu..."
           rows={1}
           style={{
