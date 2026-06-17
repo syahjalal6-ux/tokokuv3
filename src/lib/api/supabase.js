@@ -204,7 +204,6 @@ export const tokoApi = {
 
     if (error) handleError(error)
 
-    // simpan toko_id ke tabel users
     await supabaseAdmin
       .from('users')
       .update({ toko_id: toko.id, updated_at: new Date().toISOString() })
@@ -511,20 +510,100 @@ export const analyticsApi = {
     if (!toko) return { success: true, data: {} }
 
     const { data: produk } = await supabaseAdmin.from('produk').select('*').eq('toko_id', toko.id)
-    const { data: pesanans } = await supabaseAdmin.from('pesanan').select('*').eq('toko_id', toko.id)
+    const { data: pesanans } = await supabaseAdmin
+      .from('pesanan')
+      .select('*')
+      .eq('toko_id', toko.id)
+      .order('created_at', { ascending: true })
 
-    const done = (pesanans || []).filter(p => p.status === 'done')
+    const allPesanan = pesanans || []
+    const done = allPesanan.filter(p => p.status === 'done')
     const totalRevenue = done.reduce((s, p) => s + Number(p.total), 0)
+
+    // ── Revenue Harian (dari pesanan done) ──
+    const revenueHarianMap = {}
+    done.forEach(p => {
+      const date = p.created_at?.slice(0, 10) // "YYYY-MM-DD"
+      if (!date) return
+      revenueHarianMap[date] = (revenueHarianMap[date] || 0) + Number(p.total)
+    })
+    const revenueHarian = Object.entries(revenueHarianMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, total]) => ({ date, label: date, total }))
+
+    // ── Revenue Bulanan (dari pesanan done) ──
+    const revenueBulananMap = {}
+    done.forEach(p => {
+      const yearMonth = p.created_at?.slice(0, 7) // "YYYY-MM"
+      if (!yearMonth) return
+      revenueBulananMap[yearMonth] = (revenueBulananMap[yearMonth] || 0) + Number(p.total)
+    })
+    const revenueBulanan = Object.entries(revenueBulananMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([yearMonth, total]) => ({ label: yearMonth, total }))
+
+    // ── Revenue Minggu Ini & Minggu Lalu ──
+    const now = new Date()
+    const dayOfWeek = now.getDay() // 0 = Minggu
+    const startOfThisWeek = new Date(now)
+    startOfThisWeek.setDate(now.getDate() - dayOfWeek)
+    startOfThisWeek.setHours(0, 0, 0, 0)
+
+    const startOfLastWeek = new Date(startOfThisWeek)
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7)
+
+    const endOfLastWeek = new Date(startOfThisWeek)
+    endOfLastWeek.setMilliseconds(-1)
+
+    const revenueMingguIni = done
+      .filter(p => new Date(p.created_at) >= startOfThisWeek)
+      .reduce((s, p) => s + Number(p.total), 0)
+
+    const revenueMingguLalu = done
+      .filter(p => {
+        const d = new Date(p.created_at)
+        return d >= startOfLastWeek && d <= endOfLastWeek
+      })
+      .reduce((s, p) => s + Number(p.total), 0)
+
+    // ── Top Produk Terlaris ──
+    const produkQtyMap = {}
+    done.forEach(p => {
+      const nama = p.produk_nama || 'Produk'
+      produkQtyMap[nama] = (produkQtyMap[nama] || 0) + Number(p.qty || 1)
+    })
+    const topProduk = Object.entries(produkQtyMap)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5)
+      .map(([nama, qty]) => ({ nama, qty }))
 
     return {
       success: true,
       data: {
+        // Produk
         totalProduk: (produk || []).length,
         produkAktif: (produk || []).filter(p => p.aktif).length,
-        totalPesanan: (pesanans || []).length,
-        pesananPending: (pesanans || []).filter(p => p.status === 'pending').length,
-        pesananSelesai: done.length,
+
+        // Pesanan
+        totalPesanan: allPesanan.length,
+        pesananPending:    allPesanan.filter(p => p.status === 'pending').length,
+        pesananConfirmed:  allPesanan.filter(p => p.status === 'confirmed').length,
+        pesananProcessing: allPesanan.filter(p => p.status === 'processing').length,
+        pesananShipped:    allPesanan.filter(p => p.status === 'shipped').length,
+        pesananSelesai:    done.length,
+        pesananCancelled:  allPesanan.filter(p => p.status === 'cancelled').length,
+
+        // Revenue
         totalRevenue,
+        revenueMingguIni,
+        revenueMingguLalu,
+
+        // Chart data
+        revenueHarian,
+        revenueBulanan,
+
+        // Top produk
+        topProduk,
       }
     }
   },
@@ -676,14 +755,12 @@ export const adminApi = {
     const expiry = new Date()
     expiry.setMonth(expiry.getMonth() + Number(months || 1))
 
-    // 1. Update plan di tabel users
     const { error: userErr } = await supabaseAdmin
       .from('users')
       .update({ plan: 'pro', plan_expiry: expiry.toISOString(), updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
     if (userErr) handleError(userErr)
 
-    // 2. Cari toko langsung dari tabel toko by user_id
     const { data: tokoData, error: tokoFindErr } = await supabaseAdmin
       .from('toko')
       .select('id')
@@ -697,7 +774,6 @@ export const adminApi = {
       throw new ApiError('Toko tidak ditemukan untuk user ini', 404)
     }
 
-    // 3. Update plan toko by id (lebih presisi)
     const { error: tokoErr } = await supabaseAdmin
       .from('toko')
       .update({ plan: 'pro', updated_at: new Date().toISOString() })
@@ -711,14 +787,12 @@ export const adminApi = {
   revokePro: async (token, targetUserId) => {
     await verifyToken(token)
 
-    // 1. Update plan di tabel users
     const { error: userErr } = await supabaseAdmin
       .from('users')
       .update({ plan: 'free', plan_expiry: null, updated_at: new Date().toISOString() })
       .eq('id', targetUserId)
     if (userErr) handleError(userErr)
 
-    // 2. Cari toko langsung dari tabel toko by user_id
     const { data: tokoData, error: tokoFindErr } = await supabaseAdmin
       .from('toko')
       .select('id')
@@ -732,7 +806,6 @@ export const adminApi = {
       throw new ApiError('Toko tidak ditemukan untuk user ini', 404)
     }
 
-    // 3. Update plan toko by id (lebih presisi)
     const { error: tokoErr } = await supabaseAdmin
       .from('toko')
       .update({ plan: 'free', updated_at: new Date().toISOString() })
