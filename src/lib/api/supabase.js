@@ -1111,6 +1111,21 @@ export const streamApi = {
       })
     }
 
+    // Notif ke pemilik parent reply (jika nested reply)
+if (parentReplyId) {
+  const { data: parentReply } = await supabaseAdmin
+    .from('stream_replies')
+    .select('toko_id')
+    .eq('id', parentReplyId)
+    .single()
+  if (parentReply && parentReply.toko_id !== toko.id) {
+    await supabaseAdmin.from('stream_notifications').insert({
+      toko_id: parentReply.toko_id, type: 'reply', actor_toko_id: toko.id,
+      ref_post_id: postId, ref_reply_id: reply.id, created_at: new Date().toISOString(),
+    })
+  }
+}
+    
     return { success: true, data: mapStreamReply({ ...reply, toko }) }
   },
 
