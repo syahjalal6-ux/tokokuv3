@@ -42,6 +42,7 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
           @keyframes scaleIn { from { transform: scale(0.92); opacity: 0 } to { transform: scale(1); opacity: 1 } }
           @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         `}</style>
+        {/* Ikon */}
         <div style={{
           width: 48, height: 48, borderRadius: 'var(--radius-full)',
           background: 'rgba(239,68,68,0.12)',
@@ -115,11 +116,13 @@ export default function StreamPage() {
   const [composing, setComposing] = useState(false)
   const [replyTarget, setReplyTarget] = useState(null)
   const [notifOpen, setNotifOpen] = useState(false)
+  // State untuk delete modal: null atau postId yang mau dihapus
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  // ref untuk ikon bel — dipakai NotifDropdown untuk posisi
+  // ref untuk posisi dropdown notif
   const bellRef = useRef(null)
 
+  // Load feed + notif count saat mount
   useEffect(() => {
     loadFeed(tokenObj, {})
     loadNotifs(tokenObj)
@@ -205,10 +208,12 @@ export default function StreamPage() {
     setComposing(true)
   }
 
+  // Tampilkan custom modal konfirmasi hapus
   const handleDeletePost = (postId) => {
     setDeleteTarget(postId)
   }
 
+  // Eksekusi hapus setelah konfirmasi di modal
   const confirmDelete = async () => {
     const postId = deleteTarget
     setDeleteTarget(null)
@@ -333,7 +338,7 @@ export default function StreamPage() {
                 <h1 style={{ flex: 1, fontFamily: PJS, fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Stream</h1>
                 <IconBtn onClick={() => setSearchMode(true)}><Search size={15} /></IconBtn>
                 <IconBtn onClick={openDmList}><Mail size={15} /></IconBtn>
-                {/* Bel dengan ref untuk posisi dropdown */}
+                {/* Bel dengan ref untuk posisi dropdown notif */}
                 <div ref={bellRef} style={{ position: 'relative' }}>
                   <IconBtn onClick={openNotif} badge={unreadNotifCount}><Bell size={15} /></IconBtn>
                   {notifOpen && (
@@ -342,7 +347,6 @@ export default function StreamPage() {
                       onClose={() => setNotifOpen(false)}
                       onOpenDm={(threadId) => { setNotifOpen(false); openThread(threadId) }}
                       onOpenPost={(postId) => { setNotifOpen(false); openPostDetail(postId) }}
-                      bellRef={bellRef}
                     />
                   )}
                 </div>
@@ -464,11 +468,12 @@ export default function StreamPage() {
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
+  // Cast ke string agar tidak ada mismatch number vs string
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
-  // Gunakan previewReplies jika ada, fallback ke replies slice
-  const previewReplies = post.previewReplies?.length
+  // FIXED: fallback ke post.replies jika previewReplies kosong
+  const previewReplies = (post.previewReplies && post.previewReplies.length > 0)
     ? post.previewReplies
-    : (post.replies || []).slice(0, 3)
+    : (post.replies || [])
   const [commentsOpen, setCommentsOpen] = useState(false)
 
   return (
@@ -911,7 +916,8 @@ function ReplySheet({ target, onClose, onSubmit }) {
 }
 
 // ================================================
-// NOTIF DROPDOWN (menggantikan NotifSheet)
+// NOTIF DROPDOWN — menggantikan NotifSheet
+// muncul tepat di bawah ikon bel, bukan full bottom sheet
 // ================================================
 function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
   const ICON = { like: '❤️', reply: '💬', repost: '🔁', dm: '✉️' }
@@ -924,7 +930,7 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
         onClose()
       }
     }
-    // Delay sedikit agar klik bel tidak langsung trigger close
+    // Delay agar klik bel tidak langsung trigger close
     const timer = setTimeout(() => {
       document.addEventListener('mousedown', handleOutside)
     }, 50)
@@ -1052,7 +1058,7 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
             </div>
             {!n.isRead && (
               <div style={{
-                width: 7, height: 7, borderRadius: '50%',
+                width: 7, height: 7, borderRadius: 'var(--radius-full)',
                 background: 'var(--accent)', flexShrink: 0, marginTop: 5,
               }} />
             )}
