@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Search, Heart, MessageCircle, Image as ImageIcon, X, Send, Bookmark,
   Repeat2, Bell, ChevronLeft, Hash, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
+  Trash2,
 } from 'lucide-react'
 import DashboardLayout from './DashboardLayout.jsx'
 import StreamImageUpload from './StreamImageUpload.jsx'
@@ -28,6 +29,7 @@ export default function StreamPage() {
     loadFeed, setActiveTag, setSearchQuery,
     loadPostDetail, clearPostDetail, addReply,
     toggleLike, toggleRepost, toggleBookmark,
+    deletePost, // action baru: hapus post milik sendiri
     loadDmThreads, openDmThread, setActiveThreadId, loadDmMessages, sendDmMessage, clearDmThread,
     loadNotifs, markNotifsRead,
   } = useStreamStore()
@@ -123,6 +125,26 @@ export default function StreamPage() {
     setComposing(true)
   }
 
+  // Hapus post. Dipanggil dari PostCard (di feed) maupun PostDetailView.
+  // Pakai window.confirm dulu sebagai pengaman sederhana karena ini destructive
+  // & gak bisa di-undo (cascade hapus reply/like/repost/bookmark/notif di backend).
+  const handleDeletePost = async (postId) => {
+    const confirmed = window.confirm('Hapus post ini? Tindakan ini tidak bisa dibatalkan.')
+    if (!confirmed) return
+
+    try {
+      await deletePost(tokenObj, postId)
+      toast.success('Post berhasil dihapus')
+      // Kalau lagi di halaman detail post yang dihapus, balik ke feed
+      // (store udah nge-reset postDetail jadi null kalau itu post yang sama).
+      if (view === 'post-detail') {
+        setView('feed')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Gagal menghapus post')
+    }
+  }
+
   // ── DM thread view ──
   if (view === 'dm-thread' && activeThreadId) {
     const thread = dmThreads.find(t => t.id === activeThreadId)
@@ -168,6 +190,7 @@ export default function StreamPage() {
           onReply={handleReply}
           onDm={openDm}
           onTag={handleTag}
+          onDelete={handleDeletePost}
         />
         {replyTarget && (
           <ReplySheet
@@ -278,6 +301,7 @@ export default function StreamPage() {
               onReplyToComment={(replyId, replyNama) => handleReply(post.id, replyId, replyNama)}
               onDm={() => openDm(post.toko?.id)}
               onTag={handleTag}
+              onDelete={() => handleDeletePost(post.id)}
             />
           ))}
         </div>
@@ -344,7 +368,7 @@ export default function StreamPage() {
 // ================================================
 // POST CARD (feed item)
 // ================================================
-function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag }) {
+function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
   const isMine = myTokoId && t?.id === myTokoId
   const previewReplies = post.previewReplies || []
@@ -362,6 +386,19 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
               {timeAgo(post.createdAt)}
             </span>
+            {/* Tombol delete — cuma render kalau post ini milik toko yang login */}
+            {isMine && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete() }}
+                title="Hapus post"
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-tertiary)', display: 'flex', padding: 2,
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
           <PostText text={post.teks} onTag={onTag} />
           <PostImages images={post.foto} />
@@ -448,7 +485,7 @@ function FeedReplyItem({ reply, postId, myTokoId, onReplyToComment, onDm }) {
 // ================================================
 // POST DETAIL VIEW
 // ================================================
-function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag }) {
+function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete }) {
   if (loading || !post) {
     return (
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -474,6 +511,19 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
             <TokoNameLink toko={t} fontSize="0.9rem" fontWeight={800} />
             {t?.pro && <ProBadge />}
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(post.createdAt)}</span>
+            {/* Tombol delete di halaman detail — sama aturannya, cuma kalau isMine */}
+            {isMine && (
+              <button
+                onClick={() => onDelete(post.id)}
+                title="Hapus post"
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--text-tertiary)', display: 'flex', padding: 2,
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            )}
           </div>
           <PostText text={post.teks} onTag={onTag} />
           <PostImages images={post.foto} />
@@ -770,13 +820,42 @@ function NotifSheet({ notifs, onClose, onOpenDm, onOpenPost }) {
     if (n.refPostId) return onOpenPost(n.refPostId)
   }
 
+  // labelFor() — sekarang manfaatin postExcerpt/replyExcerpt yang udah dikirim
+  // backend (hasil join ke stream_posts/stream_replies), biar notif kasih
+  // konteks isi postingan/komentarnya, bukan cuma "X membalas postmu" polos.
   const labelFor = (n) => {
     const name = n.actor?.nama || 'Seller'
-    if (n.type === 'like') return `${name} menyukai postmu`
-    if (n.type === 'reply') return `${name} membalas postmu`
-    if (n.type === 'repost') return `${name} merepost postmu`
-    if (n.type === 'dm') return `${name} mengirim pesan baru`
-    return name
+
+    switch (n.type) {
+      case 'like':
+        // contoh: "Toko A menyukai postmu: "koleksi baru mavara""
+        return n.postExcerpt
+          ? `${name} menyukai postmu: "${n.postExcerpt}"`
+          : `${name} menyukai postmu`
+
+      case 'reply':
+        // replyExcerpt = isi balasan yang baru ditulis si actor
+        // postExcerpt  = potongan post asli yang dibalas (kalau ada)
+        // contoh: 'Toko A membalas postmu "koleksi baru mavara": "boleh dicoba nih"'
+        if (n.replyExcerpt && n.postExcerpt) {
+          return `${name} membalas postmu "${n.postExcerpt}": "${n.replyExcerpt}"`
+        }
+        if (n.replyExcerpt) {
+          return `${name} membalas: "${n.replyExcerpt}"`
+        }
+        return `${name} membalas postmu`
+
+      case 'repost':
+        return n.postExcerpt
+          ? `${name} merepost postmu: "${n.postExcerpt}"`
+          : `${name} merepost postmu`
+
+      case 'dm':
+        return `${name} mengirim pesan baru`
+
+      default:
+        return name
+    }
   }
 
   return (
@@ -1027,7 +1106,7 @@ function PostImages({ images }) {
 
 function ShopLinkCard({ link }) {
   return (
-    <a
+    
       href={getStorefrontUrl(link.slug)}
       target="_blank"
       rel="noreferrer"
