@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { Image as ImageIcon, X, Loader } from 'lucide-react'
-import { compressImage } from '../lib/utils.js'
-import { streamApi } from '../lib/api/index.js'
+import { compressImage } from '../../lib/utils.js'
+import { streamApi } from '../../lib/api/index.js'
 import toast from 'react-hot-toast'
 
 const MAX_PHOTOS = 2
