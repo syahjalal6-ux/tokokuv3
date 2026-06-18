@@ -138,4 +138,5 @@ export const streamApi = {
   getNotifications:       (tokenObj) => readWith('streamApi', 'getNotifications', tokenObj),
   markNotificationsRead:  (tokenObj) => writeWith('streamApi', 'markNotificationsRead', tokenObj),
   uploadImage:            (tokenObj, data) => writeWith('streamApi', 'uploadImage', tokenObj, data),
+  deletePost: (tokenObj, postId) => writeWith('streamApi', 'deletePost', tokenObj, postId),
 }
