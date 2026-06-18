@@ -13,6 +13,82 @@ import toast from 'react-hot-toast'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
 // ================================================
+// DELETE CONFIRM MODAL
+// ================================================
+function DeleteConfirmModal({ onConfirm, onCancel }) {
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 900,
+        background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'fadeIn 0.15s ease',
+        padding: '0 20px',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 360,
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-2xl)',
+          padding: '28px 24px 24px',
+          animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+        }}
+      >
+        <style>{`
+          @keyframes scaleIn { from { transform: scale(0.92); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+          @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        `}</style>
+        {/* Ikon */}
+        <div style={{
+          width: 48, height: 48, borderRadius: 'var(--radius-full)',
+          background: 'rgba(239,68,68,0.12)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          marginBottom: 16,
+        }}>
+          <Trash2 size={22} color="var(--danger, #ef4444)" />
+        </div>
+
+        <h3 style={{ fontFamily: PJS, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+          Hapus post ini?
+        </h3>
+        <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 24px', lineHeight: 1.6 }}>
+          Post beserta semua komentar, like, dan repost-nya akan dihapus permanen.
+        </p>
+
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1, padding: '10px 0', borderRadius: 'var(--radius-lg)',
+              background: 'var(--surface)', border: '1px solid var(--glass-border)',
+              fontFamily: PJS, fontSize: '0.84rem', fontWeight: 700,
+              color: 'var(--text-secondary)', cursor: 'pointer',
+            }}
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              flex: 1, padding: '10px 0', borderRadius: 'var(--radius-lg)',
+              background: 'var(--danger, #ef4444)', border: 'none',
+              fontFamily: PJS, fontSize: '0.84rem', fontWeight: 700,
+              color: '#fff', cursor: 'pointer',
+            }}
+          >
+            Hapus
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ================================================
 // ROOT
 // ================================================
 export default function StreamPage() {
@@ -29,7 +105,7 @@ export default function StreamPage() {
     loadFeed, setActiveTag, setSearchQuery,
     loadPostDetail, clearPostDetail, addReply,
     toggleLike, toggleRepost, toggleBookmark,
-    deletePost, // action baru: hapus post milik sendiri
+    deletePost,
     loadDmThreads, openDmThread, setActiveThreadId, loadDmMessages, sendDmMessage, clearDmThread,
     loadNotifs, markNotifsRead,
   } = useStreamStore()
@@ -40,9 +116,13 @@ export default function StreamPage() {
   const [composing, setComposing] = useState(false)
   const [replyTarget, setReplyTarget] = useState(null)
   const [notifOpen, setNotifOpen] = useState(false)
+  // State untuk delete modal: null atau postId yang mau dihapus
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
+  // Load feed + notif count saat mount
   useEffect(() => {
     loadFeed(tokenObj, {})
+    loadNotifs(tokenObj)
   }, [])
 
   const requirePro = () => {
@@ -125,18 +205,18 @@ export default function StreamPage() {
     setComposing(true)
   }
 
-  // Hapus post. Dipanggil dari PostCard (di feed) maupun PostDetailView.
-  // Pakai window.confirm dulu sebagai pengaman sederhana karena ini destructive
-  // & gak bisa di-undo (cascade hapus reply/like/repost/bookmark/notif di backend).
-  const handleDeletePost = async (postId) => {
-    const confirmed = window.confirm('Hapus post ini? Tindakan ini tidak bisa dibatalkan.')
-    if (!confirmed) return
+  // Tampilkan custom modal konfirmasi hapus
+  const handleDeletePost = (postId) => {
+    setDeleteTarget(postId)
+  }
 
+  // Eksekusi hapus setelah konfirmasi di modal
+  const confirmDelete = async () => {
+    const postId = deleteTarget
+    setDeleteTarget(null)
     try {
       await deletePost(tokenObj, postId)
       toast.success('Post berhasil dihapus')
-      // Kalau lagi di halaman detail post yang dihapus, balik ke feed
-      // (store udah nge-reset postDetail jadi null kalau itu post yang sama).
       if (view === 'post-detail') {
         setView('feed')
       }
@@ -205,6 +285,12 @@ export default function StreamPage() {
                 toast.error(err.message || 'Gagal membalas')
               }
             }}
+          />
+        )}
+        {deleteTarget && (
+          <DeleteConfirmModal
+            onConfirm={confirmDelete}
+            onCancel={() => setDeleteTarget(null)}
           />
         )}
       </DashboardLayout>
@@ -359,6 +445,12 @@ export default function StreamPage() {
             onOpenPost={(postId) => { setNotifOpen(false); openPostDetail(postId) }}
           />
         )}
+        {deleteTarget && (
+          <DeleteConfirmModal
+            onConfirm={confirmDelete}
+            onCancel={() => setDeleteTarget(null)}
+          />
+        )}
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </DashboardLayout>
@@ -370,7 +462,8 @@ export default function StreamPage() {
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
-  const isMine = myTokoId && t?.id === myTokoId
+  // Cast ke string agar tidak ada mismatch number vs string
+  const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   const previewReplies = post.previewReplies || []
   const [commentsOpen, setCommentsOpen] = useState(false)
 
@@ -380,21 +473,23 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
         <SellerAvatar toko={t} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            {/* Nama toko bisa diklik → ke storefront */}
             <TokoNameLink toko={t} fontSize="0.875rem" />
             {t?.pro && <ProBadge />}
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
               {timeAgo(post.createdAt)}
             </span>
-            {/* Tombol delete — cuma render kalau post ini milik toko yang login */}
             {isMine && (
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete() }}
                 title="Hapus post"
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-tertiary)', display: 'flex', padding: 2,
+                  color: 'var(--text-tertiary)', display: 'flex', padding: 4,
+                  borderRadius: 'var(--radius-md)',
+                  transition: 'color 0.15s',
                 }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
               >
                 <Trash2 size={14} />
               </button>
@@ -415,7 +510,6 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
         </div>
       </div>
 
-      {/* Komentar toggle — hanya tampil kalau commentsOpen */}
       {commentsOpen && (
         <div style={{ paddingLeft: 52, paddingBottom: 4 }}>
           {previewReplies.length === 0 && (
@@ -451,10 +545,9 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
   )
 }
 
-// Komentar di feed dengan tombol balas
 function FeedReplyItem({ reply, postId, myTokoId, onReplyToComment, onDm }) {
   const t = reply.toko
-  const isMine = myTokoId && t?.id === myTokoId
+  const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
 
   return (
     <div style={{ display: 'flex', gap: 10, paddingTop: 8, paddingBottom: 4 }}>
@@ -466,7 +559,6 @@ function FeedReplyItem({ reply, postId, myTokoId, onReplyToComment, onDm }) {
           <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(reply.createdAt)}</span>
         </div>
         <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{reply.teks}</p>
-        {/* Tombol balas komentar */}
         <button
           onClick={() => onReplyToComment(reply.id, t?.nama)}
           style={{
@@ -498,7 +590,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
   }
 
   const t = post.toko
-  const isMine = myTokoId && t?.id === myTokoId
+  const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
 
   return (
     <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -511,15 +603,17 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
             <TokoNameLink toko={t} fontSize="0.9rem" fontWeight={800} />
             {t?.pro && <ProBadge />}
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(post.createdAt)}</span>
-            {/* Tombol delete di halaman detail — sama aturannya, cuma kalau isMine */}
             {isMine && (
               <button
                 onClick={() => onDelete(post.id)}
                 title="Hapus post"
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--text-tertiary)', display: 'flex', padding: 2,
+                  color: 'var(--text-tertiary)', display: 'flex', padding: 4,
+                  borderRadius: 'var(--radius-md)',
                 }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
               >
                 <Trash2 size={14} />
               </button>
@@ -566,7 +660,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
 
 function ReplyThread({ reply, postId, depth, myTokoId, onLike, onReply, onDm }) {
   const t = reply.toko
-  const isMine = myTokoId && t?.id === myTokoId
+  const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   const hasChildren = (reply.replies || []).length > 0
 
   return (
@@ -820,23 +914,14 @@ function NotifSheet({ notifs, onClose, onOpenDm, onOpenPost }) {
     if (n.refPostId) return onOpenPost(n.refPostId)
   }
 
-  // labelFor() — sekarang manfaatin postExcerpt/replyExcerpt yang udah dikirim
-  // backend (hasil join ke stream_posts/stream_replies), biar notif kasih
-  // konteks isi postingan/komentarnya, bukan cuma "X membalas postmu" polos.
   const labelFor = (n) => {
     const name = n.actor?.nama || 'Seller'
-
     switch (n.type) {
       case 'like':
-        // contoh: "Toko A menyukai postmu: "koleksi baru mavara""
         return n.postExcerpt
           ? `${name} menyukai postmu: "${n.postExcerpt}"`
           : `${name} menyukai postmu`
-
       case 'reply':
-        // replyExcerpt = isi balasan yang baru ditulis si actor
-        // postExcerpt  = potongan post asli yang dibalas (kalau ada)
-        // contoh: 'Toko A membalas postmu "koleksi baru mavara": "boleh dicoba nih"'
         if (n.replyExcerpt && n.postExcerpt) {
           return `${name} membalas postmu "${n.postExcerpt}": "${n.replyExcerpt}"`
         }
@@ -844,15 +929,12 @@ function NotifSheet({ notifs, onClose, onOpenDm, onOpenPost }) {
           return `${name} membalas: "${n.replyExcerpt}"`
         }
         return `${name} membalas postmu`
-
       case 'repost':
         return n.postExcerpt
           ? `${name} merepost postmu: "${n.postExcerpt}"`
           : `${name} merepost postmu`
-
       case 'dm':
         return `${name} mengirim pesan baru`
-
       default:
         return name
     }
@@ -976,7 +1058,6 @@ function SellerAvatar({ toko, size = 40 }) {
   )
 }
 
-// Nama toko yang bisa diklik → ke storefront
 function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
   const url = toko?.slug ? getStorefrontUrl(toko.slug) : null
   const style = {
@@ -1021,7 +1102,7 @@ function IconBtn({ children, onClick, badge }) {
       {badge > 0 && (
         <div style={{
           position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%',
-          background: 'var(--danger)', border: '2px solid var(--bg-secondary)',
+          background: 'var(--danger, #ef4444)', border: '2px solid var(--bg-secondary)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 9, fontWeight: 800, color: '#fff',
         }}>{badge}</div>
@@ -1049,7 +1130,6 @@ function PostActions({ likesCount, repostsCount, repliesCount, liked, reposted, 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 4, marginBottom: 12 }}>
       <ActionBtn icon={<Heart size={15} fill={liked ? 'var(--danger)' : 'none'} />} label={likesCount} active={liked} activeColor="var(--danger)" onClick={onLike} />
-      {/* Tombol komentar: toggle buka/tutup di feed, atau langsung reply di detail */}
       {onToggleComments ? (
         <button
           onClick={onToggleComments}
