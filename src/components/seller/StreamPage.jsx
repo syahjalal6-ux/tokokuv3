@@ -1106,7 +1106,7 @@ function PostImages({ images }) {
 
 function ShopLinkCard({ link }) {
   return (
-    
+    <a
       href={getStorefrontUrl(link.slug)}
       target="_blank"
       rel="noreferrer"
