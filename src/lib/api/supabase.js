@@ -983,10 +983,10 @@ export const streamApi = {
     const hashtagsByPost = {}
     ;(hashtagRows || []).forEach(h => { (hashtagsByPost[h.post_id] ||= []).push(h.tag) })
 
+    // Semua komentar top-level ditampilkan, tidak dibatasi lagi
     const repliesByPost = {}
     ;(previewReplies || []).forEach(r => {
-      (repliesByPost[r.post_id] ||= [])
-      if (repliesByPost[r.post_id].length < 2) repliesByPost[r.post_id].push(r)
+      (repliesByPost[r.post_id] ||= []).push(r)
     })
 
     const result = (posts || []).map(p => mapStreamPost(p, {
@@ -1065,6 +1065,29 @@ export const streamApi = {
     }
 
     return { success: true, data: mapStreamPost(post, { toko, hashtags }) }
+  },
+
+  // Hapus post — hanya boleh oleh toko pemilik post
+  deletePost: async (token, postId) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { data: post } = await supabaseAdmin.from('stream_posts').select('toko_id').eq('id', postId).single()
+    if (!post) throw new ApiError('Post tidak ditemukan', 404)
+    if (post.toko_id !== toko.id) throw new ApiError('Tidak diizinkan menghapus post ini', 403)
+
+    await supabaseAdmin.from('stream_hashtags').delete().eq('post_id', postId)
+    await supabaseAdmin.from('stream_replies').delete().eq('post_id', postId)
+    await supabaseAdmin.from('stream_likes').delete().eq('target_type', 'post').eq('target_id', postId)
+    await supabaseAdmin.from('stream_reposts').delete().eq('post_id', postId)
+    await supabaseAdmin.from('stream_bookmarks').delete().eq('post_id', postId)
+    await supabaseAdmin.from('stream_notifications').delete().eq('ref_post_id', postId)
+
+    const { error } = await supabaseAdmin.from('stream_posts').delete().eq('id', postId)
+    if (error) handleError(error)
+
+    return { success: true }
   },
 
   addReply: async (token, { postId, parentReplyId, teks }) => {
@@ -1289,13 +1312,20 @@ export const streamApi = {
     const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
     if (!toko) return { success: true, data: [] }
 
+    // Join teks post & reply biar notif bisa nampilin excerpt yang relevan
     const { data, error } = await supabaseAdmin
       .from('stream_notifications')
-      .select('*, actor:actor_toko_id(id,nama,slug,logo)')
+      .select('*, actor:actor_toko_id(id,nama,slug,logo), post:ref_post_id(teks), reply:ref_reply_id(teks)')
       .eq('toko_id', toko.id)
       .order('created_at', { ascending: false })
       .limit(50)
     if (error) handleError(error)
+
+    const excerpt = (txt) => {
+      if (!txt) return null
+      const clean = String(txt).trim()
+      return clean.length > 60 ? clean.slice(0, 60) + '...' : clean
+    }
 
     return {
       success: true,
@@ -1303,6 +1333,8 @@ export const streamApi = {
         id: n.id, type: n.type,
         actor: n.actor ? { id: n.actor.id, nama: n.actor.nama, slug: n.actor.slug, logo: n.actor.logo } : null,
         refPostId: n.ref_post_id, refReplyId: n.ref_reply_id, refThreadId: n.ref_thread_id,
+        postExcerpt: excerpt(n.post?.teks),
+        replyExcerpt: excerpt(n.reply?.teks),
         isRead: n.is_read, createdAt: n.created_at,
       }))
     }
@@ -1342,4 +1374,4 @@ export const streamApi = {
     const { data: pub } = supabaseAdmin.storage.from('stream-images').getPublicUrl(path)
     return { success: true, data: { url: pub.publicUrl } }
   },
-} // <-- INI YANG KETINGGALAN, nutup `export const streamApi = {`
+}
