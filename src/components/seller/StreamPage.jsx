@@ -639,7 +639,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
             <strong style={{ color: 'var(--text-secondary)' }}>{post.likesCount}</strong> suka · <strong style={{ color: 'var(--text-secondary)' }}>{post.repostsCount}</strong> repost
           </div>
           <PostActions
-            likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={post.replies?.length || 0}
+            likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={countReplies(post.replies)}
             liked={post.liked} reposted={post.reposted} bookmarked={post.bookmarked}
             commentsOpen={true}
             onLike={() => onLike('post', post.id)}
@@ -1296,4 +1296,9 @@ function timeAgo(dateStr) {
   if (diff < 3600) return `${Math.floor(diff / 60)}m`
   if (diff < 86400) return `${Math.floor(diff / 3600)}j`
   return `${Math.floor(diff / 86400)}h`
+}
+
+function countReplies(replies) {
+  if (!replies?.length) return 0
+  return replies.reduce((sum, r) => sum + 1 + countReplies(r.replies), 0)
 }
