@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Search, Heart, MessageCircle, Image as ImageIcon, X, Send, Bookmark,
-  Repeat2, Bell, ChevronLeft, Hash, Mail, Store, Lock, Loader,
+  Repeat2, Bell, ChevronLeft, Hash, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import DashboardLayout from './DashboardLayout.jsx'
 import StreamImageUpload from './StreamImageUpload.jsx'
@@ -32,11 +32,11 @@ export default function StreamPage() {
     loadNotifs, markNotifsRead,
   } = useStreamStore()
 
-  const [view, setView] = useState('feed') // feed | post-detail | dm-list | dm-thread
+  const [view, setView] = useState('feed')
   const [searchMode, setSearchMode] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [composing, setComposing] = useState(false)
-  const [replyTarget, setReplyTarget] = useState(null) // { postId, parentReplyId, parentTokoNama }
+  const [replyTarget, setReplyTarget] = useState(null)
   const [notifOpen, setNotifOpen] = useState(false)
 
   useEffect(() => {
@@ -275,6 +275,7 @@ export default function StreamPage() {
               onRepost={() => handleRepost(post.id)}
               onBookmark={() => handleBookmark(post.id)}
               onReply={() => handleReply(post.id, null, post.toko?.nama)}
+              onReplyToComment={(replyId, replyNama) => handleReply(post.id, replyId, replyNama)}
               onDm={() => openDm(post.toko?.id)}
               onTag={handleTag}
             />
@@ -343,10 +344,11 @@ export default function StreamPage() {
 // ================================================
 // POST CARD (feed item)
 // ================================================
-function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onDm, onTag }) {
+function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag }) {
   const t = post.toko
   const isMine = myTokoId && t?.id === myTokoId
   const previewReplies = post.previewReplies || []
+  const [commentsOpen, setCommentsOpen] = useState(false)
 
   return (
     <div style={{ borderBottom: '1px solid var(--glass-border)', padding: '14px 8px 0' }}>
@@ -354,7 +356,8 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
         <SellerAvatar toko={t} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            <span style={{ fontFamily: PJS, fontSize: '0.875rem', fontWeight: 800 }}>{t?.nama || 'Toko'}</span>
+            {/* Nama toko bisa diklik → ke storefront */}
+            <TokoNameLink toko={t} fontSize="0.875rem" />
             {t?.pro && <ProBadge />}
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
               {timeAgo(post.createdAt)}
@@ -367,35 +370,77 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
           <PostActions
             likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={post.repliesCount}
             liked={post.liked} reposted={post.reposted} bookmarked={post.bookmarked}
+            commentsOpen={commentsOpen}
             onLike={onLike} onRepost={onRepost} onBookmark={onBookmark} onReply={onReply}
+            onToggleComments={() => setCommentsOpen(v => !v)}
             onDm={isMine ? null : onDm}
           />
         </div>
       </div>
 
-      {previewReplies.map(r => (
-        <div key={r.id} style={{ display: 'flex', gap: 12, paddingLeft: 4, paddingTop: 6 }}>
-          <SellerAvatar toko={r.toko} size={28} />
-          <div style={{ flex: 1, minWidth: 0, paddingBottom: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-              <span style={{ fontFamily: PJS, fontSize: '0.78rem', fontWeight: 700 }}>{r.toko?.nama}</span>
-              {r.toko?.pro && <ProBadge small />}
-            </div>
-            <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{r.teks}</p>
-          </div>
+      {/* Komentar toggle — hanya tampil kalau commentsOpen */}
+      {commentsOpen && (
+        <div style={{ paddingLeft: 52, paddingBottom: 4 }}>
+          {previewReplies.length === 0 && (
+            <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)', padding: '8px 0' }}>
+              Belum ada komentar.
+            </p>
+          )}
+          {previewReplies.map(r => (
+            <FeedReplyItem
+              key={r.id}
+              reply={r}
+              postId={post.id}
+              myTokoId={myTokoId}
+              onReplyToComment={onReplyToComment}
+              onDm={onDm}
+            />
+          ))}
+          {post.repliesCount > previewReplies.length && (
+            <button onClick={onExpand} style={{
+              display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
+              padding: '6px 0 10px', cursor: 'pointer',
+              fontFamily: PJS, fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600,
+            }}>
+              Lihat {post.repliesCount - previewReplies.length} balasan lainnya →
+            </button>
+          )}
+          {post.repliesCount === 0 && <div style={{ height: 6 }} />}
         </div>
-      ))}
-
-      {post.repliesCount > previewReplies.length && (
-        <button onClick={onExpand} style={{
-          display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
-          padding: '8px 4px 14px 52px', cursor: 'pointer',
-          fontFamily: PJS, fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600,
-        }}>
-          Lihat {post.repliesCount - previewReplies.length} balasan lainnya →
-        </button>
       )}
-      {post.repliesCount === 0 && <div style={{ height: 10 }} />}
+
+      {!commentsOpen && <div style={{ height: 6 }} />}
+    </div>
+  )
+}
+
+// Komentar di feed dengan tombol balas
+function FeedReplyItem({ reply, postId, myTokoId, onReplyToComment, onDm }) {
+  const t = reply.toko
+  const isMine = myTokoId && t?.id === myTokoId
+
+  return (
+    <div style={{ display: 'flex', gap: 10, paddingTop: 8, paddingBottom: 4 }}>
+      <SellerAvatar toko={t} size={28} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+          <TokoNameLink toko={t} fontSize="0.78rem" />
+          {t?.pro && <ProBadge small />}
+          <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(reply.createdAt)}</span>
+        </div>
+        <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{reply.teks}</p>
+        {/* Tombol balas komentar */}
+        <button
+          onClick={() => onReplyToComment(reply.id, t?.nama)}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontFamily: PJS, fontSize: '0.7rem', color: 'var(--accent)',
+            fontWeight: 600, padding: '3px 0', marginTop: 2,
+          }}
+        >
+          Balas
+        </button>
+      </div>
     </div>
   )
 }
@@ -426,7 +471,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
         <SellerAvatar toko={t} size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            <span style={{ fontFamily: PJS, fontSize: '0.9rem', fontWeight: 800 }}>{t?.nama}</span>
+            <TokoNameLink toko={t} fontSize="0.9rem" fontWeight={800} />
             {t?.pro && <ProBadge />}
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(post.createdAt)}</span>
           </div>
@@ -440,10 +485,12 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
           <PostActions
             likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={post.replies?.length || 0}
             liked={post.liked} reposted={post.reposted} bookmarked={post.bookmarked}
+            commentsOpen={true}
             onLike={() => onLike('post', post.id)}
             onRepost={() => onRepost(post.id)}
             onBookmark={() => onBookmark(post.id)}
             onReply={() => onReply(post.id, null, t?.nama)}
+            onToggleComments={null}
             onDm={isMine ? null : () => onDm(t?.id)}
           />
         </div>
@@ -478,14 +525,14 @@ function ReplyThread({ reply, postId, depth, myTokoId, onLike, onReply, onDm }) 
         <SellerAvatar toko={t} size={depth === 0 ? 34 : 28} />
         <div style={{ flex: 1, minWidth: 0, paddingBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-            <span style={{ fontFamily: PJS, fontSize: depth === 0 ? '0.82rem' : '0.78rem', fontWeight: 700 }}>{t?.nama}</span>
+            <TokoNameLink toko={t} fontSize={depth === 0 ? '0.82rem' : '0.78rem'} />
             {t?.pro && <ProBadge small />}
             <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(reply.createdAt)}</span>
           </div>
           <p style={{ fontFamily: PJS, fontSize: depth === 0 ? '0.855rem' : '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{reply.teks}</p>
           <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
             <ActionBtn icon={<Heart size={13} fill={reply.liked ? 'var(--danger)' : 'none'} />} label={reply.likesCount} active={reply.liked} activeColor="var(--danger)" onClick={() => onLike(reply.id)} />
-            <ActionBtn icon={<MessageCircle size={13} />} onClick={() => onReply(postId, reply.id, t?.nama)} />
+            <ActionBtn icon={<MessageCircle size={13} />} label="Balas" onClick={() => onReply(postId, reply.id, t?.nama)} />
             {!isMine && <ActionBtn icon={<Mail size={13} />} onClick={() => onDm(t?.id)} />}
           </div>
         </div>
@@ -850,6 +897,28 @@ function SellerAvatar({ toko, size = 40 }) {
   )
 }
 
+// Nama toko yang bisa diklik → ke storefront
+function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
+  const url = toko?.slug ? getStorefrontUrl(toko.slug) : null
+  const style = {
+    fontFamily: PJS, fontSize, fontWeight,
+    color: 'var(--text-primary)',
+    textDecoration: 'none',
+    cursor: url ? 'pointer' : 'default',
+  }
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" style={style}
+        onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
+        onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}
+      >
+        {toko?.nama || 'Toko'}
+      </a>
+    )
+  }
+  return <span style={style}>{toko?.nama || 'Toko'}</span>
+}
+
 function ProBadge({ small }) {
   return (
     <span className="badge badge-pro" style={{ fontSize: small ? '0.55rem' : '0.6rem', padding: '1px 6px' }}>
@@ -897,11 +966,26 @@ function ActionBtn({ icon, label, active, activeColor, onClick }) {
   )
 }
 
-function PostActions({ likesCount, repostsCount, repliesCount, liked, reposted, bookmarked, onLike, onRepost, onBookmark, onReply, onDm }) {
+function PostActions({ likesCount, repostsCount, repliesCount, liked, reposted, bookmarked, commentsOpen, onLike, onRepost, onBookmark, onReply, onToggleComments, onDm }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 4, marginBottom: 12 }}>
       <ActionBtn icon={<Heart size={15} fill={liked ? 'var(--danger)' : 'none'} />} label={likesCount} active={liked} activeColor="var(--danger)" onClick={onLike} />
-      <ActionBtn icon={<MessageCircle size={15} />} label={repliesCount} onClick={onReply} />
+      {/* Tombol komentar: toggle buka/tutup di feed, atau langsung reply di detail */}
+      {onToggleComments ? (
+        <button
+          onClick={onToggleComments}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
+            cursor: 'pointer', color: commentsOpen ? 'var(--accent)' : 'var(--text-tertiary)',
+            fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--radius-md)',
+          }}
+        >
+          <MessageCircle size={15} />{repliesCount}
+          {commentsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+        </button>
+      ) : (
+        <ActionBtn icon={<MessageCircle size={15} />} label={repliesCount} onClick={onReply} />
+      )}
       <ActionBtn icon={<Repeat2 size={15} />} label={repostsCount} active={reposted} activeColor="var(--success, #34d399)" onClick={onRepost} />
       {onDm && <ActionBtn icon={<Mail size={15} />} onClick={onDm} />}
       <div style={{ marginLeft: 'auto' }}>
@@ -927,14 +1011,16 @@ function PostImages({ images }) {
   if (!images?.length) return null
   if (images.length === 1) {
     return (
-      <div style={{ marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-        <img src={images[0]} alt="" style={{ width: '100%', maxHeight: 260, objectFit: 'cover', display: 'block' }} />
+      <div style={{ marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
+        <img src={images[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
       </div>
     )
   }
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-      {images.map((img, i) => <img key={i} src={img} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />)}
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
+      {images.map((img, i) => (
+        <img key={i} src={img} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)' }} />
+      ))}
     </div>
   )
 }
