@@ -851,3 +851,489 @@ async function verifyToken(token) {
 
   return data.user_id
 }
+
+// ================================================
+// STREAM — helpers
+// ================================================
+
+function requirePro(userRow) {
+  const ok = userRow?.plan === 'pro' && userRow?.plan_expiry && new Date(userRow.plan_expiry) > new Date()
+  if (!ok) throw new ApiError('Fitur ini khusus seller Pro', 403)
+}
+
+function extractHashtags(text) {
+  const matches = String(text || '').match(/#\w+/g) || []
+  return [...new Set(matches)]
+}
+
+function mapStreamPost(p, extra = {}) {
+  let foto = []
+  try { foto = p.foto ? JSON.parse(p.foto) : [] } catch { foto = [] }
+  return {
+    id: p.id,
+    toko: p.toko ? { id: p.toko.id, nama: p.toko.nama, slug: p.toko.slug, logo: p.toko.logo, pro: p.toko.plan === 'pro' } : null,
+    teks: p.teks,
+    foto,
+    shopLink: p.shop_link ? { slug: p.shop_link.slug, nama: p.shop_link.nama } : null,
+    hashtags: extra.hashtags || [],
+    likesCount: p.likes_count,
+    repostsCount: p.reposts_count,
+    repliesCount: p.replies_count,
+    liked: !!extra.liked,
+    reposted: !!extra.reposted,
+    bookmarked: !!extra.bookmarked,
+    previewReplies: extra.previewReplies || [],
+    createdAt: p.created_at,
+  }
+}
+
+function mapStreamReply(r) {
+  return {
+    id: r.id,
+    postId: r.post_id,
+    parentReplyId: r.parent_reply_id,
+    toko: r.toko ? { id: r.toko.id, nama: r.toko.nama, slug: r.toko.slug, logo: r.toko.logo, pro: r.toko.plan === 'pro' } : null,
+    teks: r.teks,
+    likesCount: r.likes_count,
+    createdAt: r.created_at,
+  }
+}
+
+function buildReplyTree(replies, likedSet) {
+  const byId = {}
+  replies.forEach(r => { byId[r.id] = { ...mapStreamReply(r), liked: likedSet.has(r.id), replies: [] } })
+  const roots = []
+  replies.forEach(r => {
+    const node = byId[r.id]
+    if (r.parent_reply_id && byId[r.parent_reply_id]) byId[r.parent_reply_id].replies.push(node)
+    else roots.push(node)
+  })
+  return roots
+}
+
+async function getViewerFlags(viewerTokoId, postIds) {
+  if (!viewerTokoId || !postIds.length) return { liked: new Set(), reposted: new Set(), bookmarked: new Set() }
+  const [{ data: likes }, { data: reposts }, { data: bookmarks }] = await Promise.all([
+    supabaseAdmin.from('stream_likes').select('target_id').eq('toko_id', viewerTokoId).eq('target_type', 'post').in('target_id', postIds),
+    supabaseAdmin.from('stream_reposts').select('post_id').eq('toko_id', viewerTokoId).in('post_id', postIds),
+    supabaseAdmin.from('stream_bookmarks').select('post_id').eq('toko_id', viewerTokoId).in('post_id', postIds),
+  ])
+  return {
+    liked: new Set((likes || []).map(l => l.target_id)),
+    reposted: new Set((reposts || []).map(r => r.post_id)),
+    bookmarked: new Set((bookmarks || []).map(b => b.post_id)),
+  }
+}
+
+async function getViewerFlagsMixed(viewerTokoId, postId, replyIds) {
+  if (!viewerTokoId) return { likedPost: false, reposted: false, bookmarked: false, likedReplies: new Set() }
+  const [{ data: likePost }, { data: repost }, { data: bookmark }, { data: likeReplies }] = await Promise.all([
+    supabaseAdmin.from('stream_likes').select('id').eq('toko_id', viewerTokoId).eq('target_type', 'post').eq('target_id', postId).maybeSingle(),
+    supabaseAdmin.from('stream_reposts').select('id').eq('toko_id', viewerTokoId).eq('post_id', postId).maybeSingle(),
+    supabaseAdmin.from('stream_bookmarks').select('id').eq('toko_id', viewerTokoId).eq('post_id', postId).maybeSingle(),
+    replyIds.length
+      ? supabaseAdmin.from('stream_likes').select('target_id').eq('toko_id', viewerTokoId).eq('target_type', 'reply').in('target_id', replyIds)
+      : { data: [] },
+  ])
+  return {
+    likedPost: !!likePost,
+    reposted: !!repost,
+    bookmarked: !!bookmark,
+    likedReplies: new Set((likeReplies || []).map(l => l.target_id)),
+  }
+}
+
+// ================================================
+// STREAM API
+// ================================================
+
+export const streamApi = {
+  getFeed: async (token, params = {}) => {
+    const userId = await verifyToken(token)
+    const { data: viewerToko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    const viewerTokoId = viewerToko?.id || null
+
+    let query = supabaseAdmin
+      .from('stream_posts')
+      .select('*, toko:toko_id(id,nama,slug,logo,plan), shop_link:shop_link_toko_id(id,nama,slug)')
+      .order('created_at', { ascending: false })
+      .limit(params.limit || 30)
+
+    if (params.search) query = query.ilike('teks', `%${params.search}%`)
+
+    if (params.tag) {
+      const { data: tagRows } = await supabaseAdmin.from('stream_hashtags').select('post_id').eq('tag', params.tag)
+      const ids = (tagRows || []).map(r => r.post_id)
+      if (!ids.length) return { success: true, data: [] }
+      query = query.in('id', ids)
+    }
+
+    const { data: posts, error } = await query
+    if (error) handleError(error)
+
+    const ids = (posts || []).map(p => p.id)
+    const [{ data: hashtagRows }, { data: previewReplies }, viewerFlags] = await Promise.all([
+      ids.length ? supabaseAdmin.from('stream_hashtags').select('post_id, tag').in('post_id', ids) : { data: [] },
+      ids.length
+        ? supabaseAdmin.from('stream_replies').select('*, toko:toko_id(id,nama,slug,logo,plan)').in('post_id', ids).is('parent_reply_id', null).order('created_at', { ascending: true })
+        : { data: [] },
+      getViewerFlags(viewerTokoId, ids),
+    ])
+
+    const hashtagsByPost = {}
+    ;(hashtagRows || []).forEach(h => { (hashtagsByPost[h.post_id] ||= []).push(h.tag) })
+
+    const repliesByPost = {}
+    ;(previewReplies || []).forEach(r => {
+      (repliesByPost[r.post_id] ||= [])
+      if (repliesByPost[r.post_id].length < 2) repliesByPost[r.post_id].push(r)
+    })
+
+    const result = (posts || []).map(p => mapStreamPost(p, {
+      hashtags: hashtagsByPost[p.id] || [],
+      previewReplies: (repliesByPost[p.id] || []).map(mapStreamReply),
+      liked: viewerFlags.liked.has(p.id),
+      reposted: viewerFlags.reposted.has(p.id),
+      bookmarked: viewerFlags.bookmarked.has(p.id),
+    }))
+
+    return { success: true, data: result }
+  },
+
+  getPostDetail: async (token, postId) => {
+    const userId = await verifyToken(token)
+    const { data: viewerToko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    const viewerTokoId = viewerToko?.id || null
+
+    const { data: post, error } = await supabaseAdmin
+      .from('stream_posts')
+      .select('*, toko:toko_id(id,nama,slug,logo,plan), shop_link:shop_link_toko_id(id,nama,slug)')
+      .eq('id', postId)
+      .single()
+    if (error) handleError(error)
+
+    const { data: hashtagRows } = await supabaseAdmin.from('stream_hashtags').select('tag').eq('post_id', postId)
+    const { data: allReplies } = await supabaseAdmin
+      .from('stream_replies')
+      .select('*, toko:toko_id(id,nama,slug,logo,plan)')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true })
+
+    const replyIds = (allReplies || []).map(r => r.id)
+    const flags = await getViewerFlagsMixed(viewerTokoId, postId, replyIds)
+    const tree = buildReplyTree(allReplies || [], flags.likedReplies)
+
+    return {
+      success: true,
+      data: {
+        ...mapStreamPost(post, {
+          hashtags: (hashtagRows || []).map(h => h.tag),
+          liked: flags.likedPost,
+          reposted: flags.reposted,
+          bookmarked: flags.bookmarked,
+        }),
+        replies: tree,
+      }
+    }
+  },
+
+  createPost: async (token, data) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const hashtags = extractHashtags(data.teks)
+
+    const { data: post, error } = await supabaseAdmin
+      .from('stream_posts')
+      .insert({
+        toko_id: toko.id,
+        teks: data.teks,
+        foto: JSON.stringify(data.foto || []),
+        shop_link_toko_id: data.shopLinkTokoId || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+    if (error) handleError(error)
+
+    if (hashtags.length) {
+      await supabaseAdmin.from('stream_hashtags').insert(hashtags.map(tag => ({ post_id: post.id, tag })))
+    }
+
+    return { success: true, data: mapStreamPost(post, { toko, hashtags }) }
+  },
+
+  addReply: async (token, { postId, parentReplyId, teks }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const { data: reply, error } = await supabaseAdmin
+      .from('stream_replies')
+      .insert({ post_id: postId, parent_reply_id: parentReplyId || null, toko_id: toko.id, teks, created_at: new Date().toISOString() })
+      .select()
+      .single()
+    if (error) handleError(error)
+
+    const { data: post } = await supabaseAdmin.from('stream_posts').select('toko_id').eq('id', postId).single()
+    if (post && post.toko_id !== toko.id) {
+      await supabaseAdmin.from('stream_notifications').insert({
+        toko_id: post.toko_id, type: 'reply', actor_toko_id: toko.id, ref_post_id: postId, ref_reply_id: reply.id, created_at: new Date().toISOString(),
+      })
+    }
+
+    return { success: true, data: mapStreamReply({ ...reply, toko }) }
+  },
+
+  toggleLike: async (token, { targetType, targetId }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const { data: existing } = await supabaseAdmin
+      .from('stream_likes').select('id').eq('toko_id', toko.id).eq('target_type', targetType).eq('target_id', targetId).maybeSingle()
+
+    if (existing) {
+      const { error } = await supabaseAdmin.from('stream_likes').delete().eq('id', existing.id)
+      if (error) handleError(error)
+      return { success: true, data: { liked: false } }
+    }
+
+    const { error } = await supabaseAdmin.from('stream_likes').insert({
+      toko_id: toko.id, target_type: targetType, target_id: targetId, created_at: new Date().toISOString(),
+    })
+    if (error) handleError(error)
+
+    if (targetType === 'post') {
+      const { data: post } = await supabaseAdmin.from('stream_posts').select('toko_id').eq('id', targetId).single()
+      if (post && post.toko_id !== toko.id) {
+        await supabaseAdmin.from('stream_notifications').insert({
+          toko_id: post.toko_id, type: 'like', actor_toko_id: toko.id, ref_post_id: targetId, created_at: new Date().toISOString(),
+        })
+      }
+    }
+
+    return { success: true, data: { liked: true } }
+  },
+
+  toggleRepost: async (token, { postId }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const { data: existing } = await supabaseAdmin
+      .from('stream_reposts').select('id').eq('toko_id', toko.id).eq('post_id', postId).maybeSingle()
+
+    if (existing) {
+      const { error } = await supabaseAdmin.from('stream_reposts').delete().eq('id', existing.id)
+      if (error) handleError(error)
+      return { success: true, data: { reposted: false } }
+    }
+
+    const { error } = await supabaseAdmin.from('stream_reposts').insert({ toko_id: toko.id, post_id: postId, created_at: new Date().toISOString() })
+    if (error) handleError(error)
+
+    const { data: post } = await supabaseAdmin.from('stream_posts').select('toko_id').eq('id', postId).single()
+    if (post && post.toko_id !== toko.id) {
+      await supabaseAdmin.from('stream_notifications').insert({
+        toko_id: post.toko_id, type: 'repost', actor_toko_id: toko.id, ref_post_id: postId, created_at: new Date().toISOString(),
+      })
+    }
+
+    return { success: true, data: { reposted: true } }
+  },
+
+  toggleBookmark: async (token, { postId }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const { data: existing } = await supabaseAdmin
+      .from('stream_bookmarks').select('id').eq('toko_id', toko.id).eq('post_id', postId).maybeSingle()
+
+    if (existing) {
+      await supabaseAdmin.from('stream_bookmarks').delete().eq('id', existing.id)
+      return { success: true, data: { bookmarked: false } }
+    }
+
+    await supabaseAdmin.from('stream_bookmarks').insert({ toko_id: toko.id, post_id: postId, created_at: new Date().toISOString() })
+    return { success: true, data: { bookmarked: true } }
+  },
+
+  getDmThreads: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) return { success: true, data: [] }
+
+    const { data: threads, error } = await supabaseAdmin
+      .from('stream_dm_threads')
+      .select('*, toko_a:toko_a_id(id,nama,slug,logo,plan), toko_b:toko_b_id(id,nama,slug,logo,plan)')
+      .or(`toko_a_id.eq.${toko.id},toko_b_id.eq.${toko.id}`)
+      .order('last_message_at', { ascending: false })
+    if (error) handleError(error)
+
+    const threadIds = (threads || []).map(t => t.id)
+    const { data: msgs } = threadIds.length
+      ? await supabaseAdmin.from('stream_dm_messages').select('*').in('thread_id', threadIds).order('created_at', { ascending: false })
+      : { data: [] }
+
+    const lastByThread = {}
+    ;(msgs || []).forEach(m => { if (!lastByThread[m.thread_id]) lastByThread[m.thread_id] = m })
+
+    const unreadCount = {}
+    ;(msgs || []).forEach(m => {
+      if (m.sender_toko_id !== toko.id && !m.read_at) unreadCount[m.thread_id] = (unreadCount[m.thread_id] || 0) + 1
+    })
+
+    const result = (threads || []).map(t => {
+      const other = t.toko_a_id === toko.id ? t.toko_b : t.toko_a
+      const last = lastByThread[t.id]
+      return {
+        id: t.id,
+        toko: other ? { id: other.id, nama: other.nama, slug: other.slug, logo: other.logo, pro: other.plan === 'pro' } : null,
+        lastMessage: last?.teks || '',
+        lastMessageAt: t.last_message_at,
+        unread: unreadCount[t.id] || 0,
+      }
+    })
+
+    return { success: true, data: result }
+  },
+
+  getDmMessages: async (token, threadId) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { data: messages, error } = await supabaseAdmin
+      .from('stream_dm_messages').select('*').eq('thread_id', threadId).order('created_at', { ascending: true })
+    if (error) handleError(error)
+
+    await supabaseAdmin
+      .from('stream_dm_messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('thread_id', threadId)
+      .neq('sender_toko_id', toko.id)
+      .is('read_at', null)
+
+    return {
+      success: true,
+      data: (messages || []).map(m => ({
+        id: m.id, threadId: m.thread_id, teks: m.teks, createdAt: m.created_at, isMine: m.sender_toko_id === toko.id,
+      }))
+    }
+  },
+
+  openDmThread: async (token, { otherTokoId }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    if (otherTokoId === toko.id) throw new ApiError('Gak bisa DM toko sendiri', 400)
+    const [a, b] = [toko.id, otherTokoId].sort()
+
+    const { data: existing } = await supabaseAdmin.from('stream_dm_threads').select('id').eq('toko_a_id', a).eq('toko_b_id', b).maybeSingle()
+    if (existing) return { success: true, data: { threadId: existing.id } }
+
+    const { data: thread, error } = await supabaseAdmin
+      .from('stream_dm_threads')
+      .insert({ toko_a_id: a, toko_b_id: b, created_at: new Date().toISOString(), last_message_at: new Date().toISOString() })
+      .select()
+      .single()
+    if (error) handleError(error)
+
+    return { success: true, data: { threadId: thread.id } }
+  },
+
+  sendDmMessage: async (token, { threadId, teks }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const { data: msg, error } = await supabaseAdmin
+      .from('stream_dm_messages')
+      .insert({ thread_id: threadId, sender_toko_id: toko.id, teks, created_at: new Date().toISOString() })
+      .select()
+      .single()
+    if (error) handleError(error)
+
+    const { data: thread } = await supabaseAdmin.from('stream_dm_threads').select('toko_a_id, toko_b_id').eq('id', threadId).single()
+    const recipientId = thread ? (thread.toko_a_id === toko.id ? thread.toko_b_id : thread.toko_a_id) : null
+    if (recipientId) {
+      await supabaseAdmin.from('stream_notifications').insert({
+        toko_id: recipientId, type: 'dm', actor_toko_id: toko.id, ref_thread_id: threadId, created_at: new Date().toISOString(),
+      })
+    }
+
+    return { success: true, data: { id: msg.id, threadId, teks: msg.teks, createdAt: msg.created_at, isMine: true } }
+  },
+
+  getNotifications: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) return { success: true, data: [] }
+
+    const { data, error } = await supabaseAdmin
+      .from('stream_notifications')
+      .select('*, actor:actor_toko_id(id,nama,slug,logo)')
+      .eq('toko_id', toko.id)
+      .order('created_at', { ascending: false })
+      .limit(50)
+    if (error) handleError(error)
+
+    return {
+      success: true,
+      data: (data || []).map(n => ({
+        id: n.id, type: n.type,
+        actor: n.actor ? { id: n.actor.id, nama: n.actor.nama, slug: n.actor.slug, logo: n.actor.logo } : null,
+        refPostId: n.ref_post_id, refReplyId: n.ref_reply_id, refThreadId: n.ref_thread_id,
+        isRead: n.is_read, createdAt: n.created_at,
+      }))
+    }
+  },
+
+  markNotificationsRead: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) return { success: true }
+    const { error } = await supabaseAdmin.from('stream_notifications').update({ is_read: true }).eq('toko_id', toko.id).eq('is_read', false)
+    if (error) handleError(error)
+    return { success: true }
+  },
+
+  uploadImage: async (token, { fileBase64, fileName, contentType }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const buffer = Buffer.from(fileBase64, 'base64')
+    const ext = (fileName.split('.').pop() || 'jpg').toLowerCase()
+    const path = `${toko.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+
+    const { error: upErr } = await supabaseAdmin.storage
+      .from('stream-images')
+      .upload(path, buffer, { contentType: contentType || 'image/jpeg', upsert: false })
+    if (upErr) handleError(upErr)
+
+    const { data: pub } = supabaseAdmin.storage.from('stream-images').getPublicUrl(path)
+    return { success: true, data: { url: pub.publicUrl } }
+  },
+}
