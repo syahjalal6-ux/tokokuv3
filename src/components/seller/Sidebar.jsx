@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Settings,
   Zap, ExternalLink, LogOut, Menu, X,
-  Store, BarChart2, Sun, Moon
+  Store, BarChart2, Sun, Moon, Rss, Lock
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
 import { pesananApi } from '../../lib/api/index.js'
@@ -76,6 +76,7 @@ export default function Sidebar() {
     { to: '/dashboard', label: 'Ringkasan', icon: LayoutDashboard, exact: true },
     { to: '/dashboard/produk', label: 'Produk', icon: Package },
     { to: '/dashboard/pesanan', label: 'Pesanan', icon: ShoppingBag, badge: pendingCount },
+    { to: '/dashboard/stream', label: 'Stream', icon: Rss, locked: !pro },
     { to: '/dashboard/analytics', label: 'Analitik', icon: BarChart2 },
     { to: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
   ]
@@ -190,6 +191,9 @@ export default function Sidebar() {
                 )}
                 <item.icon size={16} style={{ opacity: isActive ? 1 : 0.6 }} />
                 <span style={{ flex: 1 }}>{item.label}</span>
+                {item.locked && (
+                  <Lock size={12} color="var(--text-tertiary)" style={{ opacity: 0.7, flexShrink: 0 }} />
+                )}
                 {item.badge > 0 && (
                   <span style={{
                     background: 'var(--danger)',
