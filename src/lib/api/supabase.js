@@ -1399,7 +1399,6 @@ export const chatApi = {
   send: async ({ messages, produk, toko, semuaProduk }) => {
     if (!messages || !Array.isArray(messages)) throw new Error('messages tidak valid')
 
-    // Ambil toko_info dari Supabase
     let tokoInfoStr = ''
     if (toko && toko.id) {
       const { data: info } = await supabase
@@ -1433,11 +1432,12 @@ ${tokoInfoStr}
 
 Jawab dengan ramah, singkat, dan dalam Bahasa Indonesia. Jika pembeli siap beli, arahkan untuk klik tombol "Beli Sekarang".`
     } else {
-      const produkListStr = semuaProduk && semuaProduk.length > 0
-        ? '\n\nDaftar produk yang tersedia:\n' + semuaProduk.map((p, i) =>
-            `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}`
-          ).join('\n')
-        : ''
+      let produkListStr = ''
+      if (semuaProduk && Array.isArray(semuaProduk) && semuaProduk.length > 0) {
+        produkListStr = '\n\nDaftar produk yang tersedia:\n' + semuaProduk.map((p, i) =>
+          `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}`
+        ).join('\n')
+      }
 
       systemPrompt = `Kamu adalah asisten toko "${toko ? toko.nama : 'ini'}".
 ${toko && toko.deskripsi ? 'Deskripsi toko: ' + toko.deskripsi : ''}
