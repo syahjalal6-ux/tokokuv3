@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { X, Send, Bot, User, Loader, ShoppingBag } from 'lucide-react'
-
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzNFrArQcqL7BUh_uv3z2tNG0OoYI0EXZhsFGTrt0IfmxKTG4ascHDbUJ8CSjCXPnT1/exec'
+import { chatApi } from '../../lib/api/supabase.js'
 
 export default function ChatModal({ produk, toko, tema, onClose, onCheckout, semuaProduk = [] }) {
   const isUmum = !produk
@@ -40,7 +39,6 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
     }
 
     const onWindowResize = () => {
-      // Fallback untuk browser yang tidak support visualViewport dengan benar
       const h = window.visualViewport?.height || window.innerHeight
       setVpHeight(h)
       setTimeout(() => {
@@ -53,7 +51,6 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
       vv.addEventListener('scroll', onVVResize)
     }
 
-    // Fallback: window resize (trigger di browser bawaan Android saat keyboard muncul)
     window.addEventListener('resize', onWindowResize)
 
     return () => {
@@ -76,39 +73,31 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
     setLoading(true)
 
     try {
-      const res = await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({
-          action: 'chat',
-          messages: newMessages,
-          produk: produk ? {
-            nama: produk.nama,
-            deskripsi: produk.deskripsi,
-            harga: produk.harga,
-            hargaCoret: produk.hargaCoret,
-            stok: produk.stok,
-            kategori: produk.kategori,
-            berat: produk.berat,
-          } : null,
-          semuaProduk: semuaProduk.map(p => ({
-            nama: p.nama,
-            harga: p.harga,
-            hargaCoret: p.hargaCoret,
-            stok: p.stok,
-            kategori: p.kategori,
-            deskripsi: p.deskripsi ? p.deskripsi.slice(0, 200) : '',
-          })),
-          toko: {
-            id: toko.id,
-            nama: toko.nama,
-            deskripsi: toko.deskripsi,
-          },
-        }),
-        redirect: 'follow',
+      const data = await chatApi.send({
+        messages: newMessages,
+        produk: produk ? {
+          nama: produk.nama,
+          deskripsi: produk.deskripsi,
+          harga: produk.harga,
+          hargaCoret: produk.hargaCoret,
+          stok: produk.stok,
+          kategori: produk.kategori,
+          berat: produk.berat,
+        } : null,
+        semuaProduk: semuaProduk.map(p => ({
+          nama: p.nama,
+          harga: p.harga,
+          hargaCoret: p.hargaCoret,
+          stok: p.stok,
+          kategori: p.kategori,
+          deskripsi: p.deskripsi ? p.deskripsi.slice(0, 200) : '',
+        })),
+        toko: {
+          id: toko.id,
+          nama: toko.nama,
+          deskripsi: toko.deskripsi,
+        },
       })
-
-      const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.reply }])
     } catch (err) {
       setMessages(prev => [...prev, {
