@@ -1317,28 +1317,29 @@ export const streamApi = {
     return { success: true }
   },
 }
+
   uploadImage: async (token, { fileBase64, fileName, contentType }) => {
-  const userId = await verifyToken(token)
-  const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
-  if (!toko) throw new ApiError('Buat toko dulu', 400)
-  const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
-  requirePro(userRow)
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
 
-  // Convert base64 → Uint8Array (browser-compatible, gak pakai Buffer)
-  const binaryStr = atob(fileBase64)
-  const bytes = new Uint8Array(binaryStr.length)
-  for (let i = 0; i < binaryStr.length; i++) {
-    bytes[i] = binaryStr.charCodeAt(i)
-  }
+    const binaryStr = atob(fileBase64)
+    const bytes = new Uint8Array(binaryStr.length)
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i)
+    }
 
-  const ext = (fileName.split('.').pop() || 'jpg').toLowerCase()
-  const path = `${toko.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+    const ext = (fileName.split('.').pop() || 'jpg').toLowerCase()
+    const path = `${toko.id}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
 
-  const { error: upErr } = await supabaseAdmin.storage
-    .from('stream-images')
-    .upload(path, bytes, { contentType: contentType || 'image/jpeg', upsert: false })
-  if (upErr) handleError(upErr)
+    const { error: upErr } = await supabaseAdmin.storage
+      .from('stream-images')
+      .upload(path, bytes, { contentType: contentType || 'image/jpeg', upsert: false })
+    if (upErr) handleError(upErr)
 
-  const { data: pub } = supabaseAdmin.storage.from('stream-images').getPublicUrl(path)
-  return { success: true, data: { url: pub.publicUrl } }
-},
+    const { data: pub } = supabaseAdmin.storage.from('stream-images').getPublicUrl(path)
+    return { success: true, data: { url: pub.publicUrl } }
+  },
+} // <-- INI YANG KETINGGALAN, nutup `export const streamApi = {`
