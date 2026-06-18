@@ -126,3 +126,232 @@ export const useProdukStore = create((set, get) => ({
   })),
   clear: () => set({ produk: [] }),
 }))
+
+// =============================================
+// STREAM STORE
+// =============================================
+import { streamApi } from '../lib/api/index.js'
+
+export const useStreamStore = create((set, get) => ({
+  // Feed
+  feed: [],
+  feedLoading: false,
+  feedError: null,
+  activeTag: null,
+  searchQuery: '',
+
+  // Post detail (nested replies)
+  postDetail: null,
+  postDetailLoading: false,
+  postDetailError: null,
+
+  // DM
+  dmThreads: [],
+  dmThreadsLoading: false,
+  activeThreadId: null,
+  dmMessages: [],
+  dmMessagesLoading: false,
+
+  // Notifications
+  notifs: [],
+  notifsLoading: false,
+  unreadNotifCount: 0,
+
+  // ───────────── FEED ─────────────
+  setActiveTag: (tag) => set({ activeTag: tag }),
+  setSearchQuery: (q) => set({ searchQuery: q }),
+
+  loadFeed: async (tokenObj, params = {}) => {
+    set({ feedLoading: true, feedError: null })
+    try {
+      const res = await streamApi.getFeed(tokenObj, params)
+      set({ feed: res.data || [], feedLoading: false })
+    } catch (err) {
+      set({ feedError: err.message, feedLoading: false })
+    }
+  },
+
+  createPost: async (tokenObj, data) => {
+    const res = await streamApi.createPost(tokenObj, data)
+    set(s => ({ feed: [res.data, ...s.feed] }))
+    return res.data
+  },
+
+  // ───────────── POST DETAIL ─────────────
+  loadPostDetail: async (tokenObj, postId) => {
+    set({ postDetailLoading: true, postDetailError: null })
+    try {
+      const res = await streamApi.getPostDetail(tokenObj, postId)
+      set({ postDetail: res.data, postDetailLoading: false })
+    } catch (err) {
+      set({ postDetailError: err.message, postDetailLoading: false })
+    }
+  },
+
+  clearPostDetail: () => set({ postDetail: null, postDetailError: null }),
+
+  addReply: async (tokenObj, { postId, parentReplyId, teks }) => {
+    await streamApi.addReply(tokenObj, { postId, parentReplyId, teks })
+    // refetch detail biar tree replies konsisten (server source of truth)
+    await get().loadPostDetail(tokenObj, postId)
+  },
+
+  // ───────────── LIKE / REPOST / BOOKMARK (optimistic) ─────────────
+  toggleLike: async (tokenObj, { targetType, targetId, postId }) => {
+    const prevFeed = get().feed
+    const prevDetail = get().postDetail
+
+    // optimistic update di feed (target post-level)
+    if (targetType === 'post') {
+      set(s => ({
+        feed: s.feed.map(p => p.id === targetId
+          ? { ...p, liked: !p.liked, likesCount: p.likesCount + (p.liked ? -1 : 1) }
+          : p),
+      }))
+    }
+
+    // optimistic update di post detail (post atau reply)
+    set(s => {
+      if (!s.postDetail) return {}
+      if (targetType === 'post' && s.postDetail.id === targetId) {
+        return { postDetail: { ...s.postDetail, liked: !s.postDetail.liked, likesCount: s.postDetail.likesCount + (s.postDetail.liked ? -1 : 1) } }
+      }
+      if (targetType === 'reply') {
+        const updateTree = (replies) => replies.map(r => {
+          if (r.id === targetId) return { ...r, liked: !r.liked, likesCount: r.likesCount + (r.liked ? -1 : 1) }
+          return { ...r, replies: updateTree(r.replies || []) }
+        })
+        return { postDetail: { ...s.postDetail, replies: updateTree(s.postDetail.replies || []) } }
+      }
+      return {}
+    })
+
+    try {
+      await streamApi.toggleLike(tokenObj, { targetType, targetId })
+    } catch (err) {
+      // rollback
+      set({ feed: prevFeed, postDetail: prevDetail })
+      throw err
+    }
+  },
+
+  toggleRepost: async (tokenObj, { postId }) => {
+    const prevFeed = get().feed
+    const prevDetail = get().postDetail
+
+    set(s => ({
+      feed: s.feed.map(p => p.id === postId
+        ? { ...p, reposted: !p.reposted, repostsCount: p.repostsCount + (p.reposted ? -1 : 1) }
+        : p),
+      postDetail: s.postDetail && s.postDetail.id === postId
+        ? { ...s.postDetail, reposted: !s.postDetail.reposted, repostsCount: s.postDetail.repostsCount + (s.postDetail.reposted ? -1 : 1) }
+        : s.postDetail,
+    }))
+
+    try {
+      await streamApi.toggleRepost(tokenObj, { postId })
+    } catch (err) {
+      set({ feed: prevFeed, postDetail: prevDetail })
+      throw err
+    }
+  },
+
+  toggleBookmark: async (tokenObj, { postId }) => {
+    const prevFeed = get().feed
+    const prevDetail = get().postDetail
+
+    set(s => ({
+      feed: s.feed.map(p => p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p),
+      postDetail: s.postDetail && s.postDetail.id === postId
+        ? { ...s.postDetail, bookmarked: !s.postDetail.bookmarked }
+        : s.postDetail,
+    }))
+
+    try {
+      await streamApi.toggleBookmark(tokenObj, { postId })
+    } catch (err) {
+      set({ feed: prevFeed, postDetail: prevDetail })
+      throw err
+    }
+  },
+
+  // ───────────── DM ─────────────
+  loadDmThreads: async (tokenObj) => {
+    set({ dmThreadsLoading: true })
+    try {
+      const res = await streamApi.getDmThreads(tokenObj)
+      set({ dmThreads: res.data || [], dmThreadsLoading: false })
+    } catch (err) {
+      set({ dmThreadsLoading: false })
+    }
+  },
+
+  openDmThread: async (tokenObj, { otherTokoId }) => {
+    const res = await streamApi.openDmThread(tokenObj, { otherTokoId })
+    set({ activeThreadId: res.data.threadId })
+    return res.data.threadId
+  },
+
+  setActiveThreadId: (threadId) => set({ activeThreadId: threadId }),
+
+  loadDmMessages: async (tokenObj, threadId) => {
+    set({ dmMessagesLoading: true })
+    try {
+      const res = await streamApi.getDmMessages(tokenObj, threadId)
+      set({ dmMessages: res.data || [], dmMessagesLoading: false })
+      // thread yg dibuka otomatis kebaca, nolin unread count di list
+      set(s => ({
+        dmThreads: s.dmThreads.map(t => t.id === threadId ? { ...t, unread: 0 } : t),
+      }))
+    } catch (err) {
+      set({ dmMessagesLoading: false })
+    }
+  },
+
+  sendDmMessage: async (tokenObj, { threadId, teks }) => {
+    const optimisticMsg = { id: `temp-${Date.now()}`, threadId, teks, createdAt: new Date().toISOString(), isMine: true }
+    set(s => ({ dmMessages: [...s.dmMessages, optimisticMsg] }))
+
+    try {
+      const res = await streamApi.sendDmMessage(tokenObj, { threadId, teks })
+      set(s => ({
+        dmMessages: s.dmMessages.map(m => m.id === optimisticMsg.id ? res.data : m),
+        dmThreads: s.dmThreads.map(t => t.id === threadId ? { ...t, lastMessage: teks, lastMessageAt: res.data.createdAt } : t),
+      }))
+    } catch (err) {
+      set(s => ({ dmMessages: s.dmMessages.filter(m => m.id !== optimisticMsg.id) }))
+      throw err
+    }
+  },
+
+  clearDmThread: () => set({ activeThreadId: null, dmMessages: [] }),
+
+  // ───────────── NOTIFICATIONS ─────────────
+  loadNotifs: async (tokenObj) => {
+    set({ notifsLoading: true })
+    try {
+      const res = await streamApi.getNotifications(tokenObj)
+      const unread = (res.data || []).filter(n => !n.isRead).length
+      set({ notifs: res.data || [], unreadNotifCount: unread, notifsLoading: false })
+    } catch (err) {
+      set({ notifsLoading: false })
+    }
+  },
+
+  markNotifsRead: async (tokenObj) => {
+    set(s => ({ notifs: s.notifs.map(n => ({ ...n, isRead: true })), unreadNotifCount: 0 }))
+    try {
+      await streamApi.markNotificationsRead(tokenObj)
+    } catch (err) {
+      // silent fail, gak rollback — notif read status gak critical
+    }
+  },
+
+  // ───────────── RESET ─────────────
+  clear: () => set({
+    feed: [], feedLoading: false, feedError: null, activeTag: null, searchQuery: '',
+    postDetail: null, postDetailLoading: false, postDetailError: null,
+    dmThreads: [], dmThreadsLoading: false, activeThreadId: null, dmMessages: [], dmMessagesLoading: false,
+    notifs: [], notifsLoading: false, unreadNotifCount: 0,
+  }),
+}))
