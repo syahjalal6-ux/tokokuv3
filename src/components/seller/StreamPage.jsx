@@ -42,7 +42,6 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
           @keyframes scaleIn { from { transform: scale(0.92); opacity: 0 } to { transform: scale(1); opacity: 1 } }
           @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         `}</style>
-        {/* Ikon */}
         <div style={{
           width: 48, height: 48, borderRadius: 'var(--radius-full)',
           background: 'rgba(239,68,68,0.12)',
@@ -116,10 +115,11 @@ export default function StreamPage() {
   const [composing, setComposing] = useState(false)
   const [replyTarget, setReplyTarget] = useState(null)
   const [notifOpen, setNotifOpen] = useState(false)
-  // State untuk delete modal: null atau postId yang mau dihapus
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  // Load feed + notif count saat mount
+  // ref untuk ikon bel — dipakai NotifDropdown untuk posisi
+  const bellRef = useRef(null)
+
   useEffect(() => {
     loadFeed(tokenObj, {})
     loadNotifs(tokenObj)
@@ -175,7 +175,7 @@ export default function StreamPage() {
   }
 
   const openNotif = async () => {
-    setNotifOpen(true)
+    setNotifOpen(v => !v)
     await loadNotifs(tokenObj)
     markNotifsRead(tokenObj)
   }
@@ -205,12 +205,10 @@ export default function StreamPage() {
     setComposing(true)
   }
 
-  // Tampilkan custom modal konfirmasi hapus
   const handleDeletePost = (postId) => {
     setDeleteTarget(postId)
   }
 
-  // Eksekusi hapus setelah konfirmasi di modal
   const confirmDelete = async () => {
     const postId = deleteTarget
     setDeleteTarget(null)
@@ -335,7 +333,19 @@ export default function StreamPage() {
                 <h1 style={{ flex: 1, fontFamily: PJS, fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Stream</h1>
                 <IconBtn onClick={() => setSearchMode(true)}><Search size={15} /></IconBtn>
                 <IconBtn onClick={openDmList}><Mail size={15} /></IconBtn>
-                <IconBtn onClick={openNotif} badge={unreadNotifCount}><Bell size={15} /></IconBtn>
+                {/* Bel dengan ref untuk posisi dropdown */}
+                <div ref={bellRef} style={{ position: 'relative' }}>
+                  <IconBtn onClick={openNotif} badge={unreadNotifCount}><Bell size={15} /></IconBtn>
+                  {notifOpen && (
+                    <NotifDropdown
+                      notifs={notifs}
+                      onClose={() => setNotifOpen(false)}
+                      onOpenDm={(threadId) => { setNotifOpen(false); openThread(threadId) }}
+                      onOpenPost={(postId) => { setNotifOpen(false); openPostDetail(postId) }}
+                      bellRef={bellRef}
+                    />
+                  )}
+                </div>
               </>
             )}
           </div>
@@ -437,14 +447,6 @@ export default function StreamPage() {
             }}
           />
         )}
-        {notifOpen && (
-          <NotifSheet
-            notifs={notifs}
-            onClose={() => setNotifOpen(false)}
-            onOpenDm={(threadId) => { setNotifOpen(false); openThread(threadId) }}
-            onOpenPost={(postId) => { setNotifOpen(false); openPostDetail(postId) }}
-          />
-        )}
         {deleteTarget && (
           <DeleteConfirmModal
             onConfirm={confirmDelete}
@@ -462,9 +464,11 @@ export default function StreamPage() {
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
-  // Cast ke string agar tidak ada mismatch number vs string
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
-  const previewReplies = post.previewReplies || []
+  // Gunakan previewReplies jika ada, fallback ke replies slice
+  const previewReplies = post.previewReplies?.length
+    ? post.previewReplies
+    : (post.replies || []).slice(0, 3)
   const [commentsOpen, setCommentsOpen] = useState(false)
 
   return (
@@ -906,8 +910,29 @@ function ReplySheet({ target, onClose, onSubmit }) {
   )
 }
 
-function NotifSheet({ notifs, onClose, onOpenDm, onOpenPost }) {
+// ================================================
+// NOTIF DROPDOWN (menggantikan NotifSheet)
+// ================================================
+function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
   const ICON = { like: '❤️', reply: '💬', repost: '🔁', dm: '✉️' }
+  const dropdownRef = useRef(null)
+
+  // Click outside untuk tutup
+  useEffect(() => {
+    const handleOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        onClose()
+      }
+    }
+    // Delay sedikit agar klik bel tidak langsung trigger close
+    const timer = setTimeout(() => {
+      document.addEventListener('mousedown', handleOutside)
+    }, 50)
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('mousedown', handleOutside)
+    }
+  }, [onClose])
 
   const handleClick = (n) => {
     if (n.type === 'dm' && n.refThreadId) return onOpenDm(n.refThreadId)
@@ -941,33 +966,100 @@ function NotifSheet({ notifs, onClose, onOpenDm, onOpenPost }) {
   }
 
   return (
-    <Sheet onClose={onClose} title="Notifikasi">
-      {notifs.length === 0 && (
-        <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontFamily: PJS, fontSize: '0.85rem', padding: 24 }}>
-          Belum ada notifikasi.
-        </p>
-      )}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+    <>
+      <style>{`
+        @keyframes dropdownIn {
+          from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+          to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+      `}</style>
+      <div
+        ref={dropdownRef}
+        style={{
+          position: 'absolute',
+          top: 'calc(100% + 8px)',
+          right: 0,
+          width: 320,
+          maxHeight: 420,
+          overflowY: 'auto',
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--glass-border)',
+          borderRadius: 'var(--radius-xl)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+          zIndex: 200,
+          animation: 'dropdownIn 0.18s cubic-bezier(0.34,1.56,0.64,1)',
+          padding: '8px 0',
+        }}
+      >
+        {/* Header */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '6px 14px 10px',
+          borderBottom: '1px solid var(--glass-border)',
+          marginBottom: 4,
+        }}>
+          <span style={{ fontFamily: PJS, fontSize: '0.88rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            Notifikasi
+          </span>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              color: 'var(--text-tertiary)', display: 'flex', padding: 4,
+              borderRadius: 'var(--radius-md)',
+            }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {notifs.length === 0 && (
+          <p style={{
+            textAlign: 'center', color: 'var(--text-tertiary)',
+            fontFamily: PJS, fontSize: '0.82rem', padding: '20px 16px',
+          }}>
+            Belum ada notifikasi.
+          </p>
+        )}
+
         {notifs.map(n => (
           <div
             key={n.id}
             onClick={() => handleClick(n)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px',
-              borderRadius: 'var(--radius-md)', cursor: 'pointer',
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              padding: '9px 14px',
+              cursor: 'pointer',
               background: n.isRead ? 'transparent' : 'var(--accent-gradient-soft)',
+              transition: 'background 0.15s',
             }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--surface)'}
+            onMouseLeave={e => e.currentTarget.style.background = n.isRead ? 'transparent' : 'var(--accent-gradient-soft)'}
           >
-            <span style={{ fontSize: 18 }}>{ICON[n.type] || '🔔'}</span>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontFamily: PJS, fontSize: '0.8rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{labelFor(n)}</p>
-              <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>{timeAgo(n.createdAt)}</span>
+            <span style={{ fontSize: 16, flexShrink: 0, marginTop: 1 }}>{ICON[n.type] || '🔔'}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{
+                fontFamily: PJS, fontSize: '0.78rem', color: 'var(--text-secondary)',
+                margin: 0, lineHeight: 1.5,
+                overflow: 'hidden', display: '-webkit-box',
+                WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              }}>
+                {labelFor(n)}
+              </p>
+              <span style={{ fontFamily: PJS, fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>
+                {timeAgo(n.createdAt)}
+              </span>
             </div>
-            {!n.isRead && <div style={{ width: 7, height: 7, borderRadius: 'var(--radius-full)', background: 'var(--accent)', flexShrink: 0 }} />}
+            {!n.isRead && (
+              <div style={{
+                width: 7, height: 7, borderRadius: '50%',
+                background: 'var(--accent)', flexShrink: 0, marginTop: 5,
+              }} />
+            )}
           </div>
         ))}
       </div>
-    </Sheet>
+    </>
   )
 }
 
