@@ -1316,7 +1316,7 @@ export const streamApi = {
     if (error) handleError(error)
     return { success: true }
   },
-}
+
 
   uploadImage: async (token, { fileBase64, fileName, contentType }) => {
     const userId = await verifyToken(token)
