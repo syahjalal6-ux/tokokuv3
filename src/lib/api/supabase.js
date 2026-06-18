@@ -1459,7 +1459,7 @@ Bantu calon pembeli dengan pertanyaan tentang toko, produk, pengiriman, atau hal
         'Authorization': 'Bearer ' + CONFIG.GROQ_API_KEY,
       },
       body: JSON.stringify({
-        model: 'llama3-8b-8192',
+        model: 'llama-3.3-70b-versatile',
         messages: groqMessages,
         max_tokens: 512,
         temperature: 0.7,
