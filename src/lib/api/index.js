@@ -119,3 +119,23 @@ export const adminApi = {
   revokePro:  (tokenObj, targetUserId, targetUserEmail) => writeWith('adminApi', 'revokePro', tokenObj, targetUserId),
   deleteUser: (tokenObj, targetUserId, targetUserEmail) => writeWith('adminApi', 'deleteUser', tokenObj, targetUserId),
 }
+
+// ================================================
+// STREAM
+// ================================================
+export const streamApi = {
+  getFeed:               (tokenObj, params) => readWith('streamApi', 'getFeed', tokenObj, params),
+  getPostDetail:          (tokenObj, postId) => readWith('streamApi', 'getPostDetail', tokenObj, postId),
+  createPost:             (tokenObj, data) => writeWith('streamApi', 'createPost', tokenObj, data),
+  addReply:               (tokenObj, data) => writeWith('streamApi', 'addReply', tokenObj, data),
+  toggleLike:             (tokenObj, data) => writeWith('streamApi', 'toggleLike', tokenObj, data),
+  toggleRepost:           (tokenObj, data) => writeWith('streamApi', 'toggleRepost', tokenObj, data),
+  toggleBookmark:         (tokenObj, data) => writeWith('streamApi', 'toggleBookmark', tokenObj, data),
+  getDmThreads:           (tokenObj) => readWith('streamApi', 'getDmThreads', tokenObj),
+  getDmMessages:          (tokenObj, threadId) => readWith('streamApi', 'getDmMessages', tokenObj, threadId),
+  openDmThread:           (tokenObj, data) => writeWith('streamApi', 'openDmThread', tokenObj, data),
+  sendDmMessage:          (tokenObj, data) => writeWith('streamApi', 'sendDmMessage', tokenObj, data),
+  getNotifications:       (tokenObj) => readWith('streamApi', 'getNotifications', tokenObj),
+  markNotificationsRead:  (tokenObj) => writeWith('streamApi', 'markNotificationsRead', tokenObj),
+  uploadImage:            (tokenObj, data) => writeWith('streamApi', 'uploadImage', tokenObj, data),
+}
