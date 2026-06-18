@@ -177,6 +177,21 @@ export const useStreamStore = create((set, get) => ({
     return res.data
   },
 
+  // ───────────── DELETE POST ─────────────
+  // Hapus post milik toko sendiri (ownership-nya udah dicek di backend/streamApi.deletePost).
+  // Setelah berhasil dihapus di server, update state lokal:
+  //  - buang post itu dari array `feed`
+  //  - kalau post yang dihapus kebetulan sedang dibuka di halaman detail
+  //    (`postDetail`), reset `postDetail` jadi null biar UI gak nampilin
+  //    detail post yang udah gak ada (StreamPage perlu redirect/back kalau ini terjadi)
+  deletePost: async (tokenObj, postId) => {
+    await streamApi.deletePost(tokenObj, postId)
+    set(s => ({
+      feed: s.feed.filter(p => p.id !== postId),
+      postDetail: s.postDetail && s.postDetail.id === postId ? null : s.postDetail,
+    }))
+  },
+
   // ───────────── POST DETAIL ─────────────
   loadPostDetail: async (tokenObj, postId) => {
     set({ postDetailLoading: true, postDetailError: null })
