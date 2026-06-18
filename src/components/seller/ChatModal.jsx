@@ -2,6 +2,13 @@ import React, { useState, useRef, useEffect } from 'react'
 import { X, Send, Bot, User, Loader, ShoppingBag } from 'lucide-react'
 import { chatApi } from '../../lib/api/supabase.js'
 
+function renderMarkdown(text) {
+  const html = text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+  return { __html: html }
+}
+
 export default function ChatModal({ produk, toko, tema, onClose, onCheckout, semuaProduk = [] }) {
   const isUmum = !produk
 
@@ -205,21 +212,22 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
                   : <Bot size={12} color={tema.accent} />
                 }
               </div>
-              <div style={{
-                maxWidth: '78%',
-                padding: '9px 12px',
-                borderRadius: msg.role === 'user'
-                  ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)'
-                  : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
-                background: msg.role === 'user' ? tema.gradient : 'var(--surface)',
-                border: msg.role === 'user' ? 'none' : '1px solid var(--glass-border)',
-                color: msg.role === 'user' ? '#fff' : 'var(--text-primary)',
-                fontSize: '0.845rem',
-                lineHeight: 1.55,
-                whiteSpace: 'pre-wrap',
-              }}>
-                {msg.content}
-              </div>
+              <div
+                dangerouslySetInnerHTML={renderMarkdown(msg.content)}
+                style={{
+                  maxWidth: '78%',
+                  padding: '9px 12px',
+                  borderRadius: msg.role === 'user'
+                    ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)'
+                    : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
+                  background: msg.role === 'user' ? tema.gradient : 'var(--surface)',
+                  border: msg.role === 'user' ? 'none' : '1px solid var(--glass-border)',
+                  color: msg.role === 'user' ? '#fff' : 'var(--text-primary)',
+                  fontSize: '0.845rem',
+                  lineHeight: 1.55,
+                  whiteSpace: 'pre-wrap',
+                }}
+              />
             </div>
           ))}
 
