@@ -972,30 +972,31 @@ export const streamApi = {
     if (error) handleError(error)
 
     const ids = (posts || []).map(p => p.id)
-    const [{ data: hashtagRows }, { data: previewReplies }, viewerFlags] = await Promise.all([
-      ids.length ? supabaseAdmin.from('stream_hashtags').select('post_id, tag').in('post_id', ids) : { data: [] },
-      ids.length
-        ? supabaseAdmin.from('stream_replies').select('*, toko:toko_id(id,nama,slug,logo,plan)').in('post_id', ids).is('parent_reply_id', null).order('created_at', { ascending: true })
-        : { data: [] },
-      getViewerFlags(viewerTokoId, ids),
-    ])
+    const [{ data: hashtagRows }, { data: allReplies }, viewerFlags] = await Promise.all([
+  ids.length ? supabaseAdmin.from('stream_hashtags').select('post_id, tag').in('post_id', ids) : { data: [] },
+  // Ambil SEMUA reply (top-level + nested), bukan cuma top-level lagi
+  ids.length
+    ? supabaseAdmin.from('stream_replies').select('*, toko:toko_id(id,nama,slug,logo,plan)').in('post_id', ids).order('created_at', { ascending: true })
+    : { data: [] },
+  getViewerFlags(viewerTokoId, ids),
+])
 
-    const hashtagsByPost = {}
-    ;(hashtagRows || []).forEach(h => { (hashtagsByPost[h.post_id] ||= []).push(h.tag) })
+const hashtagsByPost = {}
+;(hashtagRows || []).forEach(h => { (hashtagsByPost[h.post_id] ||= []).push(h.tag) })
 
-    // Semua komentar top-level ditampilkan, tidak dibatasi lagi
-    const repliesByPost = {}
-    ;(previewReplies || []).forEach(r => {
-      (repliesByPost[r.post_id] ||= []).push(r)
-    })
+// Group flat replies per post, lalu build jadi tree nested (sama kayak getPostDetail)
+const repliesByPost = {}
+;(allReplies || []).forEach(r => {
+  (repliesByPost[r.post_id] ||= []).push(r)
+})
 
-    const result = (posts || []).map(p => mapStreamPost(p, {
-      hashtags: hashtagsByPost[p.id] || [],
-      previewReplies: (repliesByPost[p.id] || []).map(mapStreamReply),
-      liked: viewerFlags.liked.has(p.id),
-      reposted: viewerFlags.reposted.has(p.id),
-      bookmarked: viewerFlags.bookmarked.has(p.id),
-    }))
+const result = (posts || []).map(p => mapStreamPost(p, {
+  hashtags: hashtagsByPost[p.id] || [],
+  previewReplies: buildReplyTree(repliesByPost[p.id] || [], new Set()),
+  liked: viewerFlags.liked.has(p.id),
+  reposted: viewerFlags.reposted.has(p.id),
+  bookmarked: viewerFlags.bookmarked.has(p.id),
+}))
 
     return { success: true, data: result }
   },
