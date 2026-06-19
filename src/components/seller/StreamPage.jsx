@@ -499,7 +499,7 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-tertiary)', display: 'flex', padding: 4,
                   borderRadius: 'var(--radius-md)',
-                  transition: 'color 0.15s',
+                  transition: 'color 0.15s', flexShrink: 0,
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
@@ -637,7 +637,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-tertiary)', display: 'flex', padding: 4,
-                  borderRadius: 'var(--radius-md)',
+                  borderRadius: 'var(--radius-md)', flexShrink: 0, 
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
