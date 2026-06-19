@@ -200,7 +200,7 @@ export default function DashboardPage() {
                 </button>
                 <button onClick={() => window.location.href = getStorefrontUrl(toko.slug)} className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
-                </a>
+                </button> 
               </div>
             </div>
           </div>
