@@ -198,7 +198,7 @@ export default function DashboardPage() {
                     ? <><CheckCircle size={13} color="var(--success)" /> Disalin</>
                     : <><Copy size={13} /> Salin</>}
                 </button>
-                <a href={getStorefrontUrl(toko.slug)} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm">
+                <button onClick={() => window.location.href = getStorefrontUrl(toko.slug)} className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
                 </a>
               </div>
