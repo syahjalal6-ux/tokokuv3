@@ -513,7 +513,7 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
           {post.shopLink && <ShopLinkCard link={post.shopLink} />}
           <HashtagPills tags={post.hashtags} onTag={onTag} />
           <PostActions
-            likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={post.repliesCount}
+            likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={countReplies(previewReplies)}
             liked={post.liked} reposted={post.reposted} bookmarked={post.bookmarked}
             commentsOpen={commentsOpen}
             onLike={onLike} onRepost={onRepost} onBookmark={onBookmark} onReply={onReply}
@@ -558,31 +558,45 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
   )
 }
 
-function FeedReplyItem({ reply, postId, myTokoId, onReplyToComment, onDm }) {
+function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, onDm }) {
   const t = reply.toko
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
+  const hasChildren = (reply.replies || []).length > 0
 
   return (
-    <div style={{ display: 'flex', gap: 10, paddingTop: 8, paddingBottom: 4 }}>
-      <SellerAvatar toko={t} size={28} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
-          <TokoNameLink toko={t} fontSize="0.78rem" />
-          {t?.pro && <ProBadge small />}
-          <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(reply.createdAt)}</span>
+    <div>
+      <div style={{ display: 'flex', gap: 10, paddingTop: 8, paddingBottom: 4, marginLeft: depth > 0 ? 28 : 0 }}>
+        <SellerAvatar toko={t} size={depth === 0 ? 28 : 24} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+            <TokoNameLink toko={t} fontSize="0.78rem" />
+            {t?.pro && <ProBadge small />}
+            <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(reply.createdAt)}</span>
+          </div>
+          <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{reply.teks}</p>
+          <button
+            onClick={() => onReplyToComment(reply.id, t?.nama)}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: PJS, fontSize: '0.7rem', color: 'var(--accent)',
+              fontWeight: 600, padding: '3px 0', marginTop: 2,
+            }}
+          >
+            Balas
+          </button>
         </div>
-        <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{reply.teks}</p>
-        <button
-          onClick={() => onReplyToComment(reply.id, t?.nama)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: PJS, fontSize: '0.7rem', color: 'var(--accent)',
-            fontWeight: 600, padding: '3px 0', marginTop: 2,
-          }}
-        >
-          Balas
-        </button>
       </div>
+      {hasChildren && reply.replies.map(child => (
+        <FeedReplyItem
+          key={child.id}
+          reply={child}
+          postId={postId}
+          myTokoId={myTokoId}
+          depth={depth + 1}
+          onReplyToComment={onReplyToComment}
+          onDm={onDm}
+        />
+      ))}
     </div>
   )
 }
