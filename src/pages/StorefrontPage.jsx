@@ -178,7 +178,7 @@ function AreaSearchInput({ label, icon, placeholder, value, onInputChange, optio
   )
 }
 
-function OngkirModal({ onClose }) {
+function OngkirModal({ onClose, initialWeight = 1000 }) {
   const [origin, setOrigin] = useState('')
   const [originAreaId, setOriginAreaId] = useState(null)
   const [originAreaOptions, setOriginAreaOptions] = useState([])
@@ -191,7 +191,7 @@ function OngkirModal({ onClose }) {
   const [searchingDestinationArea, setSearchingDestinationArea] = useState(false)
   const destinationSearchTimeout = useRef(null)
 
-  const [weight, setWeight] = useState(1000)
+  const [weight, setWeight] = useState(initialWeight)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
