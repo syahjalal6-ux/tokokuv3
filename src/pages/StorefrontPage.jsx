@@ -1129,6 +1129,7 @@ export default function StorefrontPage() {
       {ongkirOpen && (
         <OngkirModal
           onClose={() => setOngkirOpen(false)}
+          initialWeight={selectedProduk?.berat || 1000}
         />
       )}
 
