@@ -178,7 +178,7 @@ function AreaSearchInput({ label, icon, placeholder, value, onInputChange, optio
   )
 }
 
-function OngkirModal({ onClose, initialWeight = 1000 }) {
+function OngkirModal({ onClose }) {
   const [origin, setOrigin] = useState('')
   const [originAreaId, setOriginAreaId] = useState(null)
   const [originAreaOptions, setOriginAreaOptions] = useState([])
@@ -191,7 +191,7 @@ function OngkirModal({ onClose, initialWeight = 1000 }) {
   const [searchingDestinationArea, setSearchingDestinationArea] = useState(false)
   const destinationSearchTimeout = useRef(null)
 
-  const [weight, setWeight] = useState(initialWeight)
+  const [weight, setWeight] = useState('')
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
   const [error, setError] = useState(null)
@@ -367,7 +367,7 @@ function OngkirModal({ onClose, initialWeight = 1000 }) {
                 className="form-input"
                 placeholder="Custom (g)"
                 value={weight}
-                onChange={e => setWeight(Number(e.target.value) || 1000)}
+                onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))}
                 style={{ width: 90, fontSize: '0.8rem', padding: '5px 10px' }}
               />
             </div>
@@ -1129,7 +1129,7 @@ export default function StorefrontPage() {
       {ongkirOpen && (
         <OngkirModal
           onClose={() => setOngkirOpen(false)}
-          initialWeight={selectedProduk?.berat || 1000}
+        
         />
       )}
 
