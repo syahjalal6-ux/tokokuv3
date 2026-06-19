@@ -55,7 +55,7 @@ export default async function handler(req) {
     short_name: nama,
     description: deskripsi,
     start_url: `/${slug}`,
-    scope: `/${slug}`,
+    scope: `/`,
     display: 'standalone',
     orientation: 'portrait',
     background_color: colors.bg,
