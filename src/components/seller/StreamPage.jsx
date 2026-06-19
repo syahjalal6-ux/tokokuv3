@@ -531,6 +531,16 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
               Belum ada komentar.
             </p>
           )}
+          <button
+            onClick={onReply}
+            style={{
+              display: 'block', background: 'none', border: 'none', cursor: 'pointer',
+              fontFamily: PJS, fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600,
+              padding: '4px 0 10px',
+            }}
+          >
+            Tulis komentar
+          </button>
           {previewReplies.map(r => (
             <FeedReplyItem
               key={r.id}
@@ -541,13 +551,13 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
               onDm={onDm}
             />
           ))}
-          {post.repliesCount > previewReplies.length && (
+          {post.repliesCount > countReplies(previewReplies) && (
             <button onClick={onExpand} style={{
               display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
               padding: '6px 0 10px', cursor: 'pointer',
               fontFamily: PJS, fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600,
             }}>
-              Lihat {post.repliesCount - previewReplies.length} balasan lainnya →
+              Lihat {post.repliesCount - countReplies(previewReplies)} balasan lainnya →
             </button>
           )}
           {post.repliesCount === 0 && <div style={{ height: 6 }} />}
