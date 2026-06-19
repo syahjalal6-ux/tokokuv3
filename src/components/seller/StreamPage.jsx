@@ -100,6 +100,7 @@ export default function StreamPage() {
   const { toko, load: loadToko } = useTokoStore()
   const tokenObj = { tokenSupabase, tokenGas }
   const pro = isPro(user)
+  console.log('toko di StreamPage:', toko?.id)
 
   const {
     feed, feedLoading, activeTag, searchQuery,
