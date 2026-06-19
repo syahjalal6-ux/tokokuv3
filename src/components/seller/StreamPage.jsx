@@ -470,6 +470,7 @@ export default function StreamPage() {
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
+  console.log('POST DATA:', post.id, post.previewReplies, post.repliesCount)
   // Cast ke string agar tidak ada mismatch number vs string
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   // Fallback: kalau API belum ngirim previewReplies, pakai 2 reply pertama dari `replies`
