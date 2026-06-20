@@ -83,8 +83,9 @@ function ShowcaseCard({ post, onAuthRequired }) {
           </p>
 
           <ShowcaseImages images={post.foto} />
-
+          
           {post.shopLink && (
+           <a
             
               href={getStorefrontUrl(post.shopLink.slug)}
               target="_blank" rel="noreferrer"
