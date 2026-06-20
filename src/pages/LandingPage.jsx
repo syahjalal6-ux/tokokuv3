@@ -157,6 +157,7 @@ export default function LandingPage() {
           .cta-pad { padding: 36px 20px !important; }
           .heading-sm { font-size: 1.5rem !important; }
           .heading-display { font-size: 1.7rem !important; white-space: normal !important; }
+          .nav-cta-primary { display: none !important; }
         }
       `}</style>
 
@@ -199,7 +200,7 @@ export default function LandingPage() {
             </button>
             <Link to="/showcase" className="btn btn-ghost btn-sm ">Lihat Produk</Link>
             <Link to="/login" className="btn btn-ghost btn-sm hide-mobile">Masuk</Link>
-            <Link to="/login" className="btn btn-primary btn-sm">
+            <Link to="/login" className="btn btn-primary btn-sm nav-cta-primary">
               Buka Toko Gratis
               <ArrowRight size={14} />
             </Link>
