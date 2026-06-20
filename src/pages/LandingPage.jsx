@@ -175,14 +175,7 @@ export default function LandingPage() {
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ExoraIcon />
-            <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-              <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.15rem', color: c.textPrimary, letterSpacing: '-0.02em' }}>exora</span>
-              <span className="hide-mobile" style={{
-                fontFamily: PJS, fontWeight: 600, fontSize: '0.6rem',
-                color: accent,
-                letterSpacing: '0.05em',
-              }}>Start. Sell. Scale.</span>
-            </div>
+            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.3rem', color: c.textPrimary, letterSpacing: '-0.02em' }}>exora</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
