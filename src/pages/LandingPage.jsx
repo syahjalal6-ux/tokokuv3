@@ -40,9 +40,9 @@ const ExoraIcon = () => (
   <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="xGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#854F0B" />
-        <stop offset="50%" stopColor="#BA7517" />
-        <stop offset="100%" stopColor="#FAC775" />
+        <stop offset="0%" stopColor="#0C447C" />
+        <stop offset="50%" stopColor="#185FA5" />
+        <stop offset="100%" stopColor="#378ADD" />
       </linearGradient>
     </defs>
     <path d="M10 10 L42 50 L10 90 H32 L50 65 L68 90 H90 L58 50 L90 10 H68 L50 35 L32 10 Z" fill="url(#xGrad)" />
@@ -62,14 +62,26 @@ export default function LandingPage() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', fontFamily: PJS }}>
+    <div style={{ minHeight: '100vh', fontFamily: PJS, background: '#ffffff' }}>
       <style>{`
         .landing-body-text { text-align: left; }
         .landing-center { text-align: center; }
         .btn-primary {
-          background: linear-gradient(90deg, #854F0B, #BA7517) !important;
+          background: linear-gradient(90deg, #0C447C, #378ADD) !important;
           color: #ffffff !important;
           border: none !important;
+        }
+        .btn-secondary {
+          background: #ffffff !important;
+          color: #1a1a1a !important;
+          border: 1px solid #e2e2e2 !important;
+        }
+        .btn-ghost {
+          color: #1a1a1a !important;
+        }
+        .glass-card {
+          background: #ffffff !important;
+          border: 1px solid #ececec !important;
         }
         @media (max-width: 600px) {
           .section-pad { padding-top: 48px !important; padding-bottom: 48px !important; }
@@ -84,9 +96,9 @@ export default function LandingPage() {
       <nav style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
         padding: '0 24px',
-        background: scrolled ? 'rgba(10,10,15,0.8)' : 'transparent',
+        background: scrolled ? 'rgba(255,255,255,0.85)' : 'transparent',
         backdropFilter: scrolled ? 'blur(20px)' : 'none',
-        borderBottom: scrolled ? '1px solid var(--glass-border)' : '1px solid transparent',
+        borderBottom: scrolled ? '1px solid #ececec' : '1px solid transparent',
         transition: 'all 0.3s ease',
         height: 64,
         display: 'flex', alignItems: 'center',
@@ -95,10 +107,10 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ExoraIcon />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-              <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.15rem', color: '#ffffff', letterSpacing: '-0.02em' }}>exora</span>
+              <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.15rem', color: '#1a1a1a', letterSpacing: '-0.02em' }}>exora</span>
               <span style={{
                 fontFamily: PJS, fontWeight: 600, fontSize: '0.6rem',
-                color: '#ffffff',
+                color: '#0C447C',
                 letterSpacing: '0.05em',
               }}>Start. Sell. Scale.</span>
             </div>
@@ -120,17 +132,17 @@ export default function LandingPage() {
           <div style={{
             display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
             padding: '8px 18px', borderRadius: 'var(--radius-full)',
-            background: 'rgba(186,117,23,0.16)',
-            border: '1px solid rgba(186,117,23,0.35)',
+            background: 'rgba(55,138,221,0.1)',
+            border: '1px solid rgba(55,138,221,0.3)',
             marginBottom: '24px', gap: 2,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Zap size={13} color="#ffffff" />
-              <span style={{ fontFamily: PJS, fontSize: '0.78rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
+              <Zap size={13} color="#0C447C" />
+              <span style={{ fontFamily: PJS, fontSize: '0.78rem', fontWeight: 700, color: '#0C447C', letterSpacing: '0.04em' }}>
                 GRATIS • TANPA CODING
               </span>
             </div>
-            <span style={{ fontFamily: PJS, fontSize: '0.78rem', fontWeight: 700, color: '#ffffff', letterSpacing: '0.04em' }}>
+            <span style={{ fontFamily: PJS, fontSize: '0.78rem', fontWeight: 700, color: '#0C447C', letterSpacing: '0.04em' }}>
               LANGSUNG ONLINE
             </span>
           </div>
@@ -139,18 +151,18 @@ export default function LandingPage() {
             fontFamily: PJS, fontWeight: 800,
             fontSize: 'clamp(5rem, 16vw, 9rem)',
             marginBottom: '4px', letterSpacing: '-0.05em',
-            color: '#ffffff', lineHeight: 1,
+            color: '#1a1a1a', lineHeight: 1,
           }}>exora</h1>
 
           <p style={{
             fontFamily: PJS, fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', fontWeight: 700,
-            color: '#ffffff',
+            color: '#0C447C',
             marginBottom: '12px',
           }}>Start. Sell. Scale.</p>
 
           <p style={{
             fontFamily: PJS, fontSize: 'clamp(0.95rem, 2vw, 1.1rem)',
-            color: '#ffffff', lineHeight: 1.6, marginBottom: '36px',
+            color: '#4a4a4a', lineHeight: 1.6, marginBottom: '36px',
             maxWidth: 420, margin: '0 auto 36px',
             textAlign: 'center',
           }}>WebApp Toko + AI Assistant + WA Checkout</p>
@@ -169,8 +181,8 @@ export default function LandingPage() {
               { val: '4.9/5', label: 'Rating Seller' },
             ].map(s => (
               <div key={s.label} style={{ textAlign: 'center' }}>
-                <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: '#fff' }}>{s.val}</p>
-                <p style={{ fontFamily: PJS, fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{s.label}</p>
+                <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: '#1a1a1a' }}>{s.val}</p>
+                <p style={{ fontFamily: PJS, fontSize: '0.8rem', color: '#8a8a8a' }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -180,13 +192,13 @@ export default function LandingPage() {
         <div style={{ marginTop: 24, padding: '0 16px' }}>
           <div style={{
             maxWidth: 800, margin: '0 auto',
-            background: 'linear-gradient(135deg, rgba(186,117,23,0.18) 0%, rgba(133,79,11,0.12) 100%)',
-            border: '1px solid var(--glass-border)',
+            background: 'linear-gradient(135deg, rgba(55,138,221,0.12) 0%, rgba(12,68,124,0.08) 100%)',
+            border: '1px solid #ececec',
             borderRadius: 'var(--radius-2xl)', padding: '3px',
-            boxShadow: '0 40px 120px rgba(0,0,0,0.6), 0 0 80px rgba(186,117,23,0.18)',
+            boxShadow: '0 30px 80px rgba(12,68,124,0.12)',
           }}>
-            <div style={{ background: 'var(--bg-secondary)', borderRadius: 'calc(var(--radius-2xl) - 3px)', overflow: 'hidden' }}>
-              <div style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--glass-border)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ background: '#ffffff', borderRadius: 'calc(var(--radius-2xl) - 3px)', overflow: 'hidden' }}>
+              <div style={{ background: '#f7f7f7', borderBottom: '1px solid #ececec', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   {['#f87171', '#fbbf24', '#34d399'].map(c => (
                     <div key={c} style={{ width: 10, height: 10, borderRadius: '50%', background: c, opacity: 0.8 }} />
@@ -194,17 +206,17 @@ export default function LandingPage() {
                 </div>
                 <div style={{
                   flex: 1, maxWidth: 300, margin: '0 auto',
-                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                  background: '#ffffff', border: '1px solid #ececec',
                   borderRadius: 'var(--radius-full)', padding: '4px 12px',
-                  fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center', fontFamily: PJS,
+                  fontSize: '0.72rem', color: '#8a8a8a', textAlign: 'center', fontFamily: PJS,
                 }}>exora.app/toko/rina-handmade</div>
               </div>
               <div style={{ padding: 24 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: 20 }}>
                   <img src="/rina.png" alt="Rina Handmade" style={{ width: 44, height: 44, borderRadius: '12px', objectFit: 'cover' }} />
                   <div>
-                    <p style={{ fontFamily: PJS, fontWeight: 800 }}>Rina Handmade</p>
-                    <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>✨ Produk handmade berkualitas</p>
+                    <p style={{ fontFamily: PJS, fontWeight: 800, color: '#1a1a1a' }}>Rina Handmade</p>
+                    <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: '#8a8a8a' }}>✨ Produk handmade berkualitas</p>
                   </div>
                   <span className="badge badge-pro" style={{ marginLeft: 'auto' }}>⭐ Pro</span>
                 </div>
@@ -215,12 +227,12 @@ export default function LandingPage() {
                     { name: 'Midori Matcha Latte', price: 'Rp 29.000', img: '/matcha.png' },
                   ].map(p => (
                     <div key={p.name} className="glass-card" style={{ overflow: 'hidden', borderRadius: 'var(--radius-lg)' }}>
-                      <div style={{ height: 80, overflow: 'hidden', background: 'var(--bg-tertiary)' }}>
+                      <div style={{ height: 80, overflow: 'hidden', background: '#f0f0f0' }}>
                         <img src={p.img} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                       <div style={{ padding: '10px' }}>
-                        <p style={{ fontFamily: PJS, fontSize: '0.75rem', fontWeight: 700, marginBottom: 3 }}>{p.name}</p>
-                        <p style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--accent)', fontWeight: 800 }}>{p.price}</p>
+                        <p style={{ fontFamily: PJS, fontSize: '0.75rem', fontWeight: 700, marginBottom: 3, color: '#1a1a1a' }}>{p.name}</p>
+                        <p style={{ fontFamily: PJS, fontSize: '0.7rem', color: '#0C447C', fontWeight: 800 }}>{p.price}</p>
                       </div>
                     </div>
                   ))}
@@ -235,10 +247,10 @@ export default function LandingPage() {
       <section id="fitur" className="section-pad" style={{ padding: '64px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 8 }}>
+            <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 8, color: '#1a1a1a' }}>
               Semua yang kamu butuhkan
             </h2>
-            <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', textAlign: 'center' }}>
+            <p style={{ fontFamily: PJS, color: '#6a6a6a', textAlign: 'center' }}>
               Fitur lengkap, gratis, tanpa ribet.
             </p>
           </div>
@@ -247,14 +259,14 @@ export default function LandingPage() {
               <div key={f.title} className="glass-card" style={{ padding: '24px' }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 'var(--radius-md)',
-                  background: 'rgba(186,117,23,0.16)',
+                  background: 'rgba(55,138,221,0.1)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 14, color: '#FAC775',
+                  marginBottom: 14, color: '#0C447C',
                 }}>
                   <f.icon size={20} />
                 </div>
-                <h3 style={{ fontFamily: PJS, fontWeight: 700, fontSize: '1rem', marginBottom: 6 }}>{f.title}</h3>
-                <p className="landing-body-text" style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.65 }}>{f.desc}</p>
+                <h3 style={{ fontFamily: PJS, fontWeight: 700, fontSize: '1rem', marginBottom: 6, color: '#1a1a1a' }}>{f.title}</h3>
+                <p className="landing-body-text" style={{ fontFamily: PJS, color: '#6a6a6a', fontSize: '0.875rem', lineHeight: 1.65 }}>{f.desc}</p>
               </div>
             ))}
           </div>
@@ -265,18 +277,18 @@ export default function LandingPage() {
       <section id="harga" className="section-pad" style={{ padding: '64px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 8 }}>
+            <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, fontSize: 'clamp(1.5rem, 4vw, 2.6rem)', marginBottom: 8, color: '#1a1a1a' }}>
               Harga yang jelas
             </h2>
-            <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', textAlign: 'center' }}>Mulai gratis, upgrade kalau butuh lebih.</p>
+            <p style={{ fontFamily: PJS, color: '#6a6a6a', textAlign: 'center' }}>Mulai gratis, upgrade kalau butuh lebih.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', maxWidth: 720, margin: '0 auto' }}>
 
             {/* Free */}
             <div className="glass-card" style={{ padding: '28px' }}>
               <span className="badge badge-free" style={{ marginBottom: 14 }}>Gratis</span>
-              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 4 }}>Rp 0</p>
-              <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.85rem', marginBottom: 20 }}>Selamanya</p>
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 4, color: '#1a1a1a' }}>Rp 0</p>
+              <p style={{ fontFamily: PJS, color: '#8a8a8a', fontSize: '0.85rem', marginBottom: 20 }}>Selamanya</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 24 }}>
                 {[
                   'Maksimal 25 Produk',
@@ -288,7 +300,7 @@ export default function LandingPage() {
                 ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                     <Check size={15} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', textAlign: 'left' }}>{f}</span>
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: '#4a4a4a', textAlign: 'left' }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -297,38 +309,38 @@ export default function LandingPage() {
 
             {/* Pro */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(186,117,23,0.16) 0%, rgba(133,79,11,0.16) 100%)',
-              border: '1px solid rgba(186,117,23,0.4)',
+              background: 'linear-gradient(135deg, rgba(55,138,221,0.08) 0%, rgba(12,68,124,0.06) 100%)',
+              border: '1px solid rgba(55,138,221,0.35)',
               borderRadius: 'var(--radius-xl)', padding: '28px',
-              boxShadow: '0 8px 40px rgba(186,117,23,0.22)',
+              boxShadow: '0 8px 30px rgba(12,68,124,0.1)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(186,117,23,0.25) 0%, transparent 70%)', borderRadius: '50%' }} />
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(55,138,221,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
 
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.3)',
+                background: 'rgba(251,191,36,0.15)', border: '1px solid rgba(251,191,36,0.35)',
                 borderRadius: 'var(--radius-full)', padding: '3px 10px',
                 marginBottom: 10,
               }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fbbf24', animation: 'pulse 1.5s infinite' }} />
-                <span style={{ fontFamily: PJS, fontSize: '0.72rem', fontWeight: 700, color: '#ffffff' }}>
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d97706', animation: 'pulse 1.5s infinite' }} />
+                <span style={{ fontFamily: PJS, fontSize: '0.72rem', fontWeight: 700, color: '#92400e' }}>
                   🔥 {FOUNDER_SLOTS_LEFT} dari {FOUNDER_SLOTS_TOTAL} slot founder tersisa
                 </span>
               </div>
 
               <span className="badge badge-pro" style={{ marginBottom: 10 }}>⭐ Pro</span>
 
-              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2 }}>Rp 19.000</p>
-              <p style={{ fontFamily: PJS, color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 4 }}>per bulan</p>
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2, color: '#1a1a1a' }}>Rp 19.000</p>
+              <p style={{ fontFamily: PJS, color: '#8a8a8a', fontSize: '0.82rem', marginBottom: 4 }}>per bulan</p>
 
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'rgba(186,117,23,0.18)', border: '1px solid rgba(186,117,23,0.38)',
+                background: 'rgba(55,138,221,0.12)', border: '1px solid rgba(55,138,221,0.3)',
                 borderRadius: 'var(--radius-full)', padding: '3px 10px',
                 marginBottom: 18,
               }}>
-                <span style={{ fontFamily: PJS, fontSize: '0.75rem', fontWeight: 700, color: '#ffffff' }}>
+                <span style={{ fontFamily: PJS, fontSize: '0.75rem', fontWeight: 700, color: '#0C447C' }}>
                   🔒 Harga Founder — Kunci Selamanya
                 </span>
               </div>
@@ -343,8 +355,8 @@ export default function LandingPage() {
                   'Prioritas Support Admin',
                 ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                    <Check size={15} color="var(--accent)" style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', textAlign: 'left' }}>{f}</span>
+                    <Check size={15} color="#0C447C" style={{ marginTop: 2, flexShrink: 0 }} />
+                    <span style={{ fontFamily: PJS, fontSize: '0.875rem', color: '#4a4a4a', textAlign: 'left' }}>{f}</span>
                   </div>
                 ))}
               </div>
@@ -353,7 +365,7 @@ export default function LandingPage() {
                 Kunci Harga Founder Sekarang <ArrowRight size={14} />
               </Link>
 
-              <p style={{ fontFamily: PJS, fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 10 }}>
+              <p style={{ fontFamily: PJS, fontSize: '0.72rem', color: '#8a8a8a', textAlign: 'center', marginTop: 10 }}>
                 Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke Rp 49.000/bulan
               </p>
             </div>
@@ -365,7 +377,7 @@ export default function LandingPage() {
       {/* Testimonials */}
       <section className="section-pad" style={{ padding: '56px 0' }}>
         <div className="container">
-          <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36 }}>
+          <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36, color: '#1a1a1a' }}>
             Kata mereka yang sudah pakai
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
@@ -376,12 +388,12 @@ export default function LandingPage() {
                     <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />
                   ))}
                 </div>
-                <p className="landing-body-text" style={{ fontFamily: PJS, color: '#ffffff', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 14, fontStyle: 'italic' }}>"{t.text}"</p>
+                <p className="landing-body-text" style={{ fontFamily: PJS, color: '#1a1a1a', fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 14, fontStyle: 'italic' }}>"{t.text}"</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <img src={t.img} alt={t.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                   <div>
-                    <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700 }}>{t.name}</p>
-                    <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>{t.toko}</p>
+                    <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700, color: '#1a1a1a' }}>{t.name}</p>
+                    <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: '#8a8a8a' }}>{t.toko}</p>
                   </div>
                 </div>
               </div>
@@ -393,7 +405,7 @@ export default function LandingPage() {
       {/* FAQ */}
       <section className="section-pad" style={{ padding: '56px 0' }}>
         <div className="container-sm">
-          <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36 }}>
+          <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36, color: '#1a1a1a' }}>
             Pertanyaan umum
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -404,16 +416,16 @@ export default function LandingPage() {
                   style={{
                     width: '100%', padding: '16px 18px',
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-primary)',
+                    background: 'transparent', border: 'none', cursor: 'pointer', color: '#1a1a1a',
                     fontFamily: PJS, fontWeight: 600, fontSize: '0.92rem', textAlign: 'left', gap: '12px',
                   }}
                 >
                   {f.q}
-                  <ChevronDown size={16} color="var(--text-tertiary)" style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+                  <ChevronDown size={16} color="#8a8a8a" style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
                 </button>
                 {openFaq === i && (
-                  <div style={{ padding: '12px 18px 16px', borderTop: '1px solid var(--glass-border)' }}>
-                    <p className="landing-body-text" style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.65, margin: 0 }}>
+                  <div style={{ padding: '12px 18px 16px', borderTop: '1px solid #ececec' }}>
+                    <p className="landing-body-text" style={{ fontFamily: PJS, color: '#6a6a6a', fontSize: '0.875rem', lineHeight: 1.65, margin: 0 }}>
                       {f.a}
                     </p>
                   </div>
@@ -429,23 +441,24 @@ export default function LandingPage() {
         <div className="container-sm" style={{ textAlign: 'center' }}>
           <div className="cta-pad" style={{
             padding: '48px 32px',
-            background: 'linear-gradient(135deg, rgba(186,117,23,0.16) 0%, rgba(133,79,11,0.16) 100%)',
-            border: '1px solid rgba(186,117,23,0.35)',
+            background: 'linear-gradient(135deg, rgba(55,138,221,0.08) 0%, rgba(12,68,124,0.06) 100%)',
+            border: '1px solid rgba(55,138,221,0.3)',
             borderRadius: 'var(--radius-2xl)',
-            boxShadow: '0 40px 80px rgba(0,0,0,0.3)',
+            boxShadow: '0 30px 70px rgba(12,68,124,0.1)',
             position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'radial-gradient(circle, rgba(186,117,23,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
+            <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'radial-gradient(circle, rgba(55,138,221,0.12) 0%, transparent 70%)', borderRadius: '50%' }} />
             <h2 className="text-display heading-display" style={{
               fontFamily: PJS,
               fontSize: 'clamp(1.5rem, 5vw, 2.8rem)',
               marginBottom: 14,
               whiteSpace: 'nowrap',
+              color: '#1a1a1a',
             }}>
               Mulai jualan sekarang
             </h2>
             <p style={{
-              fontFamily: PJS, color: 'var(--text-secondary)', marginBottom: 28,
+              fontFamily: PJS, color: '#6a6a6a', marginBottom: 28,
               maxWidth: 340, margin: '0 auto 28px',
               textAlign: 'center',
             }}>
@@ -459,11 +472,11 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid var(--glass-border)', padding: '28px 24px', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>
+      <footer style={{ borderTop: '1px solid #ececec', padding: '28px 24px', color: '#8a8a8a', fontSize: '0.82rem' }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ExoraIcon />
-            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1rem', color: '#ffffff', letterSpacing: '-0.02em' }}>exora</span>
+            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1rem', color: '#1a1a1a', letterSpacing: '-0.02em' }}>exora</span>
           </div>
           <p style={{ fontFamily: PJS }}>© 2026 Exora. Platform toko online Indonesia.</p>
         </div>
