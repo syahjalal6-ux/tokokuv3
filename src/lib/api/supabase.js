@@ -1002,6 +1002,43 @@ const result = (posts || []).map(p => mapStreamPost(p, {
     return { success: true, data: result }
   },
 
+  getPublicShowcase: async (params = {}) => {
+    const allowedTypes = ['produk_baru', 'penjualan', 'tips_jualan']
+
+    let query = supabaseAdmin
+      .from('stream_posts')
+      .select('*, toko:toko_id(id,nama,slug,logo,plan), shop_link:shop_link_toko_id(id,nama,slug)')
+      .in('post_type', allowedTypes)
+      .order('created_at', { ascending: false })
+      .limit(params.limit || 20)
+
+    if (params.search) query = query.ilike('teks', `%${params.search}%`)
+
+    if (params.tag) {
+      const { data: tagRows } = await supabaseAdmin.from('stream_hashtags').select('post_id').eq('tag', params.tag)
+      const ids = (tagRows || []).map(r => r.post_id)
+      if (!ids.length) return { success: true, data: [] }
+      query = query.in('id', ids)
+    }
+
+    const { data: posts, error } = await query
+    if (error) handleError(error)
+
+    const ids = (posts || []).map(p => p.id)
+    const { data: hashtagRows } = ids.length
+      ? await supabaseAdmin.from('stream_hashtags').select('post_id, tag').in('post_id', ids)
+      : { data: [] }
+
+    const hashtagsByPost = {}
+    ;(hashtagRows || []).forEach(h => { (hashtagsByPost[h.post_id] ||= []).push(h.tag) })
+
+    const result = (posts || []).map(p => mapStreamPost(p, {
+      hashtags: hashtagsByPost[p.id] || [],
+    }))
+
+    return { success: true, data: result }
+  },
+  
   getPostDetail: async (token, postId) => {
     const userId = await verifyToken(token)
     const { data: viewerToko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
