@@ -116,7 +116,7 @@ export default function LandingPage() {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Link to="/showcase" className="btn btn-ghost btn-sm hide-mobile">Lihat Produk</Link>
+            <Link to="/showcase" className="btn btn-ghost btn-sm ">Lihat Produk</Link>
             <Link to="/login" className="btn btn-ghost btn-sm hide-mobile">Masuk</Link>
             <Link to="/login" className="btn btn-primary btn-sm">
               Buka Toko Gratis
