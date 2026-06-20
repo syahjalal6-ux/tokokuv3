@@ -873,6 +873,7 @@ function mapStreamPost(p, extra = {}) {
     id: p.id,
     toko: p.toko ? { id: p.toko.id, nama: p.toko.nama, slug: p.toko.slug, logo: p.toko.logo, pro: p.toko.plan === 'pro' } : null,
     teks: p.teks,
+    postType: p.post_type || null,
     foto,
     shopLink: p.shop_link ? { slug: p.shop_link.slug, nama: p.shop_link.nama } : null,
     hashtags: extra.hashtags || [],
@@ -1052,6 +1053,7 @@ const result = (posts || []).map(p => mapStreamPost(p, {
       .insert({
         toko_id: toko.id,
         teks: data.teks,
+        post_type: data.postType || null,
         foto: JSON.stringify(data.foto || []),
         shop_link_toko_id: data.shopLinkTokoId || null,
         created_at: new Date().toISOString(),
