@@ -108,7 +108,7 @@ export default function LandingPage() {
             <ExoraIcon />
             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
               <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.15rem', color: '#1a1a1a', letterSpacing: '-0.02em' }}>exora</span>
-              <span style={{
+              <span className="hide-mobile" style={{
                 fontFamily: PJS, fontWeight: 600, fontSize: '0.6rem',
                 color: '#0C447C',
                 letterSpacing: '0.05em',
