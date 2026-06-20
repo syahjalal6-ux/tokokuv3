@@ -13,12 +13,12 @@ import toast from 'react-hot-toast'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
 const POST_TYPES = [
-  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥' }, hashtag: '#ProdukBaru' },
-  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝' }, hashtag: '#CariReseller' },
-  { value: 'supplier_info', label: 'Supplier info', emoji: '📦' }, hashtag: '#SupplierInfo' },
-  { value: 'penjualan', label: 'Penjualan', emoji: '📈' }, hashtag: '#Penjualan' },
-  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥' }, hashtag: '#PartnerLive' },
-  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡' }, hashtag: '#TipsJualan' },
+  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥', hashtag: '#ProdukBaru' },
+  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝', hashtag: '#CariReseller' },
+  { value: 'supplier_info', label: 'Supplier info', emoji: '📦', hashtag: '#SupplierInfo' },
+  { value: 'penjualan', label: 'Penjualan', emoji: '📈', hashtag: '#Penjualan' },
+  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥', hashtag: '#PartnerLive' },
+  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡', hashtag: '#TipsJualan' },
 ]
 
 // ================================================
