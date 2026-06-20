@@ -16,7 +16,8 @@ import NotFoundPage from './pages/NotFoundPage.jsx'
 import AdminPage from './pages/AdminPage.jsx'
 import AnalyticsPage from './pages/AnalyticsPage.jsx'
 import RedirectResi from './pages/RedirectResi.jsx'
-import StreamPage from './components/seller/StreamPage.jsx' // <-- sesuaikan path kalau lokasi filemu beda
+import StreamPage from './components/seller/StreamPage.jsx' 
+import ShowcasePage from './pages/ShowcasePage.jsx'
 
 const ExoraIcon = () => (
   <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -104,6 +105,7 @@ export default function App() {
         <Route path="/r/:resi" element={<RedirectResi />} />
 
         {/* Storefront publik */}
+        <Route path="/showcase" element={<ShowcasePage />} />
         <Route path="/:slug" element={<StorefrontPage />} />
 
         {/* Private (seller) */}
