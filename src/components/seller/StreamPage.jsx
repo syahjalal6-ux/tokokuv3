@@ -13,12 +13,12 @@ import toast from 'react-hot-toast'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
 const POST_TYPES = [
-  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥', hashtag: '#ProdukBaru' },
-  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝', hashtag: '#CariReseller' },
-  { value: 'supplier_info', label: 'Supplier info', emoji: '📦', hashtag: '#SupplierInfo' },
-  { value: 'penjualan', label: 'Penjualan', emoji: '📈', hashtag: '#Penjualan' },
-  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥', hashtag: '#PartnerLive' },
-  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡', hashtag: '#TipsJualan' },
+  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥', hashtag: '#ProdukBaru', public: true },
+  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝', hashtag: '#CariReseller', public: false },
+  { value: 'supplier_info', label: 'Supplier info', emoji: '📦', hashtag: '#SupplierInfo', public: false },
+  { value: 'penjualan', label: 'Penjualan', emoji: '📈', hashtag: '#Penjualan', public: true },
+  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥', hashtag: '#PartnerLive', public: false },
+  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡', hashtag: '#TipsJualan', public: true },
 ]
 
 // ================================================
@@ -898,6 +898,24 @@ const handlePostType = (pt) => {
           </button>
         ))}
       </div>
+      {postType && (() => {
+  const selected = POST_TYPES.find(p => p.value === postType)
+  const isPublic = selected?.public
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 6,
+      background: isPublic ? 'rgba(52,211,153,0.1)' : 'var(--surface)',
+      border: `1px solid ${isPublic ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
+      borderRadius: 'var(--radius-md)', padding: '7px 11px', marginBottom: 12,
+      fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600,
+      color: isPublic ? 'var(--success, #34d399)' : 'var(--text-tertiary)',
+    }}>
+      {isPublic
+        ? '🌐 Post ini tampil di Showcase publik — buyer non-login bisa lihat'
+        : '🔒 Post ini cuma kelihatan sesama seller di komunitas'}
+    </div>
+  )
+})()}
       <textarea
         value={teks}
         onChange={e => setTeks(e.target.value)}
