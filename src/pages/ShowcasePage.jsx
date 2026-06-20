@@ -66,7 +66,7 @@ function ShowcaseCard({ post, onAuthRequired }) {
         <Avatar toko={t} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            
+            <a
               href={t?.slug ? getStorefrontUrl(t.slug) : '#'}
               target="_blank" rel="noreferrer"
               style={{ fontFamily: PJS, fontSize: '0.875rem', fontWeight: 800, color: 'var(--text-primary)', textDecoration: 'none' }}
