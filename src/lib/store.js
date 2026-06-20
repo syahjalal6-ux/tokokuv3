@@ -136,6 +136,8 @@ export const useStreamStore = create((set, get) => ({
   // Feed
   feed: [],
   feedLoading: false,
+  showcase: [],
+  showcaseLoading: false,
   feedError: null,
   activeTag: null,
   searchQuery: '',
@@ -177,6 +179,15 @@ export const useStreamStore = create((set, get) => ({
     return res.data
   },
 
+  loadShowcase: async (params = {}) => {
+  set({ showcaseLoading: true })
+  try {
+    const res = await streamApi.getPublicShowcase(params)
+    set({ showcase: res.data || [], showcaseLoading: false })
+  } catch (err) {
+    set({ showcaseLoading: false })
+  }
+},
   // ───────────── DELETE POST ─────────────
   // Hapus post milik toko sendiri (ownership-nya udah dicek di backend/streamApi.deletePost).
   // Setelah berhasil dihapus di server, update state lokal:
