@@ -123,6 +123,14 @@ export default function StreamPage() {
   const [notifOpen, setNotifOpen] = useState(false)
   // State untuk delete modal: null atau postId yang mau dihapus
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const POST_TYPES = [
+  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥' },
+  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝' },
+  { value: 'supplier_info', label: 'Supplier info', emoji: '📦' },
+  { value: 'penjualan', label: 'Penjualan', emoji: '📈' },
+  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥' },
+  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡' },
+]
 
   // Load feed + notif count + toko (punya sendiri) saat mount
   useEffect(() => {
@@ -844,13 +852,14 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
 function ComposeSheet({ tokenObj, onClose, onSubmit }) {
   const [teks, setTeks] = useState('')
   const [foto, setFoto] = useState([])
+  const [postType, setPostType] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   const handleSubmit = async () => {
     if (!teks.trim() || submitting) return
     setSubmitting(true)
     try {
-      await onSubmit({ teks: teks.trim(), foto })
+      await onSubmit({ teks: teks.trim(), foto postType })
     } finally {
       setSubmitting(false)
     }
@@ -858,17 +867,27 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
 
   return (
     <Sheet onClose={onClose} title="Buat Post">
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+        {POST_TYPES.map(pt => (
+          <button
+            key={pt.value}
+            onClick={() => setPostType(postType === pt.value ? null : pt.value)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '6px 11px', borderRadius: 'var(--radius-full)',
+              background: postType === pt.value ? 'var(--accent-gradient)' : 'var(--surface)',
+              border: '1px solid var(--glass-border)',
+              color: postType === pt.value ? '#fff' : 'var(--text-secondary)',
+              fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            <span>{pt.emoji}</span>{pt.label}
+          </button>
+        ))}
+      </div>
       <textarea
         value={teks}
-        onChange={e => setTeks(e.target.value)}
-        placeholder={'Bagikan tips, promo, update toko...\nGunakan #hashtag untuk kategorisasi'}
-        rows={5}
-        maxLength={500}
-        style={{
-          width: '100%', background: 'transparent', border: 'none', color: 'var(--text-primary)',
-          fontSize: '0.875rem', lineHeight: 1.65, resize: 'none', outline: 'none', fontFamily: PJS,
-          boxSizing: 'border-box', marginBottom: 12,
-        }}
       />
       <StreamImageUpload value={foto} onChange={setFoto} tokenObj={tokenObj} disabled={submitting} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--glass-border)' }}>
