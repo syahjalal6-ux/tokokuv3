@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Search, Heart, MessageCircle, Image as ImageIcon, X, Send, Bookmark,
-  Repeat2, Bell, ChevronLeft, Hash, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
+  Repeat2, Bell, ChevronLeft, ChevronRight, Hash, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
   Trash2,
 } from 'lucide-react'
 import DashboardLayout from './DashboardLayout.jsx'
