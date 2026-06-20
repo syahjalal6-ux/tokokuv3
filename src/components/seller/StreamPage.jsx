@@ -1291,20 +1291,120 @@ function PostText({ text, onTag }) {
   )
 }
 
+// tambahin di import lucide-react paling atas:
+// ChevronRight,
+
 function PostImages({ images }) {
+  const [lightboxIdx, setLightboxIdx] = useState(null)
   if (!images?.length) return null
-  if (images.length === 1) {
-    return (
-      <div style={{ marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
-        <img src={images[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
-      </div>
-    )
-  }
+
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
-      {images.map((img, i) => (
-        <img key={i} src={img} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)' }} />
-      ))}
+    <>
+      {images.length === 1 ? (
+        <div style={{ marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
+          <img
+            src={images[0]}
+            alt=""
+            onClick={() => setLightboxIdx(0)}
+            style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480, cursor: 'pointer' }}
+          />
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt=""
+              onClick={() => setLightboxIdx(i)}
+              style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)', cursor: 'pointer' }}
+            />
+          ))}
+        </div>
+      )}
+
+      {lightboxIdx !== null && (
+        <ImageLightbox images={images} index={lightboxIdx} onClose={() => setLightboxIdx(null)} />
+      )}
+    </>
+  )
+}
+
+function ImageLightbox({ images, index, onClose }) {
+  const [current, setCurrent] = useState(index)
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === 'ArrowRight') setCurrent(c => (c + 1) % images.length)
+      if (e.key === 'ArrowLeft') setCurrent(c => (c - 1 + images.length) % images.length)
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [images.length, onClose])
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        animation: 'fadeIn 0.15s ease',
+      }}
+    >
+      <button
+        onClick={onClose}
+        style={{
+          position: 'absolute', top: 16, right: 16, width: 38, height: 38,
+          borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.2)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2,
+        }}
+      >
+        <X size={18} color="#fff" />
+      </button>
+
+      <img
+        src={images[current]}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }}
+      />
+
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={e => { e.stopPropagation(); setCurrent(c => (c - 1 + images.length) % images.length) }}
+            style={{
+              position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
+              width: 40, height: 40, borderRadius: 'var(--radius-full)',
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <ChevronLeft size={20} color="#fff" />
+          </button>
+          <button
+            onClick={e => { e.stopPropagation(); setCurrent(c => (c + 1) % images.length) }}
+            style={{
+              position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
+              width: 40, height: 40, borderRadius: 'var(--radius-full)',
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            }}
+          >
+            <ChevronRight size={20} color="#fff" />
+          </button>
+          <div style={{
+            position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+            color: '#fff', fontFamily: PJS, fontSize: '0.75rem', background: 'rgba(0,0,0,0.4)',
+            padding: '4px 12px', borderRadius: 'var(--radius-full)',
+          }}>
+            {current + 1} / {images.length}
+          </div>
+        </>
+      )}
     </div>
   )
 }
