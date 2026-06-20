@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import {
   Search, Heart, MessageCircle, Image as ImageIcon, X, Send, Bookmark,
-  Repeat2, Bell, ChevronLeft, ChevronRight, Hash, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
+  Repeat2, Bell, ChevronLeft, ChevronRight, Hash, Maximize2, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
   Trash2,
 } from 'lucide-react'
 import DashboardLayout from './DashboardLayout.jsx'
@@ -1291,9 +1291,6 @@ function PostText({ text, onTag }) {
   )
 }
 
-// tambahin di import lucide-react paling atas:
-// ChevronRight,
-
 function PostImages({ images }) {
   const [lightboxIdx, setLightboxIdx] = useState(null)
   if (!images?.length) return null
@@ -1301,24 +1298,20 @@ function PostImages({ images }) {
   return (
     <>
       {images.length === 1 ? (
-        <div style={{ marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
-          <img
-            src={images[0]}
-            alt=""
-            onClick={() => setLightboxIdx(0)}
-            style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480, cursor: 'pointer' }}
-          />
+        <div
+          onClick={() => setLightboxIdx(0)}
+          style={{ position: 'relative', marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)', cursor: 'pointer' }}
+        >
+          <img src={images[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
+          <ZoomBadge />
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
           {images.map((img, i) => (
-            <img
-              key={i}
-              src={img}
-              alt=""
-              onClick={() => setLightboxIdx(i)}
-              style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)', cursor: 'pointer' }}
-            />
+            <div key={i} onClick={() => setLightboxIdx(i)} style={{ position: 'relative', cursor: 'pointer' }}>
+              <img src={img} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)' }} />
+              <ZoomBadge />
+            </div>
           ))}
         </div>
       )}
@@ -1327,6 +1320,19 @@ function PostImages({ images }) {
         <ImageLightbox images={images} index={lightboxIdx} onClose={() => setLightboxIdx(null)} />
       )}
     </>
+  )
+}
+
+function ZoomBadge() {
+  return (
+    <div style={{
+      position: 'absolute', bottom: 8, right: 8,
+      width: 28, height: 28, borderRadius: 'var(--radius-full)',
+      background: 'rgba(0,0,0,0.5)', display: 'flex',
+      alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+    }}>
+      <Maximize2 size={13} color="#fff" />
+    </div>
   )
 }
 
