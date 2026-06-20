@@ -139,4 +139,5 @@ export const streamApi = {
   markNotificationsRead:  (tokenObj) => writeWith('streamApi', 'markNotificationsRead', tokenObj),
   uploadImage:            (tokenObj, data) => writeWith('streamApi', 'uploadImage', tokenObj, data),
   deletePost: (tokenObj, postId) => writeWith('streamApi', 'deletePost', tokenObj, postId),
+  getPublicShowcase: (params) => readWithNoToken('streamApi', 'getPublicShowcase', params),
 }
