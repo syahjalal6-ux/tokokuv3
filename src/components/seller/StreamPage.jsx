@@ -859,7 +859,7 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
     if (!teks.trim() || submitting) return
     setSubmitting(true)
     try {
-      await onSubmit({ teks: teks.trim(), foto postType })
+      await onSubmit({ teks: teks.trim(), foto, postType })
     } finally {
       setSubmitting(false)
     }
