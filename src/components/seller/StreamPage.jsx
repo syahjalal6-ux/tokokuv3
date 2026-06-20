@@ -13,12 +13,12 @@ import toast from 'react-hot-toast'
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
 const POST_TYPES = [
-  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥' },
-  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝' },
-  { value: 'supplier_info', label: 'Supplier info', emoji: '📦' },
-  { value: 'penjualan', label: 'Penjualan', emoji: '📈' },
-  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥' },
-  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡' },
+  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥' }, hashtag: '#ProdukBaru' },
+  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝' }, hashtag: '#CariReseller' },
+  { value: 'supplier_info', label: 'Supplier info', emoji: '📦' }, hashtag: '#SupplierInfo' },
+  { value: 'penjualan', label: 'Penjualan', emoji: '📈' }, hashtag: '#Penjualan' },
+  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥' }, hashtag: '#PartnerLive' },
+  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡' }, hashtag: '#TipsJualan' },
 ]
 
 // ================================================
@@ -865,14 +865,25 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
       setSubmitting(false)
     }
   }
-
+const handlePostType = (pt) => {
+    const prev = POST_TYPES.find(p => p.value === postType)
+    let next = teks
+    if (prev) next = next.replace(new RegExp(`\\s*${prev.hashtag}\\b`, 'i'), '').trim()
+    if (postType === pt.value) {
+      setPostType(null)
+      setTeks(next)
+    } else {
+      setPostType(pt.value)
+      setTeks(next ? `${next} ${pt.hashtag}` : pt.hashtag)
+    }
+  }
   return (
     <Sheet onClose={onClose} title="Buat Post">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
         {POST_TYPES.map(pt => (
           <button
             key={pt.value}
-            onClick={() => setPostType(postType === pt.value ? null : pt.value)}
+            onClick={() => handlePostType(pt)}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '6px 11px', borderRadius: 'var(--radius-full)',
