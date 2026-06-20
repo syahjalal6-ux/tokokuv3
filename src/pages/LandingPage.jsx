@@ -150,7 +150,7 @@ export default function LandingPage() {
             color: '#ffffff', lineHeight: 1.6, marginBottom: '36px',
             maxWidth: 420, margin: '0 auto 36px',
             textAlign: 'center',
-          }}>Website Toko + AI Assistant + WA Checkout</p>
+          }}>WebApp Toko + AI Assistant + WA Checkout</p>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <Link to="/login" className="btn btn-primary btn-lg">
