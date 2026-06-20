@@ -12,6 +12,15 @@ import toast from 'react-hot-toast'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
+const POST_TYPES = [
+  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥' },
+  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝' },
+  { value: 'supplier_info', label: 'Supplier info', emoji: '📦' },
+  { value: 'penjualan', label: 'Penjualan', emoji: '📈' },
+  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥' },
+  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡' },
+]
+
 // ================================================
 // DELETE CONFIRM MODAL
 // ================================================
@@ -100,7 +109,6 @@ export default function StreamPage() {
   const { toko, load: loadToko } = useTokoStore()
   const tokenObj = { tokenSupabase, tokenGas }
   const pro = isPro(user)
-  console.log('toko di StreamPage:', toko?.id)
 
   const {
     feed, feedLoading, activeTag, searchQuery,
@@ -123,14 +131,6 @@ export default function StreamPage() {
   const [notifOpen, setNotifOpen] = useState(false)
   // State untuk delete modal: null atau postId yang mau dihapus
   const [deleteTarget, setDeleteTarget] = useState(null)
-  const POST_TYPES = [
-  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥' },
-  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝' },
-  { value: 'supplier_info', label: 'Supplier info', emoji: '📦' },
-  { value: 'penjualan', label: 'Penjualan', emoji: '📈' },
-  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥' },
-  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡' },
-]
 
   // Load feed + notif count + toko (punya sendiri) saat mount
   useEffect(() => {
@@ -479,7 +479,6 @@ export default function StreamPage() {
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
-  console.log('POST DATA:', post.id, post.previewReplies, post.repliesCount)
   // Cast ke string agar tidak ada mismatch number vs string
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   // Fallback: kalau API belum ngirim previewReplies, pakai 2 reply pertama dari `replies`
@@ -517,6 +516,7 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
               </button>
             )}
           </div>
+          <PostTypeBadge type={post.postType} />
           <PostText text={post.teks} onTag={onTag} />
           <PostImages images={post.foto} />
           {post.shopLink && <ShopLinkCard link={post.shopLink} />}
@@ -665,6 +665,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
               </button>
             )}
           </div>
+          <PostTypeBadge type={post.postType} />
           <PostText text={post.teks} onTag={onTag} />
           <PostImages images={post.foto} />
           {post.shopLink && <ShopLinkCard link={post.shopLink} />}
@@ -888,6 +889,15 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
       </div>
       <textarea
         value={teks}
+        onChange={e => setTeks(e.target.value)}
+        placeholder={'Bagikan tips, promo, update toko...\nGunakan #hashtag untuk kategorisasi'}
+        rows={5}
+        maxLength={500}
+        style={{
+          width: '100%', background: 'transparent', border: 'none', color: 'var(--text-primary)',
+          fontSize: '0.875rem', lineHeight: 1.65, resize: 'none', outline: 'none', fontFamily: PJS,
+          boxSizing: 'border-box', marginBottom: 12,
+        }}
       />
       <StreamImageUpload value={foto} onChange={setFoto} tokenObj={tokenObj} disabled={submitting} />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--glass-border)' }}>
@@ -1183,6 +1193,21 @@ function ProBadge({ small }) {
   return (
     <span className="badge badge-pro" style={{ fontSize: small ? '0.55rem' : '0.6rem', padding: '1px 6px' }}>
       ⭐ Pro
+    </span>
+  )
+}
+
+function PostTypeBadge({ type }) {
+  const meta = POST_TYPES.find(pt => pt.value === type)
+  if (!meta) return null
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4,
+      background: 'var(--accent-gradient-soft)', border: '1px solid var(--glass-border)',
+      borderRadius: 'var(--radius-md)', padding: '3px 9px', marginBottom: 8,
+      fontFamily: PJS, fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent)',
+    }}>
+      <span>{meta.emoji}</span>{meta.label}
     </span>
   )
 }
