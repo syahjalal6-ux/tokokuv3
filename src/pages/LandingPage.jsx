@@ -40,9 +40,9 @@ const ExoraIcon = () => (
   <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="xGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#7C3AED" />
-        <stop offset="50%" stopColor="#3B82F6" />
-        <stop offset="100%" stopColor="#06B6D4" />
+        <stop offset="0%" stopColor="#854F0B" />
+        <stop offset="50%" stopColor="#BA7517" />
+        <stop offset="100%" stopColor="#FAC775" />
       </linearGradient>
     </defs>
     <path d="M10 10 L42 50 L10 90 H32 L50 65 L68 90 H90 L58 50 L90 10 H68 L50 35 L32 10 Z" fill="url(#xGrad)" />
@@ -66,6 +66,11 @@ export default function LandingPage() {
       <style>{`
         .landing-body-text { text-align: left; }
         .landing-center { text-align: center; }
+        .btn-primary {
+          background: linear-gradient(90deg, #854F0B, #BA7517) !important;
+          color: #ffffff !important;
+          border: none !important;
+        }
         @media (max-width: 600px) {
           .section-pad { padding-top: 48px !important; padding-bottom: 48px !important; }
           .hero-pad { padding-top: 110px !important; padding-bottom: 24px !important; }
@@ -93,8 +98,7 @@ export default function LandingPage() {
               <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.15rem', color: '#ffffff', letterSpacing: '-0.02em' }}>exora</span>
               <span style={{
                 fontFamily: PJS, fontWeight: 600, fontSize: '0.6rem',
-                background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                color: '#ffffff',
                 letterSpacing: '0.05em',
               }}>Start. Sell. Scale.</span>
             </div>
@@ -116,8 +120,8 @@ export default function LandingPage() {
           <div style={{
             display: 'inline-flex', flexDirection: 'column', alignItems: 'center',
             padding: '8px 18px', borderRadius: 'var(--radius-full)',
-            background: 'var(--accent-gradient-soft)',
-            border: '1px solid rgba(167,139,250,0.2)',
+            background: 'rgba(186,117,23,0.16)',
+            border: '1px solid rgba(186,117,23,0.35)',
             marginBottom: '24px', gap: 2,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -140,8 +144,7 @@ export default function LandingPage() {
 
           <p style={{
             fontFamily: PJS, fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', fontWeight: 700,
-            background: 'linear-gradient(90deg, #3B82F6, #7C3AED)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            color: '#ffffff',
             marginBottom: '12px',
           }}>Start. Sell. Scale.</p>
 
@@ -177,10 +180,10 @@ export default function LandingPage() {
         <div style={{ marginTop: 24, padding: '0 16px' }}>
           <div style={{
             maxWidth: 800, margin: '0 auto',
-            background: 'linear-gradient(135deg, rgba(91,138,245,0.15) 0%, rgba(167,139,250,0.1) 100%)',
+            background: 'linear-gradient(135deg, rgba(186,117,23,0.18) 0%, rgba(133,79,11,0.12) 100%)',
             border: '1px solid var(--glass-border)',
             borderRadius: 'var(--radius-2xl)', padding: '3px',
-            boxShadow: '0 40px 120px rgba(0,0,0,0.6), 0 0 80px rgba(91,138,245,0.15)',
+            boxShadow: '0 40px 120px rgba(0,0,0,0.6), 0 0 80px rgba(186,117,23,0.18)',
           }}>
             <div style={{ background: 'var(--bg-secondary)', borderRadius: 'calc(var(--radius-2xl) - 3px)', overflow: 'hidden' }}>
               <div style={{ background: 'var(--bg-tertiary)', borderBottom: '1px solid var(--glass-border)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -244,9 +247,9 @@ export default function LandingPage() {
               <div key={f.title} className="glass-card" style={{ padding: '24px' }}>
                 <div style={{
                   width: 44, height: 44, borderRadius: 'var(--radius-md)',
-                  background: 'var(--accent-gradient-soft)',
+                  background: 'rgba(186,117,23,0.16)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  marginBottom: 14, color: 'var(--accent)',
+                  marginBottom: 14, color: '#FAC775',
                 }}>
                   <f.icon size={20} />
                 </div>
@@ -294,13 +297,13 @@ export default function LandingPage() {
 
             {/* Pro */}
             <div style={{
-              background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.12) 100%)',
-              border: '1px solid rgba(167,139,250,0.3)',
+              background: 'linear-gradient(135deg, rgba(186,117,23,0.16) 0%, rgba(133,79,11,0.16) 100%)',
+              border: '1px solid rgba(186,117,23,0.4)',
               borderRadius: 'var(--radius-xl)', padding: '28px',
-              boxShadow: '0 8px 40px rgba(91,138,245,0.2)',
+              boxShadow: '0 8px 40px rgba(186,117,23,0.22)',
               position: 'relative', overflow: 'hidden',
             }}>
-              <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(167,139,250,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
+              <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: 'radial-gradient(circle, rgba(186,117,23,0.25) 0%, transparent 70%)', borderRadius: '50%' }} />
 
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -309,7 +312,7 @@ export default function LandingPage() {
                 marginBottom: 10,
               }}>
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fbbf24', animation: 'pulse 1.5s infinite' }} />
-                <span style={{ fontFamily: PJS, fontSize: '0.72rem', fontWeight: 700, color: '#fbbf24' }}>
+                <span style={{ fontFamily: PJS, fontSize: '0.72rem', fontWeight: 700, color: '#ffffff' }}>
                   🔥 {FOUNDER_SLOTS_LEFT} dari {FOUNDER_SLOTS_TOTAL} slot founder tersisa
                 </span>
               </div>
@@ -321,11 +324,11 @@ export default function LandingPage() {
 
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)',
+                background: 'rgba(186,117,23,0.18)', border: '1px solid rgba(186,117,23,0.38)',
                 borderRadius: 'var(--radius-full)', padding: '3px 10px',
                 marginBottom: 18,
               }}>
-                <span style={{ fontFamily: PJS, fontSize: '0.75rem', fontWeight: 700, color: 'var(--accent-3)' }}>
+                <span style={{ fontFamily: PJS, fontSize: '0.75rem', fontWeight: 700, color: '#ffffff' }}>
                   🔒 Harga Founder — Kunci Selamanya
                 </span>
               </div>
@@ -426,13 +429,13 @@ export default function LandingPage() {
         <div className="container-sm" style={{ textAlign: 'center' }}>
           <div className="cta-pad" style={{
             padding: '48px 32px',
-            background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.12) 100%)',
-            border: '1px solid rgba(167,139,250,0.2)',
+            background: 'linear-gradient(135deg, rgba(186,117,23,0.16) 0%, rgba(133,79,11,0.16) 100%)',
+            border: '1px solid rgba(186,117,23,0.35)',
             borderRadius: 'var(--radius-2xl)',
             boxShadow: '0 40px 80px rgba(0,0,0,0.3)',
             position: 'relative', overflow: 'hidden',
           }}>
-            <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'radial-gradient(circle, rgba(167,139,250,0.15) 0%, transparent 70%)', borderRadius: '50%' }} />
+            <div style={{ position: 'absolute', top: -40, right: -40, width: 200, height: 200, background: 'radial-gradient(circle, rgba(186,117,23,0.2) 0%, transparent 70%)', borderRadius: '50%' }} />
             <h2 className="text-display heading-display" style={{
               fontFamily: PJS,
               fontSize: 'clamp(1.5rem, 5vw, 2.8rem)',
