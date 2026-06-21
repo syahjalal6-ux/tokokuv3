@@ -552,7 +552,7 @@ export default function LandingPage() {
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ExoraIcon />
-            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1rem', color: c.textPrimary, letterSpacing: '-0.02em' }}>exora</span>
+            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1rem', color: c.textPrimary, letterSpacing: '-0.02em' }}>EXORA</span>
           </div>
           <p style={{ fontFamily: PJS }}>© 2026 Exora. Platform toko online Indonesia.</p>
         </div>
