@@ -77,7 +77,7 @@ export default function ShowcasePage() {
         transition: 'background 0.25s ease, border-color 0.25s ease',
       }}>
         <h1 style={{ fontFamily: PJS, fontSize: '1.2rem', fontWeight: 800, margin: 0, color: c.textPrimary, letterSpacing: '-0.02em' }}>
-          Showcase <span style={{ color: theme === 'light' ? NAVY : BLUE }}>exora</span>
+          Showcase <span style={{ color: theme === 'light' ? NAVY : BLUE }}>Exora</span>
         </h1>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
