@@ -77,10 +77,16 @@ export default function ShowcasePage() {
 
   useEffect(() => {
   if (!showcase.length) return
-  const tokoIds = [...new Set(showcase.map(p => p.toko?.id).filter(Boolean))]
+  const tokoMap = {}
+  showcase.forEach(p => {
+    if (p.toko?.id) tokoMap[p.toko.id] = { slug: p.toko.slug, nama: p.toko.nama }
+  })
+  const tokoIds = Object.keys(tokoMap)
   Promise.all(tokoIds.map(id => produkApi.getByToko(id)))
     .then(results => {
-      const all = results.flatMap(r => r.data || [])
+      const all = results.flatMap((r, i) =>
+        (r.data || []).map(p => ({ ...p, tokoSlug: tokoMap[tokoIds[i]].slug, tokoNama: tokoMap[tokoIds[i]].nama }))
+      )
       setProdukList(all)
     })
     .catch(() => {})
