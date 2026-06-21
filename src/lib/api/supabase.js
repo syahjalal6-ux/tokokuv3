@@ -1515,3 +1515,55 @@ Bantu calon pembeli dengan pertanyaan tentang toko, produk, pengiriman, atau hal
     return { success: true, reply }
   }
 }
+
+export const showcaseChatApi = {
+  send: async ({ messages, posts, produkList }) => {
+    if (!messages || !Array.isArray(messages)) throw new Error('messages tidak valid')
+
+    const postsStr = (posts || []).slice(0, 30).map((p, i) =>
+      `${i + 1}. [${p.toko?.nama || 'Toko'}] ${p.teks?.slice(0, 200) || ''}${p.hashtags?.length ? ' ' + p.hashtags.join(' ') : ''}`
+    ).join('\n')
+
+    const produkStr = (produkList || []).slice(0, 50).map((p, i) =>
+      `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}${p.kategori ? ' [' + p.kategori + ']' : ''}`
+    ).join('\n')
+
+    const systemPrompt = `Kamu adalah asisten Showcase Exora — platform toko online.
+Bantu buyer cari produk atau toko yang cocok berdasarkan data berikut.
+
+Post terbaru di showcase:
+${postsStr || 'Tidak ada post.'}
+
+Daftar produk dari semua toko:
+${produkStr || 'Tidak ada produk.'}
+
+Jawab ramah, singkat, dalam Bahasa Indonesia. Jika buyer mau beli, sebutkan nama tokonya.`
+
+    const groqMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages.map(m => ({ role: m.role, content: m.content })),
+    ]
+
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + CONFIG.GROQ_SHOWCASE_KEY,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: groqMessages,
+        max_tokens: 512,
+        temperature: 0.7,
+      }),
+    })
+
+    const data = await res.json()
+    if (data.error) throw new Error(data.error.message)
+
+    const reply = data.choices?.[0]?.message?.content
+    if (!reply) throw new Error('Reply kosong')
+
+    return { success: true, reply }
+  }
+}
