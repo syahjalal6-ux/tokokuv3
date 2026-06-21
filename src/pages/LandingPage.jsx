@@ -228,7 +228,7 @@ export default function LandingPage() {
             fontSize: 'clamp(5rem, 16vw, 9rem)',
             marginBottom: '4px', letterSpacing: '-0.05em',
             color: c.textPrimary, lineHeight: 1,
-          }}>exora</h1>
+          }}>EXORA</h1>
 
           <p style={{
             fontFamily: PJS, fontSize: 'clamp(1rem, 2.5vw, 1.4rem)', fontWeight: 700,
