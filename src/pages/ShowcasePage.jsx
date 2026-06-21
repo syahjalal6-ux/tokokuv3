@@ -53,10 +53,15 @@ export default function ShowcasePage() {
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
   const [lightboxImg, setLightboxImg] = useState(null)
+  const [activeTag, setActiveTag] = useState(null)
 
   useEffect(() => {
-    loadShowcase()
-  }, [])
+    loadShowcase(activeTag ? { tag: activeTag } : {})
+  }, [activeTag])
+
+  const handleTagClick = (tag) => {
+    setActiveTag(prev => (prev === tag ? null : tag))
+  }
 
   // Close lightbox on Escape
   useEffect(() => {
@@ -123,6 +128,28 @@ export default function ShowcasePage() {
       </div>
 
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '12px 8px 60px' }}>
+        {activeTag && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            background: c.accentSoftBg, border: `1px solid ${c.accentSoftBorder}`,
+            borderRadius: '10px', padding: '8px 12px', marginBottom: 12,
+          }}>
+            <span style={{ fontFamily: PJS, fontSize: '0.8rem', fontWeight: 700, color: theme === 'light' ? NAVY : BLUE }}>
+              Menampilkan post dengan {activeTag}
+            </span>
+            <button
+              onClick={() => setActiveTag(null)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: c.textTertiary, fontFamily: PJS, fontSize: '0.75rem', fontWeight: 600,
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              <X size={13} /> Hapus filter
+            </button>
+          </div>
+        )}
+
         {showcaseLoading && (
           <div style={{ display: 'flex', justifyContent: 'center', padding: 60 }}>
             <Loader size={20} color={theme === 'light' ? NAVY : BLUE} style={{ animation: 'spin 0.7s linear infinite' }} />
@@ -139,7 +166,7 @@ export default function ShowcasePage() {
               <Store size={20} />
             </div>
             <p style={{ color: c.textTertiary, fontFamily: PJS, fontSize: '0.9rem', margin: 0 }}>
-              Belum ada produk yang ditampilkan.
+              {activeTag ? `Belum ada post dengan ${activeTag}.` : 'Belum ada produk yang ditampilkan.'}
             </p>
           </div>
         )}
@@ -152,6 +179,8 @@ export default function ShowcasePage() {
             c={c}
             onAuthRequired={() => navigate('/login')}
             onImageClick={setLightboxImg}
+            onTagClick={handleTagClick}
+            activeTag={activeTag}
           />
         ))}
       </div>
@@ -196,7 +225,7 @@ export default function ShowcasePage() {
   )
 }
 
-function ShowcaseCard({ post, theme, c, onAuthRequired, onImageClick }) {
+function ShowcaseCard({ post, theme, c, onAuthRequired, onImageClick, onTagClick, activeTag }) {
   const t = post.toko
   const accent = theme === 'light' ? NAVY : BLUE
 
@@ -263,15 +292,25 @@ function ShowcaseCard({ post, theme, c, onAuthRequired, onImageClick }) {
 
           {post.hashtags?.length > 0 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
-              {post.hashtags.map(tag => (
-                <span key={tag} style={{
-                  fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: accent,
-                  background: c.accentSoftBg, border: `1px solid ${c.accentSoftBorder}`,
-                  padding: '3px 9px', borderRadius: '8px',
-                }}>
-                  {tag}
-                </span>
-              ))}
+              {post.hashtags.map(tag => {
+                const isActive = activeTag === tag
+                return (
+                  <button
+                    key={tag}
+                    onClick={() => onTagClick?.(tag)}
+                    style={{
+                      fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700,
+                      color: isActive ? '#ffffff' : accent,
+                      background: isActive ? ACCENT_GRADIENT : c.accentSoftBg,
+                      border: `1px solid ${isActive ? 'transparent' : c.accentSoftBorder}`,
+                      padding: '3px 9px', borderRadius: '8px',
+                      cursor: 'pointer', transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {tag}
+                  </button>
+                )
+              })}
             </div>
           )}
 
