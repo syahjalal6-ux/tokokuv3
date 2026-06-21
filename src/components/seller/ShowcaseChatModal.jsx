@@ -6,6 +6,7 @@ function renderMarkdown(text) {
   const html = text
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noreferrer" style="color:#378ADD;text-decoration:underline">$1</a>')
   return { __html: html }
 }
 
