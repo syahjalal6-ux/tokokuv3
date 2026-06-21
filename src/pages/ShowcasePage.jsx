@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Repeat2, Store, Loader, ArrowRight, Sun, Moon, X } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Store, Loader, ArrowRight, Bot, Sun, Moon, X } from 'lucide-react'
 import { useStreamStore } from '../lib/store.js'
 import { getStorefrontUrl, getInitials } from '../lib/utils.js'
 import { useTheme } from '../lib/useTheme.js'
+import { produkApi } from '../lib/api/supabase.js'
+import ShowcaseChatModal from '../components/seller/ShowcaseChatModal.jsx'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
@@ -54,6 +56,8 @@ export default function ShowcasePage() {
   const c = THEMES[theme]
   const [lightboxImg, setLightboxImg] = useState(null)
   const [activeTag, setActiveTag] = useState(null)
+  const [showChat, setShowChat] = useState(false)
+  const [produkList, setProdukList] = useState([])
 
   useEffect(() => {
     loadShowcase(activeTag ? { tag: activeTag } : {})
@@ -70,6 +74,17 @@ export default function ShowcasePage() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [lightboxImg])
+
+  useEffect(() => {
+  if (!showcase.length) return
+  const tokoIds = [...new Set(showcase.map(p => p.toko?.id).filter(Boolean))]
+  Promise.all(tokoIds.map(id => produkApi.getByToko(id)))
+    .then(results => {
+      const all = results.flatMap(r => r.data || [])
+      setProdukList(all)
+    })
+    .catch(() => {})
+}, [showcase])
 
   return (
     <div style={{ minHeight: '100vh', background: c.bgPage, fontFamily: PJS, transition: 'background 0.25s ease' }}>
@@ -221,6 +236,25 @@ export default function ShowcasePage() {
           />
         </div>
       )}
+      <button
+  onClick={() => setShowChat(true)}
+  style={{
+    position: 'fixed', bottom: 24, right: 20, zIndex: 50,
+    width: 52, height: 52, borderRadius: '50%',
+    background: ACCENT_GRADIENT, border: 'none',
+    boxShadow: c.ctaShadow, cursor: 'pointer',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }}
+>
+  <Bot size={22} color="#fff" />
+</button>
+      {showChat && (
+  <ShowcaseChatModal
+    onClose={() => setShowChat(false)}
+    posts={showcase}
+    produkList={produkList}
+  />
+)}
     </div>
   )
 }
