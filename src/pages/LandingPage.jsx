@@ -175,7 +175,7 @@ export default function LandingPage() {
         <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <ExoraIcon />
-            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.3rem', color: c.textPrimary, letterSpacing: '-0.02em' }}>EXORA</span>
+            <span style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.3rem', color: c.textPrimary, letterSpacing: '0' }}>EXORA</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <button
@@ -226,7 +226,7 @@ export default function LandingPage() {
           <h1 style={{
             fontFamily: PJS, fontWeight: 800,
             fontSize: 'clamp(5rem, 16vw, 9rem)',
-            marginBottom: '4px', letterSpacing: '-0.05em',
+            marginBottom: '4px', letterSpacing: '-0.01em',
             color: c.textPrimary, lineHeight: 1,
           }}>EXORA</h1>
 
