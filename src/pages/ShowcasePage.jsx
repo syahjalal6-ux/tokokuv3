@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Repeat2, Store, Loader, ArrowRight, Sun, Moon } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Store, Loader, ArrowRight, Sun, Moon, X } from 'lucide-react'
 import { useStreamStore } from '../lib/store.js'
 import { getStorefrontUrl, getInitials } from '../lib/utils.js'
 import { useTheme } from '../lib/useTheme.js'
@@ -52,20 +52,33 @@ export default function ShowcasePage() {
   const { showcase, showcaseLoading, loadShowcase } = useStreamStore()
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
+  const [lightboxImg, setLightboxImg] = useState(null)
 
   useEffect(() => {
     loadShowcase()
   }, [])
+
+  // Close lightbox on Escape
+  useEffect(() => {
+    if (!lightboxImg) return
+    const onKey = (e) => { if (e.key === 'Escape') setLightboxImg(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [lightboxImg])
 
   return (
     <div style={{ minHeight: '100vh', background: c.bgPage, fontFamily: PJS, transition: 'background 0.25s ease' }}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg) } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px) } to { opacity: 1; transform: translateY(0) } }
+        @keyframes lightboxFadeIn { from { opacity: 0 } to { opacity: 1 } }
         .showcase-card { animation: fadeIn 0.4s ease; }
         .showcase-action:hover { color: ${theme === 'light' ? NAVY : BLUE} !important; }
         .showcase-shoplink:hover { border-color: ${c.accentSoftBorder} !important; box-shadow: ${c.hoverShadow}; }
         .theme-toggle-btn:hover { transform: scale(1.06); }
+        .showcase-img { cursor: zoom-in; transition: opacity 0.15s ease; }
+        .showcase-img:hover { opacity: 0.92; }
+        .lightbox-close:hover { background: rgba(255,255,255,0.15) !important; }
       `}</style>
 
       {/* Header */}
@@ -132,14 +145,58 @@ export default function ShowcasePage() {
         )}
 
         {showcase.map(post => (
-          <ShowcaseCard key={post.id} post={post} theme={theme} c={c} onAuthRequired={() => navigate('/login')} />
+          <ShowcaseCard
+            key={post.id}
+            post={post}
+            theme={theme}
+            c={c}
+            onAuthRequired={() => navigate('/login')}
+            onImageClick={setLightboxImg}
+          />
         ))}
       </div>
+
+      {/* Lightbox / zoom overlay */}
+      {lightboxImg && (
+        <div
+          onClick={() => setLightboxImg(null)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 24, animation: 'lightboxFadeIn 0.2s ease', cursor: 'zoom-out',
+          }}
+        >
+          <button
+            className="lightbox-close"
+            onClick={(e) => { e.stopPropagation(); setLightboxImg(null) }}
+            aria-label="Tutup"
+            style={{
+              position: 'absolute', top: 18, right: 18,
+              width: 40, height: 40, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', border: 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', cursor: 'pointer', transition: 'background 0.15s ease',
+            }}
+          >
+            <X size={20} />
+          </button>
+          <img
+            src={lightboxImg}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: '100%', maxHeight: '90vh', objectFit: 'contain',
+              borderRadius: 8, cursor: 'default',
+            }}
+          />
+        </div>
+      )}
     </div>
   )
 }
 
-function ShowcaseCard({ post, theme, c, onAuthRequired }) {
+function ShowcaseCard({ post, theme, c, onAuthRequired, onImageClick }) {
   const t = post.toko
   const accent = theme === 'light' ? NAVY : BLUE
 
@@ -171,7 +228,7 @@ function ShowcaseCard({ post, theme, c, onAuthRequired }) {
             {post.teks}
           </p>
 
-          <ShowcaseImages images={post.foto} c={c} />
+          <ShowcaseImages images={post.foto} c={c} onImageClick={onImageClick} />
 
           {post.shopLink && (
             <a
@@ -241,19 +298,30 @@ const actionStyle = {
   transition: 'color 0.15s ease',
 }
 
-function ShowcaseImages({ images, c }) {
+function ShowcaseImages({ images, c, onImageClick }) {
   if (!images?.length) return null
   if (images.length === 1) {
     return (
       <div style={{ marginBottom: 10, borderRadius: '14px', overflow: 'hidden', border: `1px solid ${c.border}`, background: c.bgSurface }}>
-        <img src={images[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
+        <img
+          className="showcase-img"
+          src={images[0]} alt=""
+          onClick={() => onImageClick?.(images[0])}
+          style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }}
+        />
       </div>
     )
   }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: '14px', overflow: 'hidden', border: `1px solid ${c.border}`, background: c.bgSurface }}>
       {images.map((img, i) => (
-        <img key={i} src={img} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: c.bgSurface }} />
+        <img
+          key={i}
+          className="showcase-img"
+          src={img} alt=""
+          onClick={() => onImageClick?.(img)}
+          style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: c.bgSurface }}
+        />
       ))}
     </div>
   )
