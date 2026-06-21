@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ArrowRight, Package, MessageCircle, Zap, Check, Store,
-  BarChart2, Shield, Star, ChevronDown, Music, Megaphone, Bot, Sun, Moon
+  BarChart2, Shield, ChevronDown, Music, Megaphone, Bot, Sun, Moon
 } from 'lucide-react'
 import { PLAN_FEATURES, CONFIG } from '../lib/config.js'
 import { useTheme } from '../lib/useTheme.js'
@@ -12,30 +12,29 @@ const FEATURES = [
   { icon: MessageCircle, title: 'Checkout via WhatsApp', desc: 'Buyer langsung chat WA kamu. Tidak perlu payment gateway rumit.' },
   { icon: Package, title: 'Manajemen Produk', desc: 'Upload hingga 2 foto per produk, atur harga, stok, diskon, dan kategori dengan mudah. Upgrade Pro untuk foto unlimited.' },
   { icon: Music, title: 'Musik Toko', desc: 'Pasang latar musik di tokomu untuk memberikan pengalaman belanja yang lebih hidup dan unik.' },
-  { icon: Megaphone, title: 'Pengumuman Toko', desc: 'Tampilkan banner pengumuman, info diskon, atau jadwal operasional toko di bagian atas.' },
-  { icon: Bot, title: 'Asisten AI', desc: 'AI menjawab pertanyaan pembeli otomatis 24/7. Isi bank data toko sekali, AI sisanya.' },
-  { icon: BarChart2, title: 'Analytics (Pro)', desc: 'Pantau performa toko, produk terlaris, dan tren penjualan.' },
+  { icon: Megaphone, title: 'Pengumuman Toko', desc: 'Tampilkan pengumuman teks, audio, atau video YouTube di tokomu — info diskon, jadwal operasional, atau promosi lainnya.' },
+  { icon: Bot, title: 'Asisten AI', desc: '3 AI siap bantu: jawab pertanyaan pembeli di tokomu, kasih insight performa otomatis di Analitik, dan bantu buyer cari produk di Showcase.' },
+  { icon: BarChart2, title: 'Analytics (Pro)', desc: 'Bukan cuma grafik — AI kasih insight otomatis: produk terlaris, tren revenue, saran naikin penjualan.' },
   { icon: Shield, title: 'Aman & Terpercaya', desc: 'Login dengan Google, data tersimpan aman di infrastruktur Google.' },
   { icon: Zap, title: 'Gratis Selamanya', desc: 'Paket gratis tanpa batas waktu. Upgrade kalau butuh lebih.' },
 ]
 
-const TESTIMONIALS = [
-  { name: 'Rina S.', toko: 'Rina Handmade', text: 'Buka toko online jadi gampang banget! Langsung jalan dalam 10 menit.', stars: 5, img: '/rina2.png' },
-  { name: 'Budi W.', toko: 'BudiSnack', text: 'Pesanan masuk lewat WA, gampang banget kelolanya. Recommended!', stars: 5, img: '/budi.png' },
-  { name: 'Sari M.', toko: 'Sari Beauty', text: 'Desainnya keren, pembeli saya bilang toko saya keliatan profesional.', stars: 5, img: '/sari.png' },
+const WHY_EXORA = [
+  { icon: Zap, text: 'Toko jadi sendiri hari ini, tanpa nunggu developer.' },
+  { icon: MessageCircle, text: 'Checkout langsung masuk WA-mu — nggak perlu belajar dashboard rumit.' },
+  { icon: Bot, text: 'AI jawab pertanyaan pembeli otomatis, walau kamu lagi sibuk packing.' },
 ]
 
 const FAQ = [
   { q: 'Apakah benar-benar gratis?', a: 'Ya! Paket gratis tidak ada batas waktu. Kamu bisa buka toko dan jual hingga 25 produk tanpa biaya apapun.' },
   { q: 'Bagaimana cara checkout pembeli?', a: 'Pembeli klik tombol "Beli via WhatsApp" di toko kamu, lalu akan diarahkan ke chat WA kamu dengan pesan otomatis berisi detail pesanan.' },
-  { q: 'Asisten AI itu apa?', a: 'Fitur cerdas yang otomatis menjawab pertanyaan calon pembeli mengenai produk atau tokomu selama 24/7 berdasarkan bank data yang sudah kamu siapkan.' },
+  { q: 'Asisten AI itu apa?', a: 'Ada 3: Asisten di tokomu jawab pertanyaan pembeli soal produk. Asisten Aira kasih insight otomatis di Analitik. Asisten Showcase bantu buyer cari produk/toko yang mereka mau.' },
   { q: 'Foto produk disimpan di mana?', a: 'Foto disimpan di Supabase Storage (cloud milik Exora), sehingga kamu tidak perlu punya hosting sendiri.' },
   { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.PRO_PRICE}.` },
+  { q: 'Apa itu Stream?', a: 'Tempat seller saling posting produk baru, cari reseller, atau tukar info supplier dengan seller lain di Exora. Bisa publik (buyer non-login bisa lihat) atau khusus sesama seller.' },
 ]
 
 const FOUNDER_SLOTS_TOTAL = 20
-const FOUNDER_SLOTS_TAKEN = 3
-const FOUNDER_SLOTS_LEFT = FOUNDER_SLOTS_TOTAL - FOUNDER_SLOTS_TAKEN
 
 const NAVY = '#0C447C'
 const MID = '#185FA5'
@@ -250,18 +249,12 @@ export default function LandingPage() {
             <a href="#fitur" className="btn btn-secondary btn-lg">Lihat Fitur</a>
           </div>
 
-          <div style={{ marginTop: 40, display: 'flex', gap: '32px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {[
-              { val: '20+', label: 'Toko Aktif' },
-              { val: '100+', label: 'Produk Terjual' },
-              { val: '4.9/5', label: 'Rating Seller' },
-            ].map(s => (
-              <div key={s.label} style={{ textAlign: 'center' }}>
-                <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: 'clamp(1.4rem, 3vw, 2rem)', color: c.textPrimary }}>{s.val}</p>
-                <p style={{ fontFamily: PJS, fontSize: '0.8rem', color: c.textMuted }}>{s.label}</p>
-              </div>
-            ))}
-          </div>
+          <p style={{
+            fontFamily: PJS, fontSize: 'clamp(0.95rem, 2vw, 1.05rem)',
+            color: c.textMuted, marginTop: 40,
+            maxWidth: 380, margin: '40px auto 0',
+            textAlign: 'center',
+          }}>Baru diluncurkan — jadi salah satu seller pertama yang ngebentuk Exora dari awal.</p>
         </div>
 
         {/* Browser Mockup */}
@@ -371,7 +364,7 @@ export default function LandingPage() {
                   'Upload Maksimal 2 Foto per Produk',
                   'Fitur Musik Toko',
                   'Fitur Pengumuman Toko',
-                  'Asisten AI (basic)',
+                  'Asisten AI di toko kamu',
                   'Subdomain exora.app/toko/namamu',
                 ].map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
@@ -393,18 +386,6 @@ export default function LandingPage() {
             }}>
               <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: `radial-gradient(circle, ${c.accentGlow1} 0%, transparent 70%)`, borderRadius: '50%' }} />
 
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: c.proGlowBg, border: `1px solid ${c.proGlowBorder}`,
-                borderRadius: 'var(--radius-full)', padding: '3px 10px',
-                marginBottom: 10,
-              }}>
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d97706', animation: 'pulse 1.5s infinite' }} />
-                <span style={{ fontFamily: PJS, fontSize: '0.72rem', fontWeight: 700, color: c.proGlowText }}>
-                  🔥 {FOUNDER_SLOTS_LEFT} dari {FOUNDER_SLOTS_TOTAL} slot founder tersisa
-                </span>
-              </div>
-
               <span className="badge badge-pro" style={{ marginBottom: 10 }}>⭐ Pro</span>
 
               <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2, color: c.textPrimary }}>Rp 19.000</p>
@@ -425,8 +406,8 @@ export default function LandingPage() {
                 {[
                   'Semua Fitur Paket Gratis',
                   'Unlimited Produk & Foto Unlimited',
-                  'Asisten AI Penuh (tanpa batas)',
-                  'Statistik & Analytics Penjualan',
+                  'Asisten Aira di Analitik',
+                  'Analytics & Statistik Penjualan',
                   'Badge Toko PRO / Terverifikasi',
                   'Prioritas Support Admin',
                 ].map(f => (
@@ -450,28 +431,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Why Exora */}
       <section className="section-pad" style={{ padding: '56px 0' }}>
         <div className="container">
           <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36, color: c.textPrimary }}>
-            Kata mereka yang sudah pakai
+            Kenapa seller pilih Exora
           </h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className="glass-card" style={{ padding: '22px' }}>
-                <div style={{ display: 'flex', gap: '2px', marginBottom: 10 }}>
-                  {Array(t.stars).fill(0).map((_, i) => (
-                    <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />
-                  ))}
+            {WHY_EXORA.map((w, i) => (
+              <div key={i} className="glass-card" style={{ padding: '22px' }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 'var(--radius-md)',
+                  background: c.iconBg,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 14, color: accent,
+                }}>
+                  <w.icon size={18} />
                 </div>
-                <p className="landing-body-text" style={{ fontFamily: PJS, color: c.textPrimary, fontSize: '0.9rem', lineHeight: 1.65, marginBottom: 14, fontStyle: 'italic' }}>"{t.text}"</p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <img src={t.img} alt={t.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                  <div>
-                    <p style={{ fontFamily: PJS, fontSize: '0.82rem', fontWeight: 700, color: c.textPrimary }}>{t.name}</p>
-                    <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: c.textMuted }}>{t.toko}</p>
-                  </div>
-                </div>
+                <p className="landing-body-text" style={{ fontFamily: PJS, color: c.textPrimary, fontSize: '0.9rem', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>"{w.text}"</p>
               </div>
             ))}
           </div>
