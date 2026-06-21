@@ -1525,8 +1525,8 @@ export const showcaseChatApi = {
     ).join('\n')
 
     const produkStr = (produkList || []).slice(0, 50).map((p, i) =>
-      `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}${p.kategori ? ' [' + p.kategori + ']' : ''}`
-    ).join('\n')
+  `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}${p.kategori ? ' [' + p.kategori + ']' : ''} — Toko: ${p.tokoNama || ''}${p.tokoSlug ? ' (exorav2.vercel.app/toko/' + p.tokoSlug + ')' : ''}`
+).join('\n')
 
     const systemPrompt = `Kamu adalah asisten Showcase Exora — platform toko online.
 Bantu buyer cari produk atau toko yang cocok berdasarkan data berikut.
