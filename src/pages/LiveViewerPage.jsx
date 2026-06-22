@@ -25,7 +25,7 @@ const LIVEKIT_OPTIONS_VIEWER = {
 function ViewerVideo() {
   const tracks = useTracks([Track.Source.Camera], { onlySubscribed: true })
   return (
-    <div style={{ width: '100%', height: '100%', background: '#000', position: 'relative' }}>
+    <div style={{ position: 'absolute', inset: 0, background: '#000' }}>
       {tracks.length === 0 && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>Menunggu video...</p>
@@ -57,16 +57,15 @@ export default function LiveViewerPage() {
   const [senderName, setSenderName] = useState('')
   const [nameSet, setNameSet] = useState(false)
   const [reactions, setReactions] = useState([])
+  const [inputFocused, setInputFocused] = useState(false)
   const commentsEndRef = useRef(null)
+  const commentsBoxRef = useRef(null)
 
-  useEffect(() => {
-    loadAndJoin()
-  }, [slug])
+  useEffect(() => { loadAndJoin() }, [slug])
 
   useEffect(() => {
     if (!session?.room_name) return
 
-    // Load komentar awal
     supabase
       .from('live_comments')
       .select('*')
@@ -75,7 +74,6 @@ export default function LiveViewerPage() {
       .limit(100)
       .then(({ data }) => setComments(data || []))
 
-    // Subscribe realtime
     const channel = supabase
       .channel(`live_comments_${session.room_name}`)
       .on('postgres_changes', {
@@ -86,9 +84,10 @@ export default function LiveViewerPage() {
       }, payload => {
         setComments(prev => [...prev, payload.new])
         if (payload.new.type === 'reaction') {
-          const id = Date.now()
-          setReactions(r => [...r, { id, emoji: payload.new.message }])
-          setTimeout(() => setReactions(r => r.filter(x => x.id !== id)), 2500)
+          const id = Date.now() + Math.random()
+          const xPos = 60 + Math.random() * 30 // 60-90% dari kiri
+          setReactions(r => [...r, { id, emoji: payload.new.message, xPos }])
+          setTimeout(() => setReactions(r => r.filter(x => x.id !== id)), 2800)
         }
       })
       .subscribe()
@@ -97,7 +96,10 @@ export default function LiveViewerPage() {
   }, [session?.room_name])
 
   useEffect(() => {
-    commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Auto scroll ke bawah
+    const box = commentsBoxRef.current
+    if (!box) return
+    box.scrollTop = box.scrollHeight
   }, [comments])
 
   async function loadAndJoin() {
@@ -131,13 +133,14 @@ export default function LiveViewerPage() {
   async function sendComment() {
     if (!message.trim() || !session) return
     const name = senderName.trim() || 'Pembeli'
+    const text = message.trim()
+    setMessage('')
     await supabase.from('live_comments').insert({
       room_name: session.room_name,
       sender_name: name,
-      message: message.trim(),
+      message: text,
       type: 'chat',
     })
-    setMessage('')
   }
 
   async function sendReaction(emoji) {
@@ -152,217 +155,237 @@ export default function LiveViewerPage() {
   }
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16 }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, background: '#000' }}>
       <div className="spinner" />
-      <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Bergabung ke live...</p>
+      <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.875rem' }}>Bergabung ke live...</p>
     </div>
   )
 
   if (error) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24, textAlign: 'center' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24, textAlign: 'center', background: '#000' }}>
       <span style={{ fontSize: '3rem' }}>📴</span>
-      <p style={{ fontWeight: 700, fontSize: '1.1rem' }}>{error}</p>
+      <p style={{ fontWeight: 700, fontSize: '1.1rem', color: '#fff' }}>{error}</p>
       <button className="btn btn-primary" onClick={() => navigate(`/${slug}`)}>Kembali ke Toko</button>
     </div>
   )
 
-  // Modal nama
   if (!nameSet) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 16, padding: 24, background: '#000' }}>
       <p style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>Siapa namamu?</p>
       <input
-        className="input"
         placeholder="Nama kamu (opsional)"
         value={senderName}
         onChange={e => setSenderName(e.target.value)}
         onKeyDown={e => e.key === 'Enter' && setNameSet(true)}
-        style={{ width: '100%', maxWidth: 300 }}
         autoFocus
+        style={{
+          width: '100%', maxWidth: 300,
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: 12, padding: '12px 16px',
+          color: '#fff', fontSize: '0.9rem', outline: 'none',
+        }}
       />
       <button className="btn btn-primary" onClick={() => setNameSet(true)} style={{ width: '100%', maxWidth: 300 }}>
         Masuk Live
       </button>
+      <style>{`.input-name::placeholder { color: rgba(255,255,255,0.4) !important; }`}</style>
     </div>
   )
 
+  const chatComments = comments.filter(c => c.type === 'chat')
+
   return (
-    <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#000', overflow: 'hidden' }}>
+    <div style={{ height: '100vh', width: '100vw', position: 'relative', background: '#000', overflow: 'hidden' }}>
+
+      {/* Video layer — full screen */}
+      {livekitToken && livekitUrl && (
+        <LiveKitRoom
+          token={livekitToken}
+          serverUrl={livekitUrl}
+          connect={true}
+          video={false}
+          audio={false}
+          options={LIVEKIT_OPTIONS_VIEWER}
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          <ViewerVideo />
+          <RoomAudioRenderer />
+        </LiveKitRoom>
+      )}
+
+      {/* Gradient overlay bawah — biar komentar keliatan */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: '65%',
+        background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 50%, transparent 100%)',
+        pointerEvents: 'none',
+        zIndex: 5,
+      }} />
 
       {/* Header */}
       <div style={{
-        padding: '10px 16px',
-        background: 'rgba(0,0,0,0.85)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.1)',
+        position: 'absolute', top: 0, left: 0, right: 0,
+        padding: '12px 16px',
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%)',
         display: 'flex', alignItems: 'center', gap: 10,
-        zIndex: 10, flexShrink: 0,
+        zIndex: 20,
       }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '3px 8px', borderRadius: 20, fontWeight: 700, fontSize: '0.72rem' }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+        <span style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          background: 'rgba(239,68,68,0.9)', color: '#fff',
+          padding: '3px 10px', borderRadius: 20,
+          fontWeight: 700, fontSize: '0.72rem',
+        }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block', animation: 'livePulse 1.2s infinite' }} />
           LIVE
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session?.toko?.nama}</p>
-          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{session?.title}</p>
+          <p style={{ fontWeight: 700, fontSize: '0.88rem', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {session?.toko?.nama}
+          </p>
+          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.7)', margin: 0 }}>{session?.title}</p>
         </div>
-        <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>👁 {session?.viewer_count || 0}</span>
-        <button onClick={handleLeave} style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0 }}>
+        <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.8)', flexShrink: 0 }}>
+          👁 {session?.viewer_count || 0}
+        </span>
+        <button onClick={handleLeave} style={{
+          background: 'rgba(0,0,0,0.4)', color: '#fff',
+          border: '1px solid rgba(255,255,255,0.2)',
+          borderRadius: 20, padding: '5px 12px',
+          cursor: 'pointer', fontSize: '0.78rem', fontWeight: 600,
+        }}>
           Keluar
         </button>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
-
-        {/* Video */}
-        <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
-          {livekitToken && livekitUrl && (
-            <LiveKitRoom
-              token={livekitToken}
-              serverUrl={livekitUrl}
-              connect={true}
-              video={false}
-              audio={false}
-              options={LIVEKIT_OPTIONS_VIEWER}
-              style={{ width: '100%', height: '100%' }}
-            >
-              <ViewerVideo />
-              <RoomAudioRenderer />
-            </LiveKitRoom>
-          )}
-
-          {/* Floating reactions */}
-          <div style={{ position: 'absolute', bottom: 80, right: 16, pointerEvents: 'none', zIndex: 20 }}>
-            {reactions.map(r => (
-              <div key={r.id} style={{ fontSize: '2rem', animation: 'floatUp 2.5s ease-out forwards', marginBottom: 4 }}>
-                {r.emoji}
-              </div>
-            ))}
+      {/* Floating reactions */}
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 15, overflow: 'hidden' }}>
+        {reactions.map(r => (
+          <div key={r.id} style={{
+            position: 'absolute',
+            bottom: 120,
+            left: `${r.xPos}%`,
+            fontSize: '2rem',
+            animation: 'floatUp 2.8s ease-out forwards',
+          }}>
+            {r.emoji}
           </div>
-        </div>
-
-        {/* Panel komentar — desktop */}
-        <div style={{
-          width: 280,
-          display: 'flex',
-          flexDirection: 'column',
-          background: 'rgba(0,0,0,0.7)',
-          borderLeft: '1px solid rgba(255,255,255,0.08)',
-          flexShrink: 0,
-        }}
-          className="comment-panel-desktop"
-        >
-          <CommentPanel
-            comments={comments}
-            message={message}
-            setMessage={setMessage}
-            sendComment={sendComment}
-            sendReaction={sendReaction}
-            commentsEndRef={commentsEndRef}
-          />
-        </div>
+        ))}
       </div>
 
-      {/* Komentar mobile — overlay bawah */}
-      <div className="comment-panel-mobile" style={{
-        position: 'absolute',
-        bottom: 0, left: 0, right: 0,
-        zIndex: 30,
-        background: 'linear-gradient(to top, rgba(0,0,0,0.9) 80%, transparent)',
-        padding: '8px 12px 12px',
+      {/* Komentar + input — overlay bawah */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        zIndex: 20,
+        padding: '0 12px 16px',
       }}>
-        {/* Komentar scroll */}
-        <div style={{ maxHeight: 140, overflowY: 'auto', marginBottom: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {comments.filter(c => c.type === 'chat').slice(-20).map(c => (
-            <div key={c.id} style={{ fontSize: '0.78rem', color: '#fff' }}>
-              <span style={{ color: '#facc15', fontWeight: 700 }}>{c.sender_name}: </span>
-              {c.message}
+        {/* List komentar */}
+        <div
+          ref={commentsBoxRef}
+          style={{
+            maxHeight: inputFocused ? 120 : 200,
+            overflowY: 'auto',
+            marginBottom: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6,
+            transition: 'max-height 0.2s ease',
+          }}
+        >
+          {chatComments.slice(-30).map(c => (
+            <div key={c.id} style={{
+              display: 'inline-flex', alignSelf: 'flex-start',
+              background: 'rgba(0,0,0,0.45)',
+              backdropFilter: 'blur(8px)',
+              borderRadius: 20,
+              padding: '5px 12px',
+              maxWidth: '85%',
+              animation: 'fadeInComment 0.2s ease',
+            }}>
+              <span style={{ color: '#facc15', fontWeight: 700, fontSize: '0.78rem', marginRight: 5, flexShrink: 0 }}>
+                {c.sender_name}
+              </span>
+              <span style={{ color: '#fff', fontSize: '0.78rem', lineHeight: 1.4 }}>{c.message}</span>
             </div>
           ))}
-          <div ref={commentsEndRef} />
         </div>
 
         {/* Emoji row */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
           {EMOJIS.map(e => (
-            <button key={e} onClick={() => sendReaction(e)} style={{ fontSize: '1.3rem', background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '4px 8px', cursor: 'pointer' }}>
+            <button
+              key={e}
+              onClick={() => sendReaction(e)}
+              style={{
+                fontSize: '1.25rem',
+                background: 'rgba(0,0,0,0.4)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 12, padding: '5px 8px',
+                cursor: 'pointer', transition: 'transform 0.1s',
+              }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.88)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
               {e}
             </button>
           ))}
         </div>
 
         {/* Input komentar */}
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <input
             value={message}
             onChange={e => setMessage(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && sendComment()}
+            onFocus={() => setInputFocused(true)}
+            onBlur={() => setInputFocused(false)}
             placeholder="Tulis komentar..."
-            style={{ flex: 1, background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 20, padding: '8px 14px', color: '#fff', fontSize: '0.82rem', outline: 'none' }}
+            style={{
+              flex: 1,
+              background: 'rgba(255,255,255,0.15)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.25)',
+              borderRadius: 24,
+              padding: '10px 16px',
+              color: '#fff',
+              fontSize: '0.85rem',
+              outline: 'none',
+            }}
           />
-          <button onClick={sendComment} style={{ background: '#ef4444', border: 'none', borderRadius: 20, padding: '8px 14px', color: '#fff', fontWeight: 700, fontSize: '0.82rem', cursor: 'pointer' }}>
+          <button
+            onClick={sendComment}
+            disabled={!message.trim()}
+            style={{
+              background: message.trim() ? '#ef4444' : 'rgba(255,255,255,0.15)',
+              border: 'none', borderRadius: 24,
+              padding: '10px 16px', color: '#fff',
+              fontWeight: 700, fontSize: '0.85rem',
+              cursor: message.trim() ? 'pointer' : 'default',
+              transition: 'background 0.2s',
+              flexShrink: 0,
+            }}
+          >
             Kirim
           </button>
         </div>
       </div>
 
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
         @keyframes floatUp {
-          0% { opacity:1; transform:translateY(0) scale(1); }
-          100% { opacity:0; transform:translateY(-100px) scale(1.5); }
+          0%   { opacity:1; transform: translateY(0) scale(1); }
+          80%  { opacity:0.8; }
+          100% { opacity:0; transform: translateY(-180px) scale(1.6); }
         }
-        .comment-panel-desktop { display: flex; }
-        .comment-panel-mobile { display: none; }
-        @media (max-width: 640px) {
-          .comment-panel-desktop { display: none !important; }
-          .comment-panel-mobile { display: block !important; }
+        @keyframes fadeInComment {
+          from { opacity:0; transform: translateY(6px); }
+          to   { opacity:1; transform: translateY(0); }
         }
+        input::placeholder { color: rgba(255,255,255,0.45) !important; }
+        ::-webkit-scrollbar { width: 0; }
       `}</style>
     </div>
-  )
-}
-
-function CommentPanel({ comments, message, setMessage, sendComment, sendReaction, commentsEndRef }) {
-  return (
-    <>
-      <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: '0.78rem', fontWeight: 600 }}>
-        💬 Komentar
-      </div>
-
-      {/* List komentar */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {comments.filter(c => c.type === 'chat').map(c => (
-          <div key={c.id}>
-            <span style={{ color: '#facc15', fontWeight: 700, fontSize: '0.78rem' }}>{c.sender_name}: </span>
-            <span style={{ color: '#fff', fontSize: '0.78rem' }}>{c.message}</span>
-          </div>
-        ))}
-        <div ref={commentsEndRef} />
-      </div>
-
-      {/* Emoji */}
-      <div style={{ padding: '8px 12px', display: 'flex', gap: 6, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-        {EMOJIS.map(e => (
-          <button key={e} onClick={() => sendReaction(e)} style={{ fontSize: '1.1rem', background: 'rgba(255,255,255,0.08)', border: 'none', borderRadius: 8, padding: '4px 6px', cursor: 'pointer' }}>
-            {e}
-          </button>
-        ))}
-      </div>
-
-      {/* Input */}
-      <div style={{ padding: '8px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', display: 'flex', gap: 6 }}>
-        <input
-          value={message}
-          onChange={e => setMessage(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && sendComment()}
-          placeholder="Tulis komentar..."
-          style={{ flex: 1, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 16, padding: '7px 12px', color: '#fff', fontSize: '0.8rem', outline: 'none' }}
-        />
-        <button onClick={sendComment} style={{ background: '#ef4444', border: 'none', borderRadius: 16, padding: '7px 12px', color: '#fff', fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer' }}>
-          →
-        </button>
-      </div>
-    </>
   )
 }
