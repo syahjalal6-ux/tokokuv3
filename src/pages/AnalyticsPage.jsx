@@ -744,7 +744,12 @@ function AIInsightCard({ data }) {
   const [insight, setInsight] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { if (data) generateInsight() }, [data])
+  useEffect(() => {
+  if (data) {
+    const t = setTimeout(() => generateInsight(), 800)
+    return () => clearTimeout(t)
+  }
+}, [data])
 
   const generateInsight = async () => {
     setLoading(true)
