@@ -870,7 +870,20 @@ export default function StorefrontPage() {
       setInitialResi(resiParam)
       setTrackingOpen(true)
     }
-
+}, [slug])
+  
+    useEffect(() => {
+  // poll live session tiap 15 detik
+  const interval = setInterval(async () => {
+    try {
+      const liveRes = await liveApi.getActiveSessions(null)
+      const sesi = (liveRes.data || []).find(s => s.toko_id === toko?.id)
+      setLiveSession(sesi || null)
+    } catch {}
+  }, 15000)
+  return () => clearInterval(interval)
+}, [toko])
+    
     const existing = document.querySelector('link[rel="manifest"]')
     if (existing) existing.remove()
     const link = document.createElement('link')
@@ -1331,7 +1344,7 @@ function CheckoutModal({ produk: p, toko, tema, onClose }) {
       setSubmitting(false)
     }
   }
-
+  
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
       <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto', animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
