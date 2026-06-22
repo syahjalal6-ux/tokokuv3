@@ -4,7 +4,7 @@ import { Heart, MessageCircle, Repeat2, Store, Loader, ArrowRight, Bot, Sun, Moo
 import { useStreamStore } from '../lib/store.js'
 import { getStorefrontUrl, getInitials } from '../lib/utils.js'
 import { useTheme } from '../lib/useTheme.js'
-import { produkApi } from '../lib/api/supabase.js'
+import { produkApi } from '../lib/api/adminClients.js'
 import ShowcaseChatModal from '../components/seller/ShowcaseChatModal.jsx'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
