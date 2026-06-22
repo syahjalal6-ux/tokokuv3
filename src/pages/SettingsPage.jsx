@@ -192,6 +192,7 @@ function LogoUpload({ value, onChange, disabled }) {
 // ASISTEN SETTINGS
 // ================================================
 function AsistenSettings({ tokenObj, toko }) {
+  const { token } = useAuthStore()
   const [form, setForm] = useState({ faq: '', garansi: '', policy: '', infoLain: '' })
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
