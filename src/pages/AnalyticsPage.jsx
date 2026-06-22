@@ -136,19 +136,18 @@ const STATUS_PESANAN = [
 // ============ PAGE ENTRY ============
 export default function AnalyticsPage() {
   const { user, token, isLoading, updateUser } = useAuthStore()
-  const tokenObj = token
   const [checking, setChecking] = useState(true)
 
   useEffect(() => {
-    authApi.getMe(tokenObj).then(res => {
+    authApi.getMe(token).then(res => {
       if (res?.data) updateUser(res.data)
     }).catch(() => {}).finally(() => setChecking(false))
-  }, [tokenObj])
+  }, [token])
 
   if (isLoading || checking) return null
   const pro = isPro(user)
   if (!pro) return <AnalyticsGate />
-  return <AnalyticsDashboard tokenObj={tokenObj} />
+  return <AnalyticsDashboard tokenObj={token} />
 }
 
 // ============ GATE ============
@@ -201,7 +200,7 @@ function AnalyticsDashboard({ tokenObj }) {
   const [period, setPeriod] = useState('minggu')
   const [exporting, setExporting] = useState(false)
 
-  useEffect(() => { load() }, [tokenobj])
+  useEffect(() => { load() }, [tokenObj])
 
   const load = async () => {
     setLoading(true)
