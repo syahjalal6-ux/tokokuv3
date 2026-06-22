@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
 import { liveApi } from '../lib/api/adminClient.js'
 import { createClient } from '@supabase/supabase-js'
@@ -21,15 +21,9 @@ const EMOJIS = ['🔥', '❤️', '👏', '😍', '💰', '🎉']
 
 const LIVEKIT_OPTIONS_HOST = {
   publishDefaults: {
-    videoEncoding: {
-      maxBitrate: 500_000,
-      maxFramerate: 15,
-    },
+    videoEncoding: { maxBitrate: 500_000, maxFramerate: 15 },
     videoSimulcastLayers: [],
-    screenShareEncoding: {
-      maxBitrate: 300_000,
-      maxFramerate: 10,
-    }
+    screenShareEncoding: { maxBitrate: 300_000, maxFramerate: 10 },
   },
   adaptiveStream: true,
   dynacast: true,
@@ -43,7 +37,7 @@ const LIVEKIT_OPTIONS_VIEWER = {
 function ViewerVideo() {
   const tracks = useTracks([Track.Source.Camera], { onlySubscribed: true })
   return (
-    <div style={{ width: '100%', height: '100%', background: '#000', position: 'relative' }}>
+    <div style={{ flex: 1, width: '100%', height: '100%', background: '#000', position: 'relative' }}>
       {tracks.length === 0 && (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>Menunggu video...</p>
@@ -53,11 +47,121 @@ function ViewerVideo() {
         <video
           key={track.participant.identity}
           ref={el => { if (el) track.publication.track?.attach(el) }}
-          autoPlay
-          playsInline
+          autoPlay playsInline
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ))}
+    </div>
+  )
+}
+
+// Panel komentar untuk host
+function HostCommentPanel({ comments, roomName, senderName }) {
+  const [message, setMessage] = useState('')
+  const bottomRef = useRef(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [comments])
+
+  async function sendComment() {
+    if (!message.trim() || !roomName) return
+    const text = message.trim()
+    setMessage('')
+    await supabase.from('live_comments').insert({
+      room_name: roomName,
+      sender_name: senderName || 'Host',
+      message: text,
+      type: 'chat',
+    })
+  }
+
+  const chatComments = comments.filter(c => c.type === 'chat')
+
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      height: '100%',
+      background: 'rgba(0,0,0,0.6)',
+      backdropFilter: 'blur(12px)',
+      borderRadius: 16,
+      border: '1px solid rgba(255,255,255,0.1)',
+      overflow: 'hidden',
+    }}>
+      {/* Header */}
+      <div style={{
+        padding: '10px 14px',
+        borderBottom: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex', alignItems: 'center', gap: 6,
+      }}>
+        <span style={{ fontSize: '0.8rem' }}>💬</span>
+        <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.78rem', fontWeight: 600 }}>
+          Komentar Live
+        </span>
+        <span style={{
+          marginLeft: 'auto',
+          background: 'rgba(239,68,68,0.2)', color: '#ef4444',
+          borderRadius: 10, padding: '1px 7px',
+          fontSize: '0.68rem', fontWeight: 700,
+        }}>
+          {chatComments.length}
+        </span>
+      </div>
+
+      {/* List komentar */}
+      <div style={{
+        flex: 1, overflowY: 'auto',
+        padding: '10px 12px',
+        display: 'flex', flexDirection: 'column', gap: 8,
+      }}>
+        {chatComments.length === 0 && (
+          <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.78rem', textAlign: 'center', marginTop: 20 }}>
+            Belum ada komentar
+          </p>
+        )}
+        {chatComments.map(c => (
+          <div key={c.id} style={{ animation: 'fadeInComment 0.2s ease' }}>
+            <span style={{ color: '#facc15', fontWeight: 700, fontSize: '0.78rem' }}>{c.sender_name} </span>
+            <span style={{ color: '#fff', fontSize: '0.78rem' }}>{c.message}</span>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input balas */}
+      <div style={{
+        padding: '8px 10px',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        display: 'flex', gap: 6,
+      }}>
+        <input
+          value={message}
+          onChange={e => setMessage(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && sendComment()}
+          placeholder="Balas komentar..."
+          style={{
+            flex: 1,
+            background: 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 20, padding: '7px 12px',
+            color: '#fff', fontSize: '0.78rem', outline: 'none',
+          }}
+        />
+        <button
+          onClick={sendComment}
+          disabled={!message.trim()}
+          style={{
+            background: message.trim() ? '#ef4444' : 'rgba(255,255,255,0.1)',
+            border: 'none', borderRadius: 20,
+            padding: '7px 12px', color: '#fff',
+            fontWeight: 700, fontSize: '0.78rem',
+            cursor: message.trim() ? 'pointer' : 'default',
+            transition: 'background 0.2s', flexShrink: 0,
+          }}
+        >
+          →
+        </button>
+      </div>
     </div>
   )
 }
@@ -77,7 +181,6 @@ export default function LivePage() {
   const [watchingRoom, setWatchingRoom] = useState(null)
   const [watchToken, setWatchToken] = useState(null)
   const [comments, setComments] = useState([])
-  const [facingMode, setFacingMode] = useState('user')
 
   const isPro = user?.plan === 'pro' && user?.planExpiry && new Date(user.planExpiry) > new Date()
 
@@ -87,7 +190,7 @@ export default function LivePage() {
     return () => clearInterval(interval)
   }, [])
 
-  // Subscribe komentar realtime saat seller live
+  // Subscribe komentar saat live
   useEffect(() => {
     if (!mySession?.room_name) return
 
@@ -100,7 +203,7 @@ export default function LivePage() {
       .then(({ data }) => setComments(data || []))
 
     const channel = supabase
-      .channel(`live_comments_host_${mySession.room_name}`)
+      .channel(`host_comments_${mySession.room_name}`)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -109,9 +212,9 @@ export default function LivePage() {
       }, payload => {
         setComments(prev => [...prev, payload.new])
         if (payload.new.type === 'reaction') {
-          const id = Date.now()
+          const id = Date.now() + Math.random()
           setReactions(r => [...r, { id, emoji: payload.new.message }])
-          setTimeout(() => setReactions(r => r.filter(x => x.id !== id)), 2500)
+          setTimeout(() => setReactions(r => r.filter(x => x.id !== id)), 2000)
         }
       })
       .subscribe()
@@ -169,6 +272,13 @@ export default function LivePage() {
     }
   }
 
+  async function sendReaction(emoji) {
+    if (!mySession) return
+    try {
+      await liveApi.sendReaction(token, { roomName: mySession.room_name, emoji })
+    } catch {}
+  }
+
   async function handleWatch(session) {
     try {
       const res = await liveApi.joinLive(token, { roomName: session.room_name })
@@ -182,19 +292,12 @@ export default function LivePage() {
 
   async function handleLeaveWatch() {
     if (!watchingRoom) return
-    try {
-      await liveApi.leaveRoom(token, { roomName: watchingRoom.room_name })
-    } catch {}
+    try { await liveApi.leaveRoom(token, { roomName: watchingRoom.room_name }) } catch {}
     setWatchingRoom(null)
     setWatchToken(null)
   }
 
-  function toggleCamera() {
-    setFacingMode(f => f === 'user' ? 'environment' : 'user')
-    toast.success(facingMode === 'user' ? 'Kamera belakang' : 'Kamera depan')
-  }
-
-  // Mode nonton seller lain
+  // Mode nonton
   if (watchingRoom && watchToken) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#000' }}>
@@ -204,40 +307,32 @@ export default function LivePage() {
           backdropFilter: 'blur(12px)',
           borderBottom: '1px solid rgba(255,255,255,0.1)',
           display: 'flex', alignItems: 'center', gap: 10,
-          zIndex: 10, flexShrink: 0,
+          position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
         }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '3px 8px', borderRadius: 20, fontWeight: 700, fontSize: '0.72rem' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.9)', color: '#fff', padding: '3px 10px', borderRadius: 20, fontWeight: 700, fontSize: '0.72rem' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff', display: 'inline-block', animation: 'livePulse 1.2s infinite' }} />
             LIVE
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchingRoom.toko?.nama}</p>
             <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{watchingRoom.title}</p>
           </div>
-          <button onClick={handleLeaveWatch} style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0 }}>
+          <button onClick={handleLeaveWatch} style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700 }}>
             Keluar
           </button>
         </div>
-        <LiveKitRoom
-          token={watchToken}
-          serverUrl={livekitUrl}
-          connect={true}
-          video={false}
-          audio={false}
-          options={LIVEKIT_OPTIONS_VIEWER}
-          style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-        >
+        <LiveKitRoom token={watchToken} serverUrl={livekitUrl} connect={true} options={LIVEKIT_OPTIONS_VIEWER} style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 48 }}>
           <ViewerVideo />
           <RoomAudioRenderer />
         </LiveKitRoom>
-        <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }`}</style>
+        <style>{`@keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '16px', maxWidth: 900, margin: '0 auto', fontFamily: 'var(--font-body)' }}>
-      <h1 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 4, color: 'var(--text-primary)' }}>🎥 Live Stream</h1>
+    <div style={{ padding: '16px', maxWidth: 800, margin: '0 auto', fontFamily: 'var(--font-body)' }}>
+      <h1 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: 4 }}>🎥 Live Stream</h1>
       <p style={{ color: 'var(--text-secondary)', marginBottom: 20, fontSize: '0.85rem' }}>Jual produk secara langsung ke pembeli</p>
 
       {!isPro && (
@@ -250,12 +345,12 @@ export default function LivePage() {
       {isPro && (
         <>
           <div className="glass-card" style={{ padding: 16, marginBottom: 20 }}>
-            <h2 style={{ fontWeight: 700, marginBottom: 12, fontSize: '1rem', color: 'var(--text-primary)' }}>Studio Live Kamu</h2>
+            <h2 style={{ fontWeight: 700, marginBottom: 12, fontSize: '1rem' }}>Studio Live Kamu</h2>
 
             {!isLive ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <input
-                  className="input"
+                  className="form-input"
                   placeholder="Judul live stream..."
                   value={title}
                   onChange={e => setTitle(e.target.value)}
@@ -265,38 +360,32 @@ export default function LivePage() {
                 </button>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div>
+                {/* Status bar */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '5px 10px', borderRadius: 20, fontWeight: 700, fontSize: '0.78rem' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'livePulse 1s infinite' }} />
+                    LIVE
+                  </span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>👁 {viewerCount}</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mySession?.title}</span>
+                  <button className="btn" onClick={handleEndLive} disabled={loading} style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: '0.8rem' }}>
+                    {loading ? '...' : 'Akhiri'}
+                  </button>
+                </div>
 
-                {/* Video host */}
-                <div style={{ flex: 1, minWidth: 280 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '5px 10px', borderRadius: 20, fontWeight: 700, fontSize: '0.78rem' }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
-                      LIVE
-                    </span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>👁 {viewerCount}</span>
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{mySession?.title}</span>
-                    <button onClick={toggleCamera} style={{ background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', color: 'var(--text-primary)' }}>
-                      🔄 Kamera
-                    </button>
-                    <button className="btn" onClick={handleEndLive} disabled={loading} style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', fontSize: '0.8rem' }}>
-                      {loading ? '...' : 'Akhiri'}
-                    </button>
-                  </div>
-
+                {/* Video + komentar side by side */}
+                <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+                  {/* Video host */}
                   {livekitToken && livekitUrl && (
-                    <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 10, height: 260, background: '#000' }}>
+                    <div style={{ flex: 1, borderRadius: 12, overflow: 'hidden', height: 280 }}>
                       <LiveKitRoom
-                        key={facingMode}
                         token={livekitToken}
                         serverUrl={livekitUrl}
                         connect={true}
                         video={true}
                         audio={true}
-                        options={{
-                          ...LIVEKIT_OPTIONS_HOST,
-                          videoCaptureDefaults: { facingMode },
-                        }}
+                        options={LIVEKIT_OPTIONS_HOST}
                         style={{ height: '100%' }}
                       >
                         <VideoConference />
@@ -305,36 +394,17 @@ export default function LivePage() {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {EMOJIS.map(e => (
-                      <button key={e} style={{ fontSize: '1.3rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 10, padding: '6px 10px', cursor: 'default', opacity: 0.5 }}>
-                        {e}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Panel komentar host */}
-                <div style={{ width: 260, minWidth: 220, display: 'flex', flexDirection: 'column', background: 'var(--bg-secondary)', borderRadius: 12, border: '1px solid var(--glass-border)', overflow: 'hidden', maxHeight: 360 }}>
-                  <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--glass-border)', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    💬 Komentar Viewer
-                  </div>
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    {comments.filter(c => c.type === 'chat').length === 0 && (
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', textAlign: 'center', marginTop: 20 }}>Belum ada komentar</p>
-                    )}
-                    {comments.filter(c => c.type === 'chat').map(c => (
-                      <div key={c.id}>
-                        <span style={{ color: 'var(--accent)', fontWeight: 700, fontSize: '0.78rem' }}>{c.sender_name}: </span>
-                        <span style={{ color: 'var(--text-primary)', fontSize: '0.78rem' }}>{c.message}</span>
-                      </div>
-                    ))}
-                  </div>
-                  {/* Reaksi floating */}
-                  <div style={{ position: 'relative', height: 0 }}>
-                    <div style={{ position: 'fixed', bottom: 100, right: 24, pointerEvents: 'none', zIndex: 50 }}>
+                  {/* Panel komentar */}
+                  <div style={{ width: 220, height: 280, flexShrink: 0, position: 'relative' }}>
+                    <HostCommentPanel
+                      comments={comments}
+                      roomName={mySession?.room_name}
+                      senderName={toko?.nama || 'Host'}
+                    />
+                    {/* Floating reactions */}
+                    <div style={{ position: 'absolute', bottom: 60, right: 8, pointerEvents: 'none' }}>
                       {reactions.map(r => (
-                        <div key={r.id} style={{ fontSize: '1.8rem', animation: 'floatUp 2.5s ease-out forwards', marginBottom: 6 }}>
+                        <div key={r.id} style={{ fontSize: '1.6rem', animation: 'floatUp 2s ease-out forwards', marginBottom: 4 }}>
                           {r.emoji}
                         </div>
                       ))}
@@ -342,14 +412,28 @@ export default function LivePage() {
                   </div>
                 </div>
 
+                {/* Emoji reactions */}
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {EMOJIS.map(e => (
+                    <button key={e} onClick={() => sendReaction(e)} style={{
+                      fontSize: '1.3rem',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--glass-border)',
+                      borderRadius: 10, padding: '6px 10px', cursor: 'pointer',
+                    }}>
+                      {e}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </>
       )}
 
+      {/* Daftar live aktif */}
       <div>
-        <h2 style={{ fontWeight: 700, marginBottom: 12, fontSize: '1rem', color: 'var(--text-primary)' }}>Live Sekarang</h2>
+        <h2 style={{ fontWeight: 700, marginBottom: 12, fontSize: '1rem' }}>Live Sekarang</h2>
         {sessions.length === 0 ? (
           <div className="glass-card" style={{ padding: 24, textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
             Belum ada yang live saat ini
@@ -360,7 +444,7 @@ export default function LivePage() {
               <div key={s.id} className="glass-card" style={{ padding: 12, display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img src={s.toko?.logo || '/icon-192.png'} alt="" style={{ width: 44, height: 44, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.toko?.nama}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.toko?.nama}</div>
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
@@ -379,11 +463,17 @@ export default function LivePage() {
       </div>
 
       <style>{`
-        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+        @keyframes livePulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes floatUp {
-          0% { opacity:1; transform:translateY(0) scale(1); }
-          100% { opacity:0; transform:translateY(-80px) scale(1.5); }
+          0%   { opacity:1; transform: translateY(0) scale(1); }
+          100% { opacity:0; transform: translateY(-80px) scale(1.5); }
         }
+        @keyframes fadeInComment {
+          from { opacity:0; transform: translateY(4px); }
+          to   { opacity:1; transform: translateY(0); }
+        }
+        input::placeholder { color: rgba(255,255,255,0.4) !important; }
+        .form-input::placeholder { color: var(--text-tertiary) !important; }
       `}</style>
     </div>
   )
