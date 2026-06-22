@@ -12,6 +12,7 @@
 // ================================================
 
 import { createClient } from '@supabase/supabase-js'
+import { AccessToken } from 'livekit-server-sdk'
 // Taruh di paling atas, setelah import
 if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY)) {
   console.error('ENV MISSING: SUPABASE_URL atau SERVICE_ROLE_KEY belum diset!')
@@ -1102,6 +1103,111 @@ const streamApi = {
   },
 }
 
+const liveApi = {
+  goLive: async (token, { title }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    // Matiin session lama kalau ada
+    await supabaseAdmin.from('live_sessions').update({ is_active: false }).eq('toko_id', toko.id).eq('is_active', true)
+
+    const roomName = `live-${toko.id}-${Date.now()}`
+
+    const { data: session, error } = await supabaseAdmin
+      .from('live_sessions')
+      .insert({ toko_id: toko.id, room_name: roomName, title, is_active: true, viewer_count: 0, created_at: new Date().toISOString() })
+      .select()
+      .single()
+    if (error) handleError(error)
+
+    // Generate LiveKit token untuk host
+    const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
+      identity: `host-${toko.id}`,
+      name: toko.nama,
+    })
+    at.addGrant({ roomJoin: true, room: roomName, canPublish: true, canSubscribe: true })
+
+    return { success: true, data: { session, livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
+  },
+
+  joinLive: async (token, { roomName }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { data: session } = await supabaseAdmin.from('live_sessions').select('*').eq('room_name', roomName).eq('is_active', true).single()
+    if (!session) throw new ApiError('Session tidak ditemukan', 404)
+
+    // Increment viewer count
+    await supabaseAdmin.from('live_sessions').update({ viewer_count: (session.viewer_count || 0) + 1 }).eq('id', session.id)
+
+    const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
+      identity: `viewer-${toko.id}`,
+      name: toko.nama,
+    })
+    at.addGrant({ roomJoin: true, room: roomName, canPublish: false, canSubscribe: true })
+
+    return { success: true, data: { livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
+  },
+
+  endLive: async (token, { roomName }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { error } = await supabaseAdmin
+      .from('live_sessions')
+      .update({ is_active: false })
+      .eq('room_name', roomName)
+      .eq('toko_id', toko.id)
+    if (error) handleError(error)
+
+    return { success: true }
+  },
+
+  getActiveSessions: async (token) => {
+    await verifyToken(token)
+
+    const { data, error } = await supabaseAdmin
+      .from('live_sessions')
+      .select('*, toko:toko_id(id, nama, slug, logo)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    if (error) handleError(error)
+
+    return { success: true, data: data || [] }
+  },
+
+  sendReaction: async (token, { roomName, emoji }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { error } = await supabaseAdmin
+      .from('live_reactions')
+      .insert({ room_name: roomName, toko_id: toko.id, emoji, created_at: new Date().toISOString() })
+    if (error) handleError(error)
+
+    return { success: true }
+  },
+
+  leaveRoom: async (token, { roomName }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { data: session } = await supabaseAdmin.from('live_sessions').select('viewer_count').eq('room_name', roomName).single()
+    if (session && session.viewer_count > 0) {
+      await supabaseAdmin.from('live_sessions').update({ viewer_count: session.viewer_count - 1 }).eq('room_name', roomName)
+    }
+
+    return { success: true }
+  },
+}
+
 // ================================================
 // REGISTRY — daftar semua action yang valid
 // Format action string: "namaApi.namaMethod"
@@ -1109,7 +1215,7 @@ const streamApi = {
 
 const REGISTRY = {
   authApi, tokoApi, produkApi, pesananApi, analyticsApi,
-  tokoInfoApi, ratingApi, adminApi, streamApi,
+  tokoInfoApi, ratingApi, adminApi, streamApi, liveApi,
 }
 
 // ================================================
