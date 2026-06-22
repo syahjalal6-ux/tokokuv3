@@ -21,8 +21,8 @@ function parseFotos(foto) {
 }
 
 export default function DashboardPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const { user, token } = useAuthStore()
+  const tokenObj = token
   const { toko, load: loadToko, setToko } = useTokoStore()
   const { produk, load: loadProduk } = useProdukStore()
   const [linkCopied, setLinkCopied] = useState(false)
@@ -38,15 +38,15 @@ export default function DashboardPage() {
     : null
 
   useEffect(() => {
-    if (tokenSupabase || tokenGas) {
+    if (token) {
       setTokoLoading(true)
       loadToko(tokenObj).finally(() => setTokoLoading(false))
       loadProduk(tokenObj)
     }
-  }, [tokenSupabase, tokenGas])
+  }, [token])
 
   useEffect(() => {
-    if (tokenSupabase || tokenGas) {
+    if (token) {
       pesananApi.getMine(tokenObj, 'all')
         .then(res => {
           const data = res.data || []
@@ -60,7 +60,7 @@ export default function DashboardPage() {
         })
         .catch(() => {})
     }
-  }, [tokenSupabase, tokenGas])
+  }, [token])
 
   const handleCopyLink = async () => {
     await copyToClipboard(getStorefrontUrl(toko.slug))

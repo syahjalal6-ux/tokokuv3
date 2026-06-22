@@ -18,8 +18,8 @@ const DURATIONS = [
 ]
 
 export default function AdminPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const { user, token } = useAuthStore()
+  const tokenObj = token
 
   const [users, setUsers] = useState([])
   const [stats, setStats] = useState(null)

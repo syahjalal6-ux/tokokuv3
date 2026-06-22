@@ -102,8 +102,8 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
   const [form, setForm] = useState(INITIAL)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const { tokenSupabase, tokenGas, user } = useAuthStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const { token, user } = useAuthStore()
+  const tokenObj = token
   const { add, update } = useProdukStore()
   const isEdit = !!editData
 

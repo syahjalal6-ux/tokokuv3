@@ -117,8 +117,8 @@ function exportToExcel(pesanan) {
 }
 
 export default function PesananPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const { user, token } = useAuthStore()
+  const tokenObj = token
   const [pesanan, setPesanan] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('all')
@@ -126,9 +126,9 @@ export default function PesananPage() {
   const pro = isPro(user)
 
   useEffect(() => {
-    if (tokenSupabase || tokenGas) loadPesanan()
+    if (token) loadPesanan()
     else setIsLoading(false)
-  }, [tokenSupabase, tokenGas, pro])
+  }, [token, pro])
 
   const loadPesanan = async () => {
     setIsLoading(true)

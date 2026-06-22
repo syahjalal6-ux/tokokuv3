@@ -28,19 +28,19 @@ async function uploadLogoToCloudinary(file) {
 }
 
 export default function SettingsPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const { user, token } = useAuthStore()
+  const tokenObj = token
   const { toko, setToko } = useTokoStore()
   const [tab, setTab] = useState('toko')
   const pro = isPro(user)
 
   useEffect(() => {
-    if ((tokenSupabase || tokenGas) && !toko) {
+    if ((token) && !toko) {
       tokoApi.getMine(tokenObj).then(res => {
         if (res.data) setToko(res.data)
       }).catch(() => {})
     }
-  }, [tokenSupabase, tokenGas])
+  }, [token])
 
   const TABS = [
     { key: 'toko', label: 'Info Toko', icon: Store },
@@ -197,7 +197,7 @@ function AsistenSettings({ tokenObj, toko }) {
   const [fetching, setFetching] = useState(true)
 
   useEffect(() => {
-    if (!(tokenObj.tokenSupabase || tokenObj.tokenGas) || !toko) return
+    if (!(token || token) || !toko) return
     tokoInfoApi.get(tokenObj).then(res => {
       if (res.data) setForm({
         faq: res.data.faq || '',
@@ -206,7 +206,7 @@ function AsistenSettings({ tokenObj, toko }) {
         infoLain: res.data.infoLain || '',
       })
     }).catch(() => {}).finally(() => setFetching(false))
-  }, [tokenObj.tokenSupabase, tokenObj.tokenGas, toko])
+  }, [token, token, toko])
 
   const set = (field, val) => setForm(f => ({ ...f, [field]: val }))
 

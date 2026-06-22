@@ -101,13 +101,13 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
 // ROOT
 // ================================================
 export default function StreamPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
+  const { user, token } = useAuthStore()
   // toko + load: load dipanggil di useEffect mount supaya isMine (icon hapus)
   // gak bergantung ke page lain. Sebelum ini toko store gak pernah di-load
   // di App.jsx / DashboardLayout / Sidebar, jadi pas refresh langsung di
   // /dashboard/stream, toko = null -> myTokoId undefined -> isMine selalu false.
   const { toko, load: loadToko } = useTokoStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const tokenObj = token
   const pro = isPro(user)
 
   const {

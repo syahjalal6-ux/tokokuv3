@@ -32,8 +32,8 @@ const gridStyle = {
 }
 
 export default function ProdukPage() {
-  const { user, tokenSupabase, tokenGas } = useAuthStore()
-  const tokenObj = { tokenSupabase, tokenGas }
+  const { user, token } = useAuthStore()
+  const tokenObj = token
   const { toko, load: loadToko, isLoading: tokoLoading } = useTokoStore()
   const { produk, load, update, remove, isLoading } = useProdukStore()
   const [formOpen, setFormOpen] = useState(false)
@@ -47,11 +47,11 @@ export default function ProdukPage() {
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
 
   useEffect(() => {
-    if (tokenSupabase || tokenGas) {
+    if (token) {
       load(tokenObj)
       loadToko(tokenObj)
     }
-  }, [tokenSupabase, tokenGas])
+  }, [token])
 
   const filtered = produk.filter(p => {
     const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase())
