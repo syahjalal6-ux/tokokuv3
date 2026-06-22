@@ -1133,26 +1133,6 @@ const liveApi = {
     return { success: true, data: { session, livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
   },
 
-  joinLive: async (token, { roomName }) => {
-    const userId = await verifyToken(token)
-    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
-    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
-
-    const { data: session } = await supabaseAdmin.from('live_sessions').select('*').eq('room_name', roomName).eq('is_active', true).single()
-    if (!session) throw new ApiError('Session tidak ditemukan', 404)
-
-    // Increment viewer count
-    await supabaseAdmin.from('live_sessions').update({ viewer_count: (session.viewer_count || 0) + 1 }).eq('id', session.id)
-
-    const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
-      identity: `viewer-${toko.id}`,
-      name: toko.nama,
-    })
-    at.addGrant({ roomJoin: true, room: roomName, canPublish: false, canSubscribe: true })
-
-    return { success: true, data: { livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
-  },
-
   endLive: async (token, { roomName }) => {
     const userId = await verifyToken(token)
     const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
@@ -1270,9 +1250,7 @@ export default async function handler(req, res) {
     }
 
     const fn = apiObj[methodName]
-    const result = token !== undefined && token !== null
-      ? await fn(token, ...args)
-      : await fn(...args)
+    const result = await fn(token, ...args)
 
     return res.status(200).json(result)
   } catch (err) {
