@@ -1,4 +1,3 @@
-cat > src/lib/store.js << 'ENDOFFILE'
 import { create } from 'zustand'
 import { authApi, tokoApi, produkApi, streamApi } from '../lib/api/adminClient.js'
 
