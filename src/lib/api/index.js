@@ -20,4 +20,4 @@ export {
 } from './adminClient.js'
 
 // liveApi (LiveKit) masih sementara di supabase.js — akan dipindah di tahap berikutnya
-export { liveApi } from './supabase.js'
+export { liveApi } from './adminClient.js'
