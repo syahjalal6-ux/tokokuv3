@@ -381,7 +381,7 @@ const produkApi = {
 
   getByToko: async (tokoId, params = {}) => {
     let actualTokoId = tokoId
-    const { data: toko } = await supabasePublic.from('toko').select('id').or(`id.eq.${tokoId},slug.eq.${tokoId}`).single()
+    const { data: toko } = await supabasePublic.from('toko').select('id').or(`id.eq.${tokoId},slug.eq.${tokoId}`).maybeSingle()
     if (toko) actualTokoId = toko.id
 
     let query = supabasePublic.from('produk').select('*').eq('toko_id', actualTokoId).eq('aktif', true).order('created_at', { ascending: false })
