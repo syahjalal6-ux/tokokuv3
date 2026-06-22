@@ -906,7 +906,7 @@ export default function StorefrontPage() {
       restore.href = '/manifest.json'
       document.head.appendChild(restore)
     }
-  }, [slug])
+  
 
   const loadStorefront = async () => {
     setLoading(true)
