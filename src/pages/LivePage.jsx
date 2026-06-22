@@ -7,9 +7,8 @@ import {
   LiveKitRoom,
   VideoConference,
   RoomAudioRenderer,
-  useRemoteParticipants,
+  useTracks,
 } from '@livekit/components-react'
-import { VideoTrack } from '@livekit/components-react'
 import { Track } from 'livekit-client'
 
 const EMOJIS = ['🔥', '❤️', '👏', '😍', '💰', '🎉']
@@ -36,17 +35,20 @@ const LIVEKIT_OPTIONS_VIEWER = {
 }
 
 function ViewerVideo() {
-  const participants = useRemoteParticipants()
+  const tracks = useTracks([Track.Source.Camera], { onlySubscribed: true })
   return (
-    <div style={{ flex: 1, width: '100%', height: '100%', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      {participants.length === 0 && (
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>Menunggu video...</p>
+    <div style={{ flex: 1, width: '100%', height: '100%', background: '#000', position: 'relative' }}>
+      {tracks.length === 0 && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>Menunggu video...</p>
+        </div>
       )}
-      {participants.map(p => (
-        <VideoTrack
-          key={p.identity}
-          participant={p}
-          source={Track.Source.Camera}
+      {tracks.map(track => (
+        <video
+          key={track.participant.identity}
+          ref={el => { if (el) track.publication.track?.attach(el) }}
+          autoPlay
+          playsInline
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ))}
@@ -174,7 +176,7 @@ export default function LivePage() {
           </span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <p style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchingRoom.toko?.nama}</p>
-            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{watchingRoom.title}</p>
+            <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{watchingRoom.title}</p>
           </div>
           <button
             onClick={handleLeaveWatch}
@@ -188,7 +190,7 @@ export default function LivePage() {
           serverUrl={livekitUrl}
           connect={true}
           options={LIVEKIT_OPTIONS_VIEWER}
-          style={{ flex: 1, paddingTop: 48 }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 48 }}
         >
           <ViewerVideo />
           <RoomAudioRenderer />
