@@ -18,6 +18,7 @@ import AnalyticsPage from './pages/AnalyticsPage.jsx'
 import RedirectResi from './pages/RedirectResi.jsx'
 import StreamPage from './components/seller/StreamPage.jsx' 
 import ShowcasePage from './pages/ShowcasePage.jsx'
+import LivePage from './pages/LivePage.jsx'
 
 const ExoraIcon = () => (
   <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -115,6 +116,7 @@ export default function App() {
         <Route path="/dashboard/stream" element={<PrivateRoute><StreamPage /></PrivateRoute>} />
         <Route path="/dashboard/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
         <Route path="/dashboard/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
+        <Route path="/dashboard/live" element={<PrivateRoute><LivePage /></PrivateRoute>} />
         <Route path="/dashboard/upgrade" element={<PrivateRoute><UpgradePage /></PrivateRoute>} />
 
         {/* Admin */}
