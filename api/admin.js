@@ -1250,7 +1250,9 @@ export default async function handler(req, res) {
     }
 
     const fn = apiObj[methodName]
-    const result = await fn(token, ...args)
+    const result = token !== undefined && token !== null
+      ? await fn(token, ...args)
+      : await fn(...args)
 
     return res.status(200).json(result)
   } catch (err) {
