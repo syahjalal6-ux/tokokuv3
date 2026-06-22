@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard, Package, ShoppingBag, Settings,
   Zap, ExternalLink, LogOut, Menu, X,
-  Store, BarChart2, Sun, Moon, Rss, Lock
+  Store, BarChart2, Sun, Moon, Rss, Lock, Video
 } from 'lucide-react'
 import { useAuthStore, useTokoStore } from '../../lib/store.js'
 import { pesananApi } from '../../lib/api/index.js'
@@ -77,6 +77,7 @@ export default function Sidebar() {
     { to: '/dashboard/produk', label: 'Produk', icon: Package },
     { to: '/dashboard/pesanan', label: 'Pesanan', icon: ShoppingBag, badge: pendingCount },
     { to: '/dashboard/stream', label: 'Stream', icon: Rss, locked: !pro },
+    { to: '/dashboard/live', label: 'Live', icon: Video, locked: !pro },
     { to: '/dashboard/analytics', label: 'Analitik', icon: BarChart2 },
     { to: '/dashboard/settings', label: 'Pengaturan', icon: Settings },
   ]
