@@ -1567,3 +1567,201 @@ Jawab ramah, singkat, dalam Bahasa Indonesia. Jika buyer mau beli atau tanya tok
     return { success: true, reply }
   }
 }
+
+// ================================================
+// LIVE STREAM API
+// ================================================
+
+export const liveApi = {
+
+  // Seller: mulai live → generate token publisher
+  goLive: async (token, { title }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('*').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    // Nonaktifkan sesi lama kalau ada
+    await supabaseAdmin
+      .from('live_sessions')
+      .update({ is_active: false })
+      .eq('toko_id', toko.id)
+      .eq('is_active', true)
+
+    const roomName = `live-${toko.id}-${Date.now()}`
+
+    // Buat sesi baru
+    const { error: sessionError } = await supabaseAdmin
+      .from('live_sessions')
+      .insert({
+        toko_id: toko.id,
+        room_name: roomName,
+        title: title || `Live - ${toko.nama}`,
+        is_active: true,
+        viewer_count: 0,
+        created_at: new Date().toISOString(),
+      })
+    if (sessionError) handleError(sessionError)
+
+    // Generate LiveKit JWT token (publisher)
+    const livekitToken = await generateLivekitToken({
+      apiKey: CONFIG.LIVEKIT_API_KEY,
+      apiSecret: CONFIG.LIVEKIT_API_SECRET,
+      identity: toko.id,
+      name: toko.nama,
+      roomName,
+      canPublish: true,
+      canSubscribe: true,
+    })
+
+    return {
+      success: true,
+      data: {
+        token: livekitToken,
+        roomName,
+        livekitUrl: CONFIG.LIVEKIT_URL,
+      }
+    }
+  },
+
+  // Viewer: join live → generate token subscriber
+  joinLive: async (token, { roomName }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id, nama').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+
+    // Increment viewer count
+    await supabaseAdmin.rpc('increment_viewer_count', { p_room_name: roomName })
+
+    const livekitToken = await generateLivekitToken({
+      apiKey: CONFIG.LIVEKIT_API_KEY,
+      apiSecret: CONFIG.LIVEKIT_API_SECRET,
+      identity: `viewer-${toko.id}`,
+      name: toko.nama,
+      roomName,
+      canPublish: false,
+      canSubscribe: true,
+    })
+
+    return {
+      success: true,
+      data: {
+        token: livekitToken,
+        livekitUrl: CONFIG.LIVEKIT_URL,
+      }
+    }
+  },
+
+  // Seller: akhiri live
+  endLive: async (token, { roomName }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { error } = await supabaseAdmin
+      .from('live_sessions')
+      .update({ is_active: false })
+      .eq('toko_id', toko.id)
+      .eq('room_name', roomName)
+    if (error) handleError(error)
+
+    return { success: true }
+  },
+
+  // Get semua sesi live aktif (untuk feed/listing)
+  getActiveSessions: async (token) => {
+    await verifyToken(token)
+
+    const { data, error } = await supabaseAdmin
+      .from('live_sessions')
+      .select('*, toko:toko_id(id, nama, slug, logo, plan)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    if (error) handleError(error)
+
+    return {
+      success: true,
+      data: (data || []).map(s => ({
+        id: s.id,
+        roomName: s.room_name,
+        title: s.title,
+        viewerCount: s.viewer_count,
+        createdAt: s.created_at,
+        toko: s.toko ? {
+          id: s.toko.id,
+          nama: s.toko.nama,
+          slug: s.toko.slug,
+          logo: s.toko.logo,
+          pro: s.toko.plan === 'pro',
+        } : null,
+      }))
+    }
+  },
+
+  // Kirim reaction emoji
+  sendReaction: async (token, { roomName, emoji }) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { error } = await supabaseAdmin
+      .from('live_reactions')
+      .insert({ room_name: roomName, toko_id: toko.id, emoji, created_at: new Date().toISOString() })
+    if (error) handleError(error)
+
+    return { success: true }
+  },
+
+  // Decrement viewer count saat viewer leave
+  leaveRoom: async (token, { roomName }) => {
+    await verifyToken(token)
+    await supabaseAdmin.rpc('decrement_viewer_count', { p_room_name: roomName })
+    return { success: true }
+  },
+}
+
+// ================================================
+// LIVEKIT JWT GENERATOR (tanpa SDK eksternal)
+// Pakai Web Crypto API — jalan di Node.js 18+ & Deno
+// ================================================
+
+async function generateLivekitToken({ apiKey, apiSecret, identity, name, roomName, canPublish, canSubscribe }) {
+  const now = Math.floor(Date.now() / 1000)
+  const exp = now + 4 * 60 * 60 // 4 jam
+
+  const header = { alg: 'HS256', typ: 'JWT' }
+  const payload = {
+    iss: apiKey,
+    sub: identity,
+    iat: now,
+    exp,
+    name,
+    video: {
+      roomJoin: true,
+      room: roomName,
+      canPublish,
+      canSubscribe,
+      canPublishData: true,
+    },
+  }
+
+  const encode = (obj) => btoa(JSON.stringify(obj)).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+  const headerB64 = encode(header)
+  const payloadB64 = encode(payload)
+  const signingInput = `${headerB64}.${payloadB64}`
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(apiSecret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+
+  const signature = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signingInput))
+  const sigB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_')
+
+  return `${signingInput}.${sigB64}`
+}
