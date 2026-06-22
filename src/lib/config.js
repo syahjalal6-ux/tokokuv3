@@ -37,7 +37,6 @@ export const CONFIG = {
   GROQ_MODELS: [
     'llama-3.3-70b-versatile',
     'llama-3.1-70b-versatile',
-    'llama3-70b-8192',
   
   ],
 }
