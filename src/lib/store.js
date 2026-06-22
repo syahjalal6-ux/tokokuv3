@@ -207,4 +207,4 @@ export const useStreamStore = create((set, get) => ({
 
   clear: () => set({ feed: [], feedLoading: false, feedError: null, activeTag: null, searchQuery: '', postDetail: null, postDetailLoading: false, postDetailError: null, dmThreads: [], dmThreadsLoading: false, activeThreadId: null, dmMessages: [], dmMessagesLoading: false, notifs: [], notifsLoading: false, unreadNotifCount: 0 }),
 }))
-ENDOFFILE
+
