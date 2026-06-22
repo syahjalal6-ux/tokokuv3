@@ -283,13 +283,14 @@ const tokoApi = {
   },
 
   getBySlug: async (slug) => {
-    const { data, error } = await supabasePublic.from('toko').select('*').eq('slug', slug).single()
+    const { data, error } = await supabasePublic.from('toko').select('*').eq('slug', slug).maybeSingle()
     if (error) handleError(error)
+    if (!data) throw new ApiError('Toko tidak ditemukan', 404)
     return { success: true, data: mapToko(data) }
   },
 
   checkSlug: async (slug) => {
-    const { data } = await supabasePublic.from('toko').select('id').eq('slug', slug).single()
+    const { data } = await supabasePublic.from('toko').select('id').eq('slug', slug).maybeSingle()
     return { success: true, data: { available: !data } }
   },
 
@@ -379,6 +380,7 @@ const produkApi = {
     return { success: true, data: (data || []).map(mapProduk) }
   },
 
+  // FIX: ganti .single() → .maybeSingle() biar tidak crash kalau toko tidak ketemu
   getByToko: async (tokoId, params = {}) => {
     let actualTokoId = tokoId
     const { data: toko } = await supabasePublic.from('toko').select('id').or(`id.eq.${tokoId},slug.eq.${tokoId}`).maybeSingle()
@@ -1135,9 +1137,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: `Action tidak dikenal: ${action}` })
     }
 
-    // Method yang butuh token (kebanyakan), token diselipkan sebagai argumen pertama.
-    // Method publik (getBySlug, checkSlug, getByToko, getById, create pesanan, rating, getPublicShowcase)
-    // tidak butuh token — frontend mengirim token: null untuk method ini.
     const fn = apiObj[methodName]
     const result = token !== undefined && token !== null
       ? await fn(token, ...args)
