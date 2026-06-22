@@ -141,3 +141,15 @@ export const streamApi = {
   deletePost: (tokenObj, postId) => writeWith('streamApi', 'deletePost', tokenObj, postId),
   getPublicShowcase: (params) => readWithNoToken('streamApi', 'getPublicShowcase', params),
 }
+
+// ================================================
+// LIVE
+// ================================================
+export const liveApi = {
+  goLive:            (tokenObj, data) => writeWith('liveApi', 'goLive', tokenObj, data),
+  joinLive:          (tokenObj, data) => writeWith('liveApi', 'joinLive', tokenObj, data),
+  endLive:           (tokenObj, data) => writeWith('liveApi', 'endLive', tokenObj, data),
+  getActiveSessions: (tokenObj) => readWith('liveApi', 'getActiveSessions', tokenObj),
+  sendReaction:      (tokenObj, data) => writeWith('liveApi', 'sendReaction', tokenObj, data),
+  leaveRoom:         (tokenObj, data) => writeWith('liveApi', 'leaveRoom', tokenObj, data),
+}
