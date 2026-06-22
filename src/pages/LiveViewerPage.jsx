@@ -5,13 +5,31 @@ import toast from 'react-hot-toast'
 import '@livekit/components-styles'
 import {
   LiveKitRoom,
-  VideoConference,
   RoomAudioRenderer,
+  useRemoteParticipants,
 } from '@livekit/components-react'
+import { VideoTrack } from '@livekit/components-react'
+import { Track } from 'livekit-client'
 
 const LIVEKIT_OPTIONS_VIEWER = {
   adaptiveStream: true,
   dynacast: true,
+}
+
+function ViewerVideo() {
+  const participants = useRemoteParticipants()
+  return (
+    <div style={{ flex: 1, width: '100%', height: '100%', background: '#000' }}>
+      {participants.map(p => (
+        <VideoTrack
+          key={p.identity}
+          participant={p}
+          source={Track.Source.Camera}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      ))}
+    </div>
+  )
 }
 
 export default function LiveViewerPage() {
@@ -104,9 +122,9 @@ export default function LiveViewerPage() {
           serverUrl={livekitUrl}
           connect={true}
           options={LIVEKIT_OPTIONS_VIEWER}
-          style={{ flex: 1 }}
+          style={{ flex: 1, paddingTop: 56 }}
         >
-          <VideoConference />
+          <ViewerVideo />
           <RoomAudioRenderer />
         </LiveKitRoom>
       )}
