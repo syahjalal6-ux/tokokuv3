@@ -1169,17 +1169,43 @@ const liveApi = {
   },
 
   getActiveSessions: async (token) => {
-    await verifyToken(token)
+  const { data, error } = await supabaseAdmin
+    .from('live_sessions')
+    .select('*, toko:toko_id(id, nama, slug, logo)')
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+  if (error) handleError(error)
+  return { success: true, data: data || [] }
+},
 
-    const { data, error } = await supabaseAdmin
-      .from('live_sessions')
-      .select('*, toko:toko_id(id, nama, slug, logo)')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false })
-    if (error) handleError(error)
+joinLive: async (token, { roomName }) => {
+  let identity = `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  let displayName = 'Pembeli'
 
-    return { success: true, data: data || [] }
-  },
+  if (token) {
+    try {
+      const userId = await verifyToken(token)
+      const { data: toko } = await supabaseAdmin.from('toko').select('id, nama').eq('user_id', userId).single()
+      if (toko) {
+        identity = `viewer-${toko.id}`
+        displayName = toko.nama
+      }
+    } catch {}
+  }
+
+  const { data: session } = await supabaseAdmin.from('live_sessions').select('*').eq('room_name', roomName).eq('is_active', true).single()
+  if (!session) throw new ApiError('Session tidak ditemukan', 404)
+
+  await supabaseAdmin.from('live_sessions').update({ viewer_count: (session.viewer_count || 0) + 1 }).eq('id', session.id)
+
+  const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
+    identity,
+    name: displayName,
+  })
+  at.addGrant({ roomJoin: true, room: roomName, canPublish: false, canSubscribe: true })
+
+  return { success: true, data: { livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
+},
 
   sendReaction: async (token, { roomName, emoji }) => {
     const userId = await verifyToken(token)
