@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi } from '../lib/api/index.js'
+import { liveApi } from '../lib/api/adminClient.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
@@ -860,6 +861,7 @@ export default function StorefrontPage() {
   const [chatOpen, setChatOpen] = useState(false)
   const [trackingOpen, setTrackingOpen] = useState(false)
   const [ongkirOpen, setOngkirOpen] = useState(false)
+  const [liveSession, setLiveSession] = useState(null)
   const [initialResi, setInitialResi] = useState('')
 
   useEffect(() => {
@@ -903,6 +905,11 @@ export default function StorefrontPage() {
       const tokoData = tokoRes.data ? { ...tokoRes.data, wa: safeWA(tokoRes.data.wa) } : null
       setToko(tokoData)
       setProduk((produkRes.data || []).filter(p => p.aktif === true || p.aktif === 'TRUE'))
+      try {
+  const liveRes = await liveApi.getActiveSessions(null)
+  const sesi = (liveRes.data || []).find(s => s.toko_id === tokoData?.id)
+  setLiveSession(sesi || null)
+} catch {}
     } catch (err) {
       setError(err.message)
     } finally {
@@ -1003,6 +1010,28 @@ export default function StorefrontPage() {
             </div>
           )}
 
+          {liveSession && (
+    
+  <a  href={`/${toko.slug}/live`}
+    style={{
+      marginTop: 10, padding: '10px 14px',
+      background: 'rgba(239,68,68,0.1)',
+      border: '1px solid rgba(239,68,68,0.3)',
+      borderRadius: 'var(--radius-md)',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      textDecoration: 'none',
+      cursor: 'pointer',
+    }}
+  >
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#ef4444' }}>LIVE SEKARANG</span>
+      <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>{liveSession.title}</span>
+    </div>
+    <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>Tonton →</span>
+  </a>
+)}
+          
           {/* Lacak Pesanan bar */}
           <div
             onClick={() => setTrackingOpen(true)}
