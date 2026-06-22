@@ -1158,7 +1158,11 @@ const liveApi = {
   return { success: true, data: data || [] }
 },
 
-joinLive: async (token, { roomName }) => {
+joinLive: async (dataOrToken, maybeData) => {
+  const isTokenString = typeof dataOrToken === 'string'
+  const token = isTokenString ? dataOrToken : null
+  const { roomName } = isTokenString ? (maybeData || {}) : (dataOrToken || {})
+
   let identity = `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
   let displayName = 'Pembeli'
 
@@ -1178,15 +1182,12 @@ joinLive: async (token, { roomName }) => {
 
   await supabaseAdmin.from('live_sessions').update({ viewer_count: (session.viewer_count || 0) + 1 }).eq('id', session.id)
 
-  const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
-    identity,
-    name: displayName,
-  })
+  const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, { identity, name: displayName })
   at.addGrant({ roomJoin: true, room: roomName, canPublish: false, canSubscribe: true })
 
   return { success: true, data: { livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
 },
-
+  
   sendReaction: async (token, { roomName, emoji }) => {
     const userId = await verifyToken(token)
     const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
