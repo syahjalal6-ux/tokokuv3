@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { liveApi } from '../lib/api/adminClient.js'
-import toast from 'react-hot-toast'
 import '@livekit/components-styles'
 import {
   LiveKitRoom,
   RoomAudioRenderer,
-  useRemoteParticipants,
+  useTracks,
 } from '@livekit/components-react'
-import { VideoTrack } from '@livekit/components-react'
 import { Track } from 'livekit-client'
 
 const LIVEKIT_OPTIONS_VIEWER = {
@@ -17,14 +15,20 @@ const LIVEKIT_OPTIONS_VIEWER = {
 }
 
 function ViewerVideo() {
-  const participants = useRemoteParticipants()
+  const tracks = useTracks([Track.Source.Camera], { onlySubscribed: true })
   return (
-    <div style={{ flex: 1, width: '100%', height: '100%', background: '#000' }}>
-      {participants.map(p => (
-        <VideoTrack
-          key={p.identity}
-          participant={p}
-          source={Track.Source.Camera}
+    <div style={{ flex: 1, width: '100%', height: '100%', background: '#000', position: 'relative' }}>
+      {tracks.length === 0 && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem' }}>Menunggu video...</p>
+        </div>
+      )}
+      {tracks.map(track => (
+        <video
+          key={track.participant.identity}
+          ref={el => { if (el) track.publication.track?.attach(el) }}
+          autoPlay
+          playsInline
           style={{ width: '100%', height: '100%', objectFit: 'cover' }}
         />
       ))}
@@ -92,25 +96,25 @@ export default function LiveViewerPage() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#000' }}>
       <div style={{
-        padding: '12px 16px',
-        background: 'rgba(0,0,0,0.8)',
-        backdropFilter: 'blur(16px)',
+        padding: '10px 16px',
+        background: 'rgba(0,0,0,0.85)',
+        backdropFilter: 'blur(12px)',
         borderBottom: '1px solid rgba(255,255,255,0.1)',
-        display: 'flex', alignItems: 'center', gap: 12,
+        display: 'flex', alignItems: 'center', gap: 10,
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
       }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '4px 10px', borderRadius: 20, fontWeight: 700, fontSize: '0.78rem' }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '3px 8px', borderRadius: 20, fontWeight: 700, fontSize: '0.72rem' }}>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
           LIVE
         </span>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontWeight: 700, fontSize: '0.9rem', color: '#fff' }}>{session?.toko?.nama}</p>
-          <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)' }}>{session?.title}</p>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontWeight: 700, fontSize: '0.85rem', color: '#fff', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{session?.toko?.nama}</p>
+          <p style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.6)', margin: 0 }}>{session?.title}</p>
         </div>
-        <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>👁 {session?.viewer_count || 0}</span>
+        <span style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.5)', flexShrink: 0 }}>👁 {session?.viewer_count || 0}</span>
         <button
           onClick={handleLeave}
-          style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}
+          style={{ background: 'rgba(239,68,68,0.2)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', fontSize: '0.78rem', fontWeight: 700, flexShrink: 0 }}
         >
           Keluar
         </button>
@@ -122,7 +126,7 @@ export default function LiveViewerPage() {
           serverUrl={livekitUrl}
           connect={true}
           options={LIVEKIT_OPTIONS_VIEWER}
-          style={{ flex: 1, paddingTop: 56 }}
+          style={{ flex: 1, display: 'flex', flexDirection: 'column', paddingTop: 48 }}
         >
           <ViewerVideo />
           <RoomAudioRenderer />
