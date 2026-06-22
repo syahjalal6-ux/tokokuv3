@@ -63,7 +63,7 @@ Bantu calon pembeli dengan pertanyaan tentang toko, produk, pengiriman, atau hal
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CONFIG.GROQ_API_KEY,
+        'Authorization': 'Bearer ' + CONFIG.GROQ_PRODUK_KEY,
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
