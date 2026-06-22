@@ -1,9 +1,36 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
 import { liveApi } from '../lib/api/adminClient.js'
 import toast from 'react-hot-toast'
+import '@livekit/components-styles'
+import {
+  LiveKitRoom,
+  VideoConference,
+  RoomAudioRenderer,
+} from '@livekit/components-react'
 
 const EMOJIS = ['🔥', '❤️', '👏', '😍', '💰', '🎉']
+
+const LIVEKIT_OPTIONS_HOST = {
+  publishDefaults: {
+    videoEncoding: {
+      maxBitrate: 500_000,
+      maxFramerate: 15,
+    },
+    videoSimulcastLayers: [],
+    screenShareEncoding: {
+      maxBitrate: 300_000,
+      maxFramerate: 10,
+    }
+  },
+  adaptiveStream: true,
+  dynacast: true,
+}
+
+const LIVEKIT_OPTIONS_VIEWER = {
+  adaptiveStream: true,
+  dynacast: true,
+}
 
 export default function LivePage() {
   const { token, user } = useAuthStore()
@@ -15,7 +42,12 @@ export default function LivePage() {
   const [loading, setLoading] = useState(false)
   const [reactions, setReactions] = useState([])
   const [viewerCount, setViewerCount] = useState(0)
-  const reactionTimer = useRef(null)
+  const [livekitToken, setLivekitToken] = useState(null)
+  const [livekitUrl, setLivekitUrl] = useState(null)
+  const [watchingRoom, setWatchingRoom] = useState(null)
+  const [watchToken, setWatchToken] = useState(null)
+
+  const isPro = user?.plan === 'pro' && user?.planExpiry && new Date(user.planExpiry) > new Date()
 
   useEffect(() => {
     loadSessions()
@@ -27,11 +59,11 @@ export default function LivePage() {
     try {
       const res = await liveApi.getActiveSessions(token)
       setSessions(res.data || [])
-      const mine = (res.data || []).find(s => s.toko?.id === toko?.id)
+      const mine = (res.data || []).find(s => s.toko_id === toko?.id)
       if (mine) {
         setMySession(mine)
         setIsLive(true)
-        setViewerCount(mine.viewerCount || 0)
+        setViewerCount(mine.viewer_count || 0)
       }
     } catch {}
   }
@@ -40,8 +72,11 @@ export default function LivePage() {
     if (!title.trim()) return toast.error('Isi judul live dulu')
     setLoading(true)
     try {
-      await liveApi.goLive(token, { title })
+      const res = await liveApi.goLive(token, { title })
       setIsLive(true)
+      setLivekitToken(res.data.livekitToken)
+      setLivekitUrl(res.data.livekitUrl)
+      setMySession(res.data.session)
       toast.success('Live dimulai!')
       loadSessions()
     } catch (err) {
@@ -55,9 +90,11 @@ export default function LivePage() {
     if (!mySession) return
     setLoading(true)
     try {
-      await liveApi.endLive(token, { roomName: mySession.roomName })
+      await liveApi.endLive(token, { roomName: mySession.room_name })
       setIsLive(false)
       setMySession(null)
+      setLivekitToken(null)
+      setLivekitUrl(null)
       setSessions(s => s.filter(x => x.id !== mySession.id))
       toast.success('Live selesai')
     } catch (err) {
@@ -70,14 +107,57 @@ export default function LivePage() {
   async function sendReaction(emoji) {
     if (!mySession) return
     try {
-      await liveApi.sendReaction(token, { roomName: mySession.roomName, emoji })
+      await liveApi.sendReaction(token, { roomName: mySession.room_name, emoji })
       const id = Date.now()
       setReactions(r => [...r, { id, emoji }])
       setTimeout(() => setReactions(r => r.filter(x => x.id !== id)), 2000)
     } catch {}
   }
 
-  const isPro = user?.plan === 'pro' && user?.planExpiry && new Date(user.planExpiry) > new Date()
+  async function handleWatch(session) {
+    try {
+      const res = await liveApi.joinLive(token, { roomName: session.room_name })
+      setWatchingRoom(session)
+      setWatchToken(res.data.livekitToken)
+      setLivekitUrl(res.data.livekitUrl)
+    } catch (err) {
+      toast.error(err.message)
+    }
+  }
+
+  async function handleLeaveWatch() {
+    if (!watchingRoom) return
+    try {
+      await liveApi.leaveRoom(token, { roomName: watchingRoom.room_name })
+    } catch {}
+    setWatchingRoom(null)
+    setWatchToken(null)
+  }
+
+  // Mode nonton
+  if (watchingRoom && watchToken) {
+    return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '12px 20px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontWeight: 700 }}>{watchingRoom.toko?.nama}</span>
+          <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{watchingRoom.title}</span>
+          <button className="btn" onClick={handleLeaveWatch} style={{ marginLeft: 'auto', background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}>
+            Keluar
+          </button>
+        </div>
+        <LiveKitRoom
+          token={watchToken}
+          serverUrl={livekitUrl}
+          connect={true}
+          options={LIVEKIT_OPTIONS_VIEWER}
+          style={{ flex: 1 }}
+        >
+          <VideoConference />
+          <RoomAudioRenderer />
+        </LiveKitRoom>
+      </div>
+    )
+  }
 
   return (
     <div style={{ padding: '24px', maxWidth: 800, margin: '0 auto', fontFamily: 'var(--font-body)' }}>
@@ -93,7 +173,6 @@ export default function LivePage() {
 
       {isPro && (
         <>
-          {/* Panel seller */}
           <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
             <h2 style={{ fontWeight: 700, marginBottom: 16 }}>Studio Live Kamu</h2>
 
@@ -106,11 +185,7 @@ export default function LivePage() {
                   onChange={e => setTitle(e.target.value)}
                   style={{ flex: 1 }}
                 />
-                <button
-                  className="btn btn-primary"
-                  onClick={handleGoLive}
-                  disabled={loading}
-                >
+                <button className="btn btn-primary" onClick={handleGoLive} disabled={loading}>
                   {loading ? '...' : '🔴 Mulai Live'}
                 </button>
               </div>
@@ -128,7 +203,23 @@ export default function LivePage() {
                   </button>
                 </div>
 
-                {/* Reaction buttons */}
+                {livekitToken && livekitUrl && (
+                  <div style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 16, height: 400 }}>
+                    <LiveKitRoom
+                      token={livekitToken}
+                      serverUrl={livekitUrl}
+                      connect={true}
+                      video={true}
+                      audio={true}
+                      options={LIVEKIT_OPTIONS_HOST}
+                      style={{ height: '100%' }}
+                    >
+                      <VideoConference />
+                      <RoomAudioRenderer />
+                    </LiveKitRoom>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', gap: 8 }}>
                   {EMOJIS.map(e => (
                     <button key={e} onClick={() => sendReaction(e)} style={{ fontSize: '1.5rem', background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)', borderRadius: 12, padding: '8px 12px', cursor: 'pointer' }}>
@@ -140,7 +231,6 @@ export default function LivePage() {
             )}
           </div>
 
-          {/* Floating reactions */}
           <div style={{ position: 'fixed', bottom: 100, right: 24, pointerEvents: 'none' }}>
             {reactions.map(r => (
               <div key={r.id} style={{ fontSize: '2rem', animation: 'floatUp 2s ease-out forwards', marginBottom: 8 }}>
@@ -151,7 +241,6 @@ export default function LivePage() {
         </>
       )}
 
-      {/* Daftar live aktif */}
       <div>
         <h2 style={{ fontWeight: 700, marginBottom: 16 }}>Live Sekarang</h2>
         {sessions.length === 0 ? (
@@ -168,8 +257,13 @@ export default function LivePage() {
                   <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{s.title}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>👁 {s.viewerCount}</span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>👁 {s.viewer_count}</span>
                   <span style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444', padding: '4px 10px', borderRadius: 20, fontSize: '0.75rem', fontWeight: 700 }}>LIVE</span>
+                  {isPro && s.toko_id !== toko?.id && (
+                    <button className="btn btn-primary btn-sm" onClick={() => handleWatch(s)}>
+                      Tonton
+                    </button>
+                  )}
                 </div>
               </div>
             ))}
