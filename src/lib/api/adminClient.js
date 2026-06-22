@@ -121,3 +121,15 @@ export const streamApi = {
   uploadImage: (token, data) => call('streamApi.uploadImage', token, data),
   getPublicShowcase: (params) => call('streamApi.getPublicShowcase', null, params),
 }
+
+// ================================================
+// LIVE
+// ================================================
+export const liveApi = {
+  goLive: (token, data) => call('liveApi.goLive', token, data),
+  joinLive: (token, data) => call('liveApi.joinLive', token, data),
+  endLive: (token, data) => call('liveApi.endLive', token, data),
+  getActiveSessions: (token) => call('liveApi.getActiveSessions', token),
+  sendReaction: (token, data) => call('liveApi.sendReaction', token, data),
+  leaveRoom: (token, data) => call('liveApi.leaveRoom', token, data),
+}
