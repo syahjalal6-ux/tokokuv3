@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
     authApi.getMe(tokenObj).then(res => {
       if (res?.data) updateUser(res.data)
     }).catch(() => {}).finally(() => setChecking(false))
-  }, [token])
+  }, [tokenobj])
 
   if (isLoading || checking) return null
   const pro = isPro(user)
@@ -201,7 +201,7 @@ function AnalyticsDashboard({ tokenObj }) {
   const [period, setPeriod] = useState('minggu')
   const [exporting, setExporting] = useState(false)
 
-  useEffect(() => { load() }, [token])
+  useEffect(() => { load() }, [tokenobj])
 
   const load = async () => {
     setLoading(true)
