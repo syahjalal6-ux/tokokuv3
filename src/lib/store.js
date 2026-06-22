@@ -1,12 +1,10 @@
+cat > src/lib/store.js << 'ENDOFFILE'
 import { create } from 'zustand'
 import { authApi, tokoApi, produkApi, streamApi } from '../lib/api/adminClient.js'
 
 const TOKEN_KEY = 'tokoku_token'
 const USER_KEY = 'tokoku_user'
 
-// =============================================
-// AUTH STORE
-// =============================================
 export const useAuthStore = create((set, get) => ({
   user: null,
   token: null,
@@ -51,53 +49,34 @@ export const useAuthStore = create((set, get) => ({
   },
 }))
 
-// =============================================
-// TOKO STORE
-// =============================================
 export const useTokoStore = create((set) => ({
-  toko: null,
-  isLoading: false,
-  error: null,
+  toko: null, isLoading: false, error: null,
   setToko: (toko) => set({ toko }),
   load: async (token) => {
     set({ isLoading: true, error: null })
     try {
       const res = await tokoApi.getMine(token)
       set({ toko: res.data, isLoading: false })
-    } catch (err) {
-      set({ error: err.message, isLoading: false })
-    }
+    } catch (err) { set({ error: err.message, isLoading: false }) }
   },
   clear: () => set({ toko: null }),
 }))
 
-// =============================================
-// PRODUK STORE
-// =============================================
 export const useProdukStore = create((set) => ({
-  produk: [],
-  isLoading: false,
-  error: null,
+  produk: [], isLoading: false, error: null,
   load: async (token) => {
     set({ isLoading: true, error: null })
     try {
       const res = await produkApi.getMine(token)
       set({ produk: res.data || [], isLoading: false })
-    } catch (err) {
-      set({ error: err.message, isLoading: false })
-    }
+    } catch (err) { set({ error: err.message, isLoading: false }) }
   },
   add: (item) => set(s => ({ produk: [item, ...s.produk] })),
-  update: (id, updates) => set(s => ({
-    produk: s.produk.map(p => p.id === id ? { ...p, ...updates } : p)
-  })),
+  update: (id, updates) => set(s => ({ produk: s.produk.map(p => p.id === id ? { ...p, ...updates } : p) })),
   remove: (id) => set(s => ({ produk: s.produk.filter(p => p.id !== id) })),
   clear: () => set({ produk: [] }),
 }))
 
-// =============================================
-// STREAM STORE
-// =============================================
 export const useStreamStore = create((set, get) => ({
   feed: [], feedLoading: false, feedError: null, activeTag: null, searchQuery: '',
   showcase: [], showcaseLoading: false,
@@ -114,9 +93,7 @@ export const useStreamStore = create((set, get) => ({
     try {
       const res = await streamApi.getFeed(token, params)
       set({ feed: res.data || [], feedLoading: false })
-    } catch (err) {
-      set({ feedError: err.message, feedLoading: false })
-    }
+    } catch (err) { set({ feedError: err.message, feedLoading: false }) }
   },
 
   createPost: async (token, data) => {
@@ -130,17 +107,12 @@ export const useStreamStore = create((set, get) => ({
     try {
       const res = await streamApi.getPublicShowcase(params)
       set({ showcase: res.data || [], showcaseLoading: false })
-    } catch {
-      set({ showcaseLoading: false })
-    }
+    } catch { set({ showcaseLoading: false }) }
   },
 
   deletePost: async (token, postId) => {
     await streamApi.deletePost(token, postId)
-    set(s => ({
-      feed: s.feed.filter(p => p.id !== postId),
-      postDetail: s.postDetail?.id === postId ? null : s.postDetail,
-    }))
+    set(s => ({ feed: s.feed.filter(p => p.id !== postId), postDetail: s.postDetail?.id === postId ? null : s.postDetail }))
   },
 
   loadPostDetail: async (token, postId) => {
@@ -148,9 +120,7 @@ export const useStreamStore = create((set, get) => ({
     try {
       const res = await streamApi.getPostDetail(token, postId)
       set({ postDetail: res.data, postDetailLoading: false })
-    } catch (err) {
-      set({ postDetailError: err.message, postDetailLoading: false })
-    }
+    } catch (err) { set({ postDetailError: err.message, postDetailLoading: false }) }
   },
 
   clearPostDetail: () => set({ postDetail: null, postDetailError: null }),
@@ -161,74 +131,44 @@ export const useStreamStore = create((set, get) => ({
   },
 
   toggleLike: async (token, { targetType, targetId }) => {
-    const prevFeed = get().feed
-    const prevDetail = get().postDetail
-    if (targetType === 'post') {
-      set(s => ({ feed: s.feed.map(p => p.id === targetId ? { ...p, liked: !p.liked, likesCount: p.likesCount + (p.liked ? -1 : 1) } : p) }))
-    }
+    const prevFeed = get().feed; const prevDetail = get().postDetail
+    if (targetType === 'post') set(s => ({ feed: s.feed.map(p => p.id === targetId ? { ...p, liked: !p.liked, likesCount: p.likesCount + (p.liked ? -1 : 1) } : p) }))
     set(s => {
       if (!s.postDetail) return {}
-      if (targetType === 'post' && s.postDetail.id === targetId) {
-        return { postDetail: { ...s.postDetail, liked: !s.postDetail.liked, likesCount: s.postDetail.likesCount + (s.postDetail.liked ? -1 : 1) } }
-      }
+      if (targetType === 'post' && s.postDetail.id === targetId) return { postDetail: { ...s.postDetail, liked: !s.postDetail.liked, likesCount: s.postDetail.likesCount + (s.postDetail.liked ? -1 : 1) } }
       if (targetType === 'reply') {
-        const updateTree = (replies) => replies.map(r => r.id === targetId
-          ? { ...r, liked: !r.liked, likesCount: r.likesCount + (r.liked ? -1 : 1) }
-          : { ...r, replies: updateTree(r.replies || []) })
+        const updateTree = (replies) => replies.map(r => r.id === targetId ? { ...r, liked: !r.liked, likesCount: r.likesCount + (r.liked ? -1 : 1) } : { ...r, replies: updateTree(r.replies || []) })
         return { postDetail: { ...s.postDetail, replies: updateTree(s.postDetail.replies || []) } }
       }
       return {}
     })
-    try {
-      await streamApi.toggleLike(token, { targetType, targetId })
-    } catch (err) {
-      set({ feed: prevFeed, postDetail: prevDetail })
-      throw err
-    }
+    try { await streamApi.toggleLike(token, { targetType, targetId }) }
+    catch (err) { set({ feed: prevFeed, postDetail: prevDetail }); throw err }
   },
 
   toggleRepost: async (token, { postId }) => {
-    const prevFeed = get().feed
-    const prevDetail = get().postDetail
-    set(s => ({
-      feed: s.feed.map(p => p.id === postId ? { ...p, reposted: !p.reposted, repostsCount: p.repostsCount + (p.reposted ? -1 : 1) } : p),
-      postDetail: s.postDetail?.id === postId ? { ...s.postDetail, reposted: !s.postDetail.reposted, repostsCount: s.postDetail.repostsCount + (s.postDetail.reposted ? -1 : 1) } : s.postDetail,
-    }))
-    try {
-      await streamApi.toggleRepost(token, { postId })
-    } catch (err) {
-      set({ feed: prevFeed, postDetail: prevDetail })
-      throw err
-    }
+    const prevFeed = get().feed; const prevDetail = get().postDetail
+    set(s => ({ feed: s.feed.map(p => p.id === postId ? { ...p, reposted: !p.reposted, repostsCount: p.repostsCount + (p.reposted ? -1 : 1) } : p), postDetail: s.postDetail?.id === postId ? { ...s.postDetail, reposted: !s.postDetail.reposted, repostsCount: s.postDetail.repostsCount + (s.postDetail.reposted ? -1 : 1) } : s.postDetail }))
+    try { await streamApi.toggleRepost(token, { postId }) }
+    catch (err) { set({ feed: prevFeed, postDetail: prevDetail }); throw err }
   },
 
   toggleBookmark: async (token, { postId }) => {
-    const prevFeed = get().feed
-    const prevDetail = get().postDetail
-    set(s => ({
-      feed: s.feed.map(p => p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p),
-      postDetail: s.postDetail?.id === postId ? { ...s.postDetail, bookmarked: !s.postDetail.bookmarked } : s.postDetail,
-    }))
-    try {
-      await streamApi.toggleBookmark(token, { postId })
-    } catch (err) {
-      set({ feed: prevFeed, postDetail: prevDetail })
-      throw err
-    }
+    const prevFeed = get().feed; const prevDetail = get().postDetail
+    set(s => ({ feed: s.feed.map(p => p.id === postId ? { ...p, bookmarked: !p.bookmarked } : p), postDetail: s.postDetail?.id === postId ? { ...s.postDetail, bookmarked: !s.postDetail.bookmarked } : s.postDetail }))
+    try { await streamApi.toggleBookmark(token, { postId }) }
+    catch (err) { set({ feed: prevFeed, postDetail: prevDetail }); throw err }
   },
 
   loadDmThreads: async (token) => {
     set({ dmThreadsLoading: true })
-    try {
-      const res = await streamApi.getDmThreads(token)
-      set({ dmThreads: res.data || [], dmThreadsLoading: false })
-    } catch { set({ dmThreadsLoading: false }) }
+    try { const res = await streamApi.getDmThreads(token); set({ dmThreads: res.data || [], dmThreadsLoading: false }) }
+    catch { set({ dmThreadsLoading: false }) }
   },
 
   openDmThread: async (token, { otherTokoId }) => {
     const res = await streamApi.openDmThread(token, { otherTokoId })
-    set({ activeThreadId: res.data.threadId })
-    return res.data.threadId
+    set({ activeThreadId: res.data.threadId }); return res.data.threadId
   },
 
   setActiveThreadId: (threadId) => set({ activeThreadId: threadId }),
@@ -247,14 +187,8 @@ export const useStreamStore = create((set, get) => ({
     set(s => ({ dmMessages: [...s.dmMessages, optimisticMsg] }))
     try {
       const res = await streamApi.sendDmMessage(token, { threadId, teks })
-      set(s => ({
-        dmMessages: s.dmMessages.map(m => m.id === optimisticMsg.id ? res.data : m),
-        dmThreads: s.dmThreads.map(t => t.id === threadId ? { ...t, lastMessage: teks, lastMessageAt: res.data.createdAt } : t),
-      }))
-    } catch (err) {
-      set(s => ({ dmMessages: s.dmMessages.filter(m => m.id !== optimisticMsg.id) }))
-      throw err
-    }
+      set(s => ({ dmMessages: s.dmMessages.map(m => m.id === optimisticMsg.id ? res.data : m), dmThreads: s.dmThreads.map(t => t.id === threadId ? { ...t, lastMessage: teks, lastMessageAt: res.data.createdAt } : t) }))
+    } catch (err) { set(s => ({ dmMessages: s.dmMessages.filter(m => m.id !== optimisticMsg.id) })); throw err }
   },
 
   clearDmThread: () => set({ activeThreadId: null, dmMessages: [] }),
@@ -263,8 +197,7 @@ export const useStreamStore = create((set, get) => ({
     set({ notifsLoading: true })
     try {
       const res = await streamApi.getNotifications(token)
-      const unread = (res.data || []).filter(n => !n.isRead).length
-      set({ notifs: res.data || [], unreadNotifCount: unread, notifsLoading: false })
+      set({ notifs: res.data || [], unreadNotifCount: (res.data || []).filter(n => !n.isRead).length, notifsLoading: false })
     } catch { set({ notifsLoading: false }) }
   },
 
@@ -273,10 +206,6 @@ export const useStreamStore = create((set, get) => ({
     try { await streamApi.markNotificationsRead(token) } catch {}
   },
 
-  clear: () => set({
-    feed: [], feedLoading: false, feedError: null, activeTag: null, searchQuery: '',
-    postDetail: null, postDetailLoading: false, postDetailError: null,
-    dmThreads: [], dmThreadsLoading: false, activeThreadId: null, dmMessages: [], dmMessagesLoading: false,
-    notifs: [], notifsLoading: false, unreadNotifCount: 0,
-  }),
+  clear: () => set({ feed: [], feedLoading: false, feedError: null, activeTag: null, searchQuery: '', postDetail: null, postDetailLoading: false, postDetailError: null, dmThreads: [], dmThreadsLoading: false, activeThreadId: null, dmMessages: [], dmMessagesLoading: false, notifs: [], notifsLoading: false, unreadNotifCount: 0 }),
 }))
+ENDOFFILE
