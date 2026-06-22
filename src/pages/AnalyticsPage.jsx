@@ -135,7 +135,7 @@ const STATUS_PESANAN = [
 
 // ============ PAGE ENTRY ============
 export default function AnalyticsPage() {
-  const { user, token } = useAuthStore()
+  const { user, token, isLoading, updateUser } = useAuthStore()
   const tokenObj = token
   const [checking, setChecking] = useState(true)
 
