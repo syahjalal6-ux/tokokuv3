@@ -51,7 +51,7 @@ export const produkApi = {
   update: (token, produkId, data) => call('produkApi.update', token, produkId, data),
   delete: (token, produkId) => call('produkApi.delete', token, produkId),
   getMine: (token) => call('produkApi.getMine', token),
-  getByToko: (tokoId, params) => call('produkApi.getByToko', null, tokoId, params),
+  getByToko: (tokoId, params) => call('produkApi.getByToko', null, tokoId, params?? {}),
   getById: (produkId) => call('produkApi.getById', null, produkId),
 }
 
