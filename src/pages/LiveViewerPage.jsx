@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { liveApi } from '../lib/api/adminClient.js'
-import { useAuthStore } from '../lib/store.js'
 import toast from 'react-hot-toast'
 import '@livekit/components-styles'
 import {
@@ -18,7 +17,6 @@ const LIVEKIT_OPTIONS_VIEWER = {
 export default function LiveViewerPage() {
   const { slug } = useParams()
   const navigate = useNavigate()
-  const { token } = useAuthStore()
   const [session, setSession] = useState(null)
   const [livekitToken, setLivekitToken] = useState(null)
   const [livekitUrl, setLivekitUrl] = useState(null)
@@ -32,7 +30,7 @@ export default function LiveViewerPage() {
   async function loadAndJoin() {
     setLoading(true)
     try {
-      const res = await liveApi.getActiveSessions(token)
+      const res = await liveApi.getActiveSessions(null)
       const sesi = (res.data || []).find(s => s.toko?.slug === slug)
       if (!sesi) {
         setError('Seller ini tidak sedang live')
@@ -41,7 +39,7 @@ export default function LiveViewerPage() {
       }
       setSession(sesi)
 
-      const joinRes = await liveApi.joinLive(token, { roomName: sesi.room_name })
+      const joinRes = await liveApi.joinLive(null, { roomName: sesi.room_name })
       setLivekitToken(joinRes.data.livekitToken)
       setLivekitUrl(joinRes.data.livekitUrl)
     } catch (err) {
@@ -53,7 +51,7 @@ export default function LiveViewerPage() {
 
   async function handleLeave() {
     if (session) {
-      try { await liveApi.leaveRoom(token, { roomName: session.room_name }) } catch {}
+      try { await liveApi.leaveRoom(null, { roomName: session.room_name }) } catch {}
     }
     navigate(`/${slug}`)
   }
@@ -75,7 +73,6 @@ export default function LiveViewerPage() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#000' }}>
-      {/* Header */}
       <div style={{
         padding: '12px 16px',
         background: 'rgba(0,0,0,0.8)',
@@ -101,7 +98,6 @@ export default function LiveViewerPage() {
         </button>
       </div>
 
-      {/* Video */}
       {livekitToken && livekitUrl && (
         <LiveKitRoom
           token={livekitToken}
