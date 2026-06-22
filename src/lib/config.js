@@ -9,6 +9,11 @@ export const CONFIG = {
   SUPABASE_URL: import.meta.env.VITE_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: import.meta.env.VITE_SUPABASE_ANON_KEY || '',
   SUPABASE_SERVICE_ROLE_KEY: import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '',
+
+  //Livekit
+  LIVEKIT_URL: 'wss://exora-85vdrsxe.livekit.cloud',
+  LIVEKIT_API_KEY: 'API8L7e9n2Kwu6W',
+  LIVEKIT_API_SECRET: 'qIWnbZosENTeUO9PFqMUqi0Xp8DWeqavM3VpF8Hw2f5B',
   
   // Google OAuth Client ID
   GOOGLE_CLIENT_ID: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com',
