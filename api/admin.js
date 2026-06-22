@@ -12,6 +12,10 @@
 // ================================================
 
 import { createClient } from '@supabase/supabase-js'
+// Taruh di paling atas, setelah import
+if (!process.env.SUPABASE_URL || (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_ROLE_KEY)) {
+  console.error('ENV MISSING: SUPABASE_URL atau SERVICE_ROLE_KEY belum diset!')
+}
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL,
