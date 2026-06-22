@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { X, Send, Bot, User, Loader } from 'lucide-react'
-import { showcaseChatApi } from '../../lib/api/supabase.js'
+import { showcaseChatApi } from '../../lib/api/groqClient.js'
 
 function renderMarkdown(text) {
   const html = text
