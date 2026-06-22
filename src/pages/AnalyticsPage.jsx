@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
     authApi.getMe(tokenObj).then(res => {
       if (res?.data) updateUser(res.data)
     }).catch(() => {}).finally(() => setChecking(false))
-  }, [tokenobj])
+  }, [tokenObj])
 
   if (isLoading || checking) return null
   const pro = isPro(user)
