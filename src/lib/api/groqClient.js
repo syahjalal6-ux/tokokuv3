@@ -115,7 +115,6 @@ ${produkStr || 'Tidak ada produk.'}
 ATURAN WAJIB:
 - Setiap kali kamu menyebut toko atau merekomendasikan produk, tulis NAMA TOKO PERSIS seperti di data atas (jangan disingkat/diubah).
 - Sertakan link format: https://exorav2.vercel.app/[slug] menggunakan slug yang tertulis di data produk.
-- Jika tidak yakin slugnya, cukup sebut nama tokonya saja TANPA mengarang link.
 
 Jawab ramah, singkat, dalam Bahasa Indonesia.`
 
