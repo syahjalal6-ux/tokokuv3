@@ -168,7 +168,8 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
       const isInternal = INTERNAL_DOMAINS.some(d => url.hostname === d || url.hostname.endsWith('.' + d))
       if (isInternal) {
         onClose()
-        navigate(url.pathname + url.search + url.hash)
+        const pathname = url.pathname.replace(/^\/toko\//, '/')
+        navigate(pathname + url.search + url.hash)
       } else {
         window.open(href, '_blank', 'noopener,noreferrer')
       }
