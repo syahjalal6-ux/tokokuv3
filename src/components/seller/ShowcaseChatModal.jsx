@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Bot, User, Loader, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { showcaseChatApi } from '../../lib/api/groqClient.js'
+import { getStorefrontUrl } from '../../lib/utils.js'
 
 const NAVY = '#0C447C'
 const BLUE = '#378ADD'
@@ -43,25 +44,68 @@ function parseMessage(text) {
   return tokens
 }
 
-// Render satu baris teks: bold, italic, URL jadi tombol chip
-function InlineContent({ text, onLinkClick }) {
-  // Split by URL
+function normalizeKey(str) {
+  return (str || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+}
+
+// Validasi & perbaiki link yang ditulis LLM menggunakan data produkList asli.
+// LLM kadang menulis ulang slug dari memori (typo, kepotong, atau ngarang),
+// jadi link mentah dari teks TIDAK boleh dipercaya langsung — harus dicocokkan
+// ke daftar tokoSlug yang valid dari database sebelum dirender sebagai tombol.
+function resolveValidUrl(rawUrl, produkList) {
+  let slug = ''
+  try {
+    const u = new URL(rawUrl)
+    slug = u.pathname.replace(/^\/+|\/+$/g, '')
+  } catch {
+    return null
+  }
+  if (!slug) return null
+
+  const list = produkList || []
+  const validSlugs = new Set(list.map(p => p.tokoSlug).filter(Boolean))
+
+  // Kasus 1: slug yang ditulis LLM sudah persis sama dengan slug asli
+  if (validSlugs.has(slug)) return getStorefrontUrl(slug)
+
+  // Kasus 2: slug tidak cocok persis -> coba cocokkan ke nama toko
+  // (mis. LLM nulis "mavara wear" padahal slug asli "mavara-wear-official")
+  const normSlug = normalizeKey(slug)
+  for (const p of list) {
+    if (p.tokoSlug && p.tokoNama && normalizeKey(p.tokoNama) === normSlug) {
+      return getStorefrontUrl(p.tokoSlug)
+    }
+  }
+
+  // Tidak ada match valid -> jangan dirender sebagai link supaya tidak 404
+  return null
+}
+
+// Render satu baris teks: bold, italic, URL jadi tombol chip (sudah divalidasi)
+function InlineContent({ text, onLinkClick, produkList }) {
   const parts = text.split(/(https?:\/\/[^\s]+)/g)
   return (
     <>
       {parts.map((part, i) => {
         if (/^https?:\/\//.test(part)) {
-          // Tampilkan sebagai chip tombol bukan raw URL
+          const validUrl = resolveValidUrl(part, produkList)
+
+          if (!validUrl) {
+            // Link tidak bisa divalidasi -> tampilkan sebagai teks biasa,
+            // jangan jadi tombol yang akan 404 saat diklik.
+            return <span key={i}>{part}</span>
+          }
+
           let label = 'Kunjungi Toko'
           try {
-            const url = new URL(part)
-            const slug = url.pathname.replace(/^\//, '').replace(/\/$/, '')
-            if (slug) label = slug.replace(/-/g, ' ')
+            const slugPath = new URL(validUrl).pathname.replace(/^\//, '').replace(/\/$/, '')
+            if (slugPath) label = slugPath.replace(/-/g, ' ')
           } catch {}
+
           return (
             <a
               key={i}
-              href={part}
+              href={validUrl}
               className="chat-link"
               onClick={onLinkClick}
               style={{
@@ -97,7 +141,7 @@ function InlineContent({ text, onLinkClick }) {
   )
 }
 
-function MessageBubble({ msg, onLinkClick }) {
+function MessageBubble({ msg, onLinkClick, produkList }) {
   const isUser = msg.role === 'user'
 
   if (isUser) {
@@ -129,7 +173,7 @@ function MessageBubble({ msg, onLinkClick }) {
             <ul key={i} style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: 5 }}>
               {token.items.map((item, j) => (
                 <li key={j} style={{ lineHeight: 1.55 }}>
-                  <InlineContent text={item} onLinkClick={onLinkClick} />
+                  <InlineContent text={item} onLinkClick={onLinkClick} produkList={produkList} />
                 </li>
               ))}
             </ul>
@@ -137,7 +181,7 @@ function MessageBubble({ msg, onLinkClick }) {
         }
         return (
           <p key={i} style={{ margin: 0, lineHeight: 1.6 }}>
-            <InlineContent text={token.content} onLinkClick={onLinkClick} />
+            <InlineContent text={token.content} onLinkClick={onLinkClick} produkList={produkList} />
           </p>
         )
       })}
@@ -258,7 +302,7 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
               }}>
                 {msg.role === 'user' ? <User size={12} color="#fff" /> : <Bot size={12} color={BLUE} />}
               </div>
-              <MessageBubble msg={msg} onLinkClick={handleLinkClick} />
+              <MessageBubble msg={msg} onLinkClick={handleLinkClick} produkList={produkList} />
             </div>
           ))}
           {loading && (
