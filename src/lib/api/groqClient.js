@@ -3,6 +3,34 @@ import { CONFIG } from '../config.js'
 
 const supabase = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY)
 
+async function fetchWithFallback({ apiKey, groqMessages }) {
+  const models = CONFIG.GROQ_MODELS || ['llama-3.1-8b-instant']
+  let lastError
+  for (const model of models) {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey,
+      },
+      body: JSON.stringify({
+        model,
+        messages: groqMessages,
+        max_tokens: 512,
+        temperature: 0.7,
+      }),
+    })
+    const data = await res.json()
+    if (!data.error) {
+      const reply = data.choices?.[0]?.message?.content
+      if (!reply) throw new Error('Reply kosong')
+      return { success: true, reply }
+    }
+    lastError = data.error.message
+  }
+  throw new Error(lastError)
+}
+
 export const chatApi = {
   send: async ({ messages, produk, toko, semuaProduk }) => {
     if (!messages || !Array.isArray(messages)) throw new Error('messages tidak valid')
@@ -59,27 +87,7 @@ Bantu calon pembeli dengan pertanyaan tentang toko, produk, pengiriman, atau hal
       ...messages.map(m => ({ role: m.role, content: m.content })),
     ]
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CONFIG.GROQ_PRODUK_KEY,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.1-8b-instant',
-        messages: groqMessages,
-        max_tokens: 512,
-        temperature: 0.7,
-      }),
-    })
-
-    const data = await res.json()
-    if (data.error) throw new Error(data.error.message)
-
-    const reply = data.choices?.[0]?.message?.content
-    if (!reply) throw new Error('Reply kosong')
-
-    return { success: true, reply }
+    return fetchWithFallback({ apiKey: CONFIG.GROQ_PRODUK_KEY, groqMessages })
   }
 }
 
@@ -104,33 +112,13 @@ ${postsStr || 'Tidak ada post.'}
 Daftar produk dari semua toko:
 ${produkStr || 'Tidak ada produk.'}
 
-Jawab ramah, singkat, dalam Bahasa Indonesia. Jika buyer mau beli atau tanya toko, selalu sertakan link lengkap format: https://exorav2.vercel.app/toko/[slug]`
+Jawab ramah, singkat, dalam Bahasa Indonesia. Jika buyer mau beli atau tanya toko, selalu sertakan link lengkap format: https://exorav2.vercel.app/[slug]`
 
     const groqMessages = [
       { role: 'system', content: systemPrompt },
       ...messages.map(m => ({ role: m.role, content: m.content })),
     ]
 
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + CONFIG.GROQ_SHOWCASE_KEY,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: groqMessages,
-        max_tokens: 512,
-        temperature: 0.7,
-      }),
-    })
-
-    const data = await res.json()
-    if (data.error) throw new Error(data.error.message)
-
-    const reply = data.choices?.[0]?.message?.content
-    if (!reply) throw new Error('Reply kosong')
-
-    return { success: true, reply }
+    return fetchWithFallback({ apiKey: CONFIG.GROQ_SHOWCASE_KEY, groqMessages })
   }
 }
