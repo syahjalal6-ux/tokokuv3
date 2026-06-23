@@ -112,7 +112,12 @@ ${postsStr || 'Tidak ada post.'}
 Daftar produk dari semua toko:
 ${produkStr || 'Tidak ada produk.'}
 
-Jawab ramah, singkat, dalam Bahasa Indonesia. Jika buyer mau beli atau tanya toko, selalu sertakan link lengkap format: https://exorav2.vercel.app/[slug]`
+ATURAN WAJIB:
+- Setiap kali kamu menyebut toko atau merekomendasikan produk, tulis NAMA TOKO PERSIS seperti di data atas (jangan disingkat/diubah).
+- Sertakan link format: https://exorav2.vercel.app/[slug] menggunakan slug yang tertulis di data produk.
+- Jika tidak yakin slugnya, cukup sebut nama tokonya saja TANPA mengarang link.
+
+Jawab ramah, singkat, dalam Bahasa Indonesia.`
 
     const groqMessages = [
       { role: 'system', content: systemPrompt },
