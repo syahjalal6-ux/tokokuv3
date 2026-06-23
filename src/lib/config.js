@@ -41,6 +41,7 @@ export const CONFIG = {
   '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',
 ],
   GROQ_MODELS: [
+    'llama-3.1-8b-instant',
     'llama-3.3-70b-versatile',
    
   ],
