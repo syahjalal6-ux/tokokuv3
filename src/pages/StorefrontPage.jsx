@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight } from 'lucide-react'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi } from '../lib/api/index.js'
 import { liveApi } from '../lib/api/adminClient.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
+import { useTheme } from '../lib/useTheme.js'
 
 const TEMA = {
   default: { accent: '#5b8af5', accent2: '#7c6af7', gradient: 'linear-gradient(135deg, #5b8af5, #7c6af7)' },
@@ -14,8 +15,6 @@ const TEMA = {
   rose:    { accent: '#f43f5e', accent2: '#ec4899', gradient: 'linear-gradient(135deg, #f43f5e, #ec4899)' },
 }
 
-// Storefront light/dark surface+text tokens (independent from dashboard theme).
-// Accent hue stays driven by TEMA above; THEMES only controls bg/surface/text contrast.
 const THEMES = {
   dark: {
     bgPrimary: '#0a0a0f',
@@ -516,6 +515,9 @@ export default function StorefrontPage() {
   const [liveSession, setLiveSession] = useState(null)
   const [initialResi, setInitialResi] = useState('')
 
+  const { theme, toggleTheme } = useTheme()
+  const c = THEMES[theme]
+
   useEffect(() => {
     const resiParam = searchParams.get('resi')
     if (resiParam) { setInitialResi(resiParam); setTrackingOpen(true) }
@@ -578,8 +580,9 @@ export default function StorefrontPage() {
   }
 
   const tema = TEMA[toko?.tema] || TEMA.default
-  // toko.darkMode: true/undefined = gelap (default lama), false = terang
-  const c = THEMES[toko?.darkMode === false ? 'light' : 'dark']
+  // Fix kontras aksen sunset di light mode
+  const accentColor = (tema.accent === '#f59e0b' && theme === 'light') ? '#b45309' : tema.accent
+
   const kategoriList = [...new Set(produk.map(p => p.kategori).filter(Boolean))]
   const filtered = produk.filter(p => {
     const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.deskripsi?.toLowerCase().includes(search.toLowerCase())
@@ -623,7 +626,7 @@ export default function StorefrontPage() {
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
 
-      <div style={{ background: `linear-gradient(180deg, ${tema.accent}22 0%, transparent 100%)`, borderBottom: `1px solid ${c.glassBorder}`, padding: '20px 16px 16px' }}>
+      <div style={{ background: `linear-gradient(180deg, ${accentColor}22 0%, transparent 100%)`, borderBottom: `1px solid ${c.glassBorder}`, padding: '20px 16px 16px' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <TokoAvatar toko={toko} tema={tema} c={c} size={52} radius={14} fontSize={22} />
@@ -635,13 +638,28 @@ export default function StorefrontPage() {
               {toko.deskripsi && <p style={{ color: c.textSecondary, fontSize: '0.8rem', lineHeight: 1.4, marginBottom: 4 }}>{toko.deskripsi}</p>}
               <p style={{ color: c.textTertiary, fontSize: '0.72rem' }}>{produk.length} produk tersedia</p>
             </div>
-            <button onClick={() => setChatOpen(null)} className="btn btn-sm" style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${tema.accent}44`, flexShrink: 0, padding: '7px 12px' }}>
-              <MessageCircle size={13} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={toggleTheme}
+                title={theme === 'light' ? 'Tema gelap' : 'Tema terang'}
+                style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: c.surface, border: `1px solid ${c.glassBorder}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', color: c.textSecondary, flexShrink: 0,
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
+              </button>
+              <button onClick={() => setChatOpen(null)} className="btn btn-sm" style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${accentColor}44`, flexShrink: 0, padding: '7px 12px' }}>
+                <MessageCircle size={13} />
+              </button>
+            </div>
           </div>
 
           {toko.pengumuman && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: `${tema.accent}15`, border: `1px solid ${tema.accent}33`, borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: c.textSecondary, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 12, padding: '8px 12px', background: `${accentColor}15`, border: `1px solid ${accentColor}33`, borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: c.textSecondary, lineHeight: 1.5 }}>
               📢 {toko.pengumuman}
             </div>
           )}
@@ -659,18 +677,18 @@ export default function StorefrontPage() {
 
           <div onClick={() => setTrackingOpen(true)} style={{ marginTop: 10, padding: '8px 12px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.background = c.surfaceHover} onMouseLeave={e => e.currentTarget.style.background = c.surface}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <Truck size={14} color={tema.accent} />
+              <Truck size={14} color={accentColor} />
               <span style={{ fontSize: '0.78rem', color: c.textSecondary }}>Lacak pesananmu</span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: tema.accent, fontWeight: 700 }}>→</span>
+            <span style={{ fontSize: '0.75rem', color: accentColor, fontWeight: 700 }}>→</span>
           </div>
 
           <div onClick={() => setOngkirOpen(true)} style={{ marginTop: 6, padding: '8px 12px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.background = c.surfaceHover} onMouseLeave={e => e.currentTarget.style.background = c.surface}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <MapPin size={14} color={tema.accent} />
+              <MapPin size={14} color={accentColor} />
               <span style={{ fontSize: '0.78rem', color: c.textSecondary }}>Estimasi ongkir</span>
             </div>
-            <span style={{ fontSize: '0.75rem', color: tema.accent, fontWeight: 700 }}>→</span>
+            <span style={{ fontSize: '0.75rem', color: accentColor, fontWeight: 700 }}>→</span>
           </div>
         </div>
       </div>
@@ -685,9 +703,9 @@ export default function StorefrontPage() {
 
         {kategoriList.length > 1 && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: '16px', paddingBottom: 4, scrollbarWidth: 'none' }}>
-            <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? tema.accent + '22' : c.surface, color: filterKat === 'all' ? tema.accent : c.textSecondary, border: `1px solid ${filterKat === 'all' ? tema.accent + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
+            <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? accentColor + '22' : c.surface, color: filterKat === 'all' ? accentColor : c.textSecondary, border: `1px solid ${filterKat === 'all' ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
             {kategoriList.map(k => (
-              <button key={k} onClick={() => setFilterKat(k)} className="btn btn-sm" style={{ background: filterKat === k ? tema.accent + '22' : c.surface, color: filterKat === k ? tema.accent : c.textSecondary, border: `1px solid ${filterKat === k ? tema.accent + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>{k}</button>
+              <button key={k} onClick={() => setFilterKat(k)} className="btn btn-sm" style={{ background: filterKat === k ? accentColor + '22' : c.surface, color: filterKat === k ? accentColor : c.textSecondary, border: `1px solid ${filterKat === k ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>{k}</button>
             ))}
           </div>
         )}
@@ -699,15 +717,15 @@ export default function StorefrontPage() {
           </div>
         ) : (
           <div className="produk-grid">
-            {filtered.map(p => <ProdukCard key={p.id} produk={p} tema={tema} c={c} onClick={() => setSelectedProduk(p)} />)}
+            {filtered.map(p => <ProdukCard key={p.id} produk={p} tema={tema} accentColor={accentColor} c={c} onClick={() => setSelectedProduk(p)} />)}
           </div>
         )}
 
         {toko.video && getYouTubeId(toko.video) && <div style={{ marginTop: 16 }}><VideoToko videoUrl={toko.video} c={c} /></div>}
       </div>
 
-      {selectedProduk && <ProdukModal produk={selectedProduk} toko={toko} tema={tema} c={c} onClose={() => setSelectedProduk(null)} onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }} onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} />}
-      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} c={c} onClose={() => setCheckoutOpen(false)} />}
+      {selectedProduk && <ProdukModal produk={selectedProduk} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setSelectedProduk(null)} onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }} onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} />}
+      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} />}
       {chatOpen !== false && <ChatModal produk={chatOpen || null} toko={toko} tema={tema} onClose={() => setChatOpen(false)} onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }} semuaProduk={produk} />}
       {trackingOpen && <TrackingModal onClose={() => { setTrackingOpen(false); setInitialResi('') }} initialResi={initialResi} c={c} />}
       {ongkirOpen && <OngkirModal onClose={() => setOngkirOpen(false)} c={c} />}
@@ -725,12 +743,12 @@ function TokoAvatar({ toko, tema, c, size = 52, radius = 14, fontSize = 22 }) {
   return <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>{toko.nama?.[0]?.toUpperCase()}</div>
 }
 
-function ProdukCard({ produk: p, tema, c, onClick }) {
+function ProdukCard({ produk: p, tema, accentColor, c, onClick }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   return (
-    <div onClick={onClick} style={{ background: c.glass, backdropFilter: 'blur(20px)', border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${tema.accent}44` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = c.glassBorder }}>
+    <div onClick={onClick} style={{ background: c.glass, backdropFilter: 'blur(20px)', border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${accentColor}44` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = c.glassBorder }}>
       <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: c.surface }}>
         {thumbUrl ? <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.textTertiary }}><Package size={32} /></div>}
         {fotos.length > 1 && <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>1/{fotos.length}</div>}
@@ -740,7 +758,7 @@ function ProdukCard({ produk: p, tema, c, onClick }) {
       <div style={{ padding: '10px' }}>
         <p style={{ fontWeight: 700, fontSize: '0.78rem', marginBottom: 3, lineHeight: 1.3, color: c.textPrimary }}>{truncate(p.nama, 30)}</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-          <p style={{ fontWeight: 800, color: tema.accent, fontSize: '0.82rem' }}>{formatRupiah(p.harga)}</p>
+          <p style={{ fontWeight: 800, color: accentColor, fontSize: '0.82rem' }}>{formatRupiah(p.harga)}</p>
           {p.hargaCoret && <p style={{ fontSize: '0.65rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
         </div>
       </div>
@@ -748,7 +766,7 @@ function ProdukCard({ produk: p, tema, c, onClick }) {
   )
 }
 
-function ProdukModal({ produk: p, toko, tema, c, onClose, onCheckout, onChat }) {
+function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckout, onChat }) {
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   const sold = p.stok === 0
@@ -764,7 +782,7 @@ function ProdukModal({ produk: p, toko, tema, c, onClose, onCheckout, onChat }) 
           {p.kategori && <p style={{ fontSize: '0.7rem', color: c.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{p.kategori}</p>}
           <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.1rem', marginBottom: 8, color: c.textPrimary }}>{p.nama}</h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: tema.accent }}>{formatRupiah(p.harga)}</p>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.3rem', color: accentColor }}>{formatRupiah(p.harga)}</p>
             {p.hargaCoret && <p style={{ fontSize: '0.82rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
           </div>
           {p.stok !== null && <p style={{ fontSize: '0.78rem', color: p.stok === 0 ? 'var(--danger)' : p.stok < 5 ? 'var(--warning)' : 'var(--success)', marginBottom: 10 }}>{p.stok === 0 ? '✕ Stok habis' : p.stok < 5 ? `⚠ Sisa ${p.stok} stok` : `✓ Stok tersedia (${p.stok})`}</p>}
@@ -775,7 +793,7 @@ function ProdukModal({ produk: p, toko, tema, c, onClose, onCheckout, onChat }) 
         </div>
         <div style={{ padding: '12px 16px', borderTop: `1px solid ${c.glassBorder}`, display: 'flex', gap: 10, alignItems: 'center', background: c.bgSecondary }}>
           <button onClick={() => onChat(p)} className="btn btn-secondary btn-icon" style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--radius-md)' }} title="Tanya Penjual"><MessageCircle size={18} /></button>
-          <button onClick={() => !sold && onCheckout(p)} disabled={sold} style={{ flex: 1, height: 44, background: sold ? c.surface : tema.gradient, color: sold ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${tema.accent}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}>
+          <button onClick={() => !sold && onCheckout(p)} disabled={sold} style={{ flex: 1, height: 44, background: sold ? c.surface : tema.gradient, color: sold ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${accentColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}>
             <ShoppingBag size={16} />
             {sold ? 'Stok Habis' : 'Beli Sekarang'}
           </button>
@@ -785,7 +803,7 @@ function ProdukModal({ produk: p, toko, tema, c, onClose, onCheckout, onChat }) 
   )
 }
 
-function CheckoutModal({ produk: p, toko, tema, c, onClose }) {
+function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const [form, setForm] = useState({ nama: '', wa: '', alamat: '', catatan: '', qty: 1 })
@@ -830,7 +848,7 @@ function CheckoutModal({ produk: p, toko, tema, c, onClose }) {
             {thumbUrl && <img src={thumbUrl} alt={p.nama} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 3, color: c.textPrimary }}>{p.nama}</p>
-              <p style={{ color: tema.accent, fontWeight: 800, fontSize: '0.9rem' }}>{formatRupiah(p.harga)}</p>
+              <p style={{ color: accentColor, fontWeight: 800, fontSize: '0.9rem' }}>{formatRupiah(p.harga)}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button onClick={() => set('qty', Math.max(1, form.qty - 1))} style={{ width: 28, height: 28, borderRadius: '50%', background: c.surfaceHover, border: `1px solid ${c.glassBorder}`, cursor: 'pointer', color: c.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={12} /></button>
@@ -857,11 +875,11 @@ function CheckoutModal({ produk: p, toko, tema, c, onClose }) {
             <label className="form-label">Catatan (Opsional)</label>
             <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${tema.accent}12`, border: `1px solid ${tema.accent}22`, borderRadius: 'var(--radius-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${accentColor}12`, border: `1px solid ${accentColor}22`, borderRadius: 'var(--radius-lg)' }}>
             <span style={{ fontWeight: 700, color: c.textPrimary }}>Total</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: tema.accent }}>{formatRupiah(p.harga * form.qty)}</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: accentColor }}>{formatRupiah(p.harga * form.qty)}</span>
           </div>
-          <button onClick={handleCheckout} disabled={submitting} style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${tema.accent}44` }}>
+          <button onClick={handleCheckout} disabled={submitting} style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${accentColor}44` }}>
             <MessageCircle size={17} />
             {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
           </button>
