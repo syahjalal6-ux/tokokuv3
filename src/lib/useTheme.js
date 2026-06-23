@@ -10,7 +10,7 @@ const STORAGE_KEY = 'exora-theme'
 function getStoredTheme() {
   try {
     const stored = window.localStorage.getItem(STORAGE_KEY)
-    return stored === 'dark' ? 'dark' : 'light'
+    return stored === 'dark' ? 'dark' : stored === 'light' ? 'light' : 'dark'
   } catch {
     return 'light'
   }
