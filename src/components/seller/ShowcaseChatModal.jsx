@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, User, Loader } from 'lucide-react'
+import { X, Send, Bot, User, Loader, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { showcaseChatApi } from '../../lib/api/groqClient.js'
 
@@ -8,15 +8,141 @@ const BLUE = '#378ADD'
 const GRADIENT = `linear-gradient(90deg, ${NAVY}, ${BLUE})`
 const INTERNAL_DOMAINS = ['exorav2.vercel.app', 'exora.id']
 
-function renderMarkdown(text) {
-  const html = text
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(
-      /(https?:\/\/[^\s<]+)/g,
-      '<a href="$1" class="chat-link" rel="noreferrer" style="color:#378ADD;text-decoration:underline">$1</a>'
+// Parse teks menjadi array token: paragraf, bullet list, bold, link tombol
+function parseMessage(text) {
+  const lines = text.split('\n')
+  const tokens = []
+  let bulletBuffer = []
+
+  const flushBullets = () => {
+    if (bulletBuffer.length > 0) {
+      tokens.push({ type: 'bullets', items: [...bulletBuffer] })
+      bulletBuffer = []
+    }
+  }
+
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line) {
+      flushBullets()
+      continue
+    }
+
+    // Baris bullet: * item atau - item
+    const bulletMatch = line.match(/^[*\-]\s+(.+)/)
+    if (bulletMatch) {
+      bulletBuffer.push(bulletMatch[1])
+      continue
+    }
+
+    flushBullets()
+    tokens.push({ type: 'line', content: line })
+  }
+
+  flushBullets()
+  return tokens
+}
+
+// Render satu baris teks: bold, italic, URL jadi tombol chip
+function InlineContent({ text, onLinkClick }) {
+  // Split by URL
+  const parts = text.split(/(https?:\/\/[^\s]+)/g)
+  return (
+    <>
+      {parts.map((part, i) => {
+        if (/^https?:\/\//.test(part)) {
+          // Tampilkan sebagai chip tombol bukan raw URL
+          let label = 'Kunjungi Toko'
+          try {
+            const url = new URL(part)
+            const slug = url.pathname.replace(/^\/toko\//, '').replace(/\/$/, '')
+            if (slug) label = slug.replace(/-/g, ' ')
+          } catch {}
+          return (
+            <a
+              key={i}
+              href={part}
+              className="chat-link"
+              onClick={onLinkClick}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                background: '#e8f0fb', color: BLUE,
+                padding: '3px 9px', borderRadius: 20,
+                fontSize: '0.78rem', fontWeight: 600,
+                textDecoration: 'none', margin: '2px 2px',
+                border: `1px solid ${BLUE}22`,
+                cursor: 'pointer', whiteSpace: 'nowrap',
+              }}
+            >
+              <ExternalLink size={11} />
+              {label}
+            </a>
+          )
+        }
+        // Render bold & italic inline
+        const boldItalic = part
+          .split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+          .map((chunk, j) => {
+            if (chunk.startsWith('**') && chunk.endsWith('**')) {
+              return <strong key={j}>{chunk.slice(2, -2)}</strong>
+            }
+            if (chunk.startsWith('*') && chunk.endsWith('*')) {
+              return <em key={j}>{chunk.slice(1, -1)}</em>
+            }
+            return chunk
+          })
+        return <span key={i}>{boldItalic}</span>
+      })}
+    </>
+  )
+}
+
+function MessageBubble({ msg, onLinkClick }) {
+  const isUser = msg.role === 'user'
+
+  if (isUser) {
+    return (
+      <div style={{
+        maxWidth: '78%', padding: '9px 12px',
+        borderRadius: '16px 16px 4px 16px',
+        background: GRADIENT, color: '#fff',
+        fontSize: '0.845rem', lineHeight: 1.55,
+      }}>
+        {msg.content}
+      </div>
     )
-  return { __html: html }
+  }
+
+  const tokens = parseMessage(msg.content)
+
+  return (
+    <div style={{
+      maxWidth: '82%', padding: '10px 13px',
+      borderRadius: '16px 16px 16px 4px',
+      background: '#f7f7f7', border: '1px solid #ececec',
+      color: '#1a1a1a', fontSize: '0.845rem', lineHeight: 1.6,
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      {tokens.map((token, i) => {
+        if (token.type === 'bullets') {
+          return (
+            <ul key={i} style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {token.items.map((item, j) => (
+                <li key={j} style={{ lineHeight: 1.55 }}>
+                  <InlineContent text={item} onLinkClick={onLinkClick} />
+                </li>
+              ))}
+            </ul>
+          )
+        }
+        return (
+          <p key={i} style={{ margin: 0, lineHeight: 1.6 }}>
+            <InlineContent text={token.content} onLinkClick={onLinkClick} />
+          </p>
+        )
+      })}
+    </div>
+  )
 }
 
 export default function ShowcaseChatModal({ onClose, posts = [], produkList = [] }) {
@@ -28,35 +154,25 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
   const [loading, setLoading] = useState(false)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
-  const messagesRef = useRef(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  // Intercept link clicks inside chat bubbles — handle internal PWA navigation
-  const handleMessageClick = useCallback((e) => {
-    const anchor = e.target.closest('a.chat-link')
-    if (!anchor) return
+  const handleLinkClick = useCallback((e) => {
     e.preventDefault()
     e.stopPropagation()
-
-    const href = anchor.getAttribute('href')
+    const href = e.currentTarget.getAttribute('href')
     if (!href) return
-
     try {
       const url = new URL(href)
       const isInternal = INTERNAL_DOMAINS.some(d => url.hostname === d || url.hostname.endsWith('.' + d))
-
       if (isInternal) {
-        // Navigate inside PWA — no full reload, no blank tab
         onClose()
         navigate(url.pathname + url.search + url.hash)
       } else {
-        // External link — open in browser outside PWA
         window.open(href, '_blank', 'noopener,noreferrer')
       }
     } catch {
-      // Fallback jika URL tidak valid
       window.open(href, '_blank', 'noopener,noreferrer')
     }
   }, [navigate, onClose])
@@ -101,9 +217,7 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
           display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}
       >
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg) } }
-        `}</style>
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
 
         {/* Header */}
         <div style={{
@@ -129,10 +243,7 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
         </div>
 
         {/* Messages */}
-        <div
-          ref={messagesRef}
-          style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}
-        >
+        <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}>
           {messages.map((msg, i) => (
             <div
               key={i}
@@ -146,19 +257,7 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
               }}>
                 {msg.role === 'user' ? <User size={12} color="#fff" /> : <Bot size={12} color={BLUE} />}
               </div>
-              <div
-                dangerouslySetInnerHTML={renderMarkdown(msg.content)}
-                onClick={msg.role === 'assistant' ? handleMessageClick : undefined}
-                style={{
-                  maxWidth: '78%', padding: '9px 12px',
-                  borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                  background: msg.role === 'user' ? GRADIENT : '#f7f7f7',
-                  border: msg.role === 'user' ? 'none' : '1px solid #ececec',
-                  color: msg.role === 'user' ? '#fff' : '#1a1a1a',
-                  fontSize: '0.845rem', lineHeight: 1.55, whiteSpace: 'pre-wrap',
-                  cursor: 'text',
-                }}
-              />
+              <MessageBubble msg={msg} onLinkClick={handleLinkClick} />
             </div>
           ))}
           {loading && (
