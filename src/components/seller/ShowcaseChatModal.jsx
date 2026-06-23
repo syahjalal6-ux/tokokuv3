@@ -55,7 +55,7 @@ function InlineContent({ text, onLinkClick }) {
           let label = 'Kunjungi Toko'
           try {
             const url = new URL(part)
-            const slug = url.pathname.replace(/^\/toko\//, '').replace(/\/$/, '')
+            const slug = url.pathname.replace(/^\//, '').replace(/\/$/, '')
             if (slug) label = slug.replace(/-/g, ' ')
           } catch {}
           return (
