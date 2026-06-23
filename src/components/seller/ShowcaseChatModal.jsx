@@ -1,47 +1,65 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Bot, User, Loader } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { showcaseChatApi } from '../../lib/api/groqClient.js'
+
+const NAVY = '#0C447C'
+const BLUE = '#378ADD'
+const GRADIENT = `linear-gradient(90deg, ${NAVY}, ${BLUE})`
+const INTERNAL_DOMAINS = ['exorav2.vercel.app', 'exora.id']
 
 function renderMarkdown(text) {
   const html = text
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.+?)\*/g, '<em>$1</em>')
-    .replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noreferrer" style="color:#378ADD;text-decoration:underline">$1</a>')
+    .replace(
+      /(https?:\/\/[^\s<]+)/g,
+      '<a href="$1" class="chat-link" rel="noreferrer" style="color:#378ADD;text-decoration:underline">$1</a>'
+    )
   return { __html: html }
 }
 
-const NAVY = '#0C447C'
-const BLUE = '#378ADD'
-const GRADIENT = `linear-gradient(90deg, ${NAVY}, ${BLUE})`
-
 export default function ShowcaseChatModal({ onClose, posts = [], produkList = [] }) {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState([
     { role: 'assistant', content: 'Halo! Tanya apa saja tentang produk atau toko di Showcase Exora 😊' }
   ])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [vpHeight, setVpHeight] = useState(window.visualViewport?.height || window.innerHeight)
   const bottomRef = useRef(null)
   const inputRef = useRef(null)
+  const messagesRef = useRef(null)
 
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
   useEffect(() => { inputRef.current?.focus() }, [])
 
-  useEffect(() => {
-    const vv = window.visualViewport
-    const onResize = () => {
-      setVpHeight(vv?.height || window.innerHeight)
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+  // Intercept link clicks inside chat bubbles — handle internal PWA navigation
+  const handleMessageClick = useCallback((e) => {
+    const anchor = e.target.closest('a.chat-link')
+    if (!anchor) return
+    e.preventDefault()
+    e.stopPropagation()
+
+    const href = anchor.getAttribute('href')
+    if (!href) return
+
+    try {
+      const url = new URL(href)
+      const isInternal = INTERNAL_DOMAINS.some(d => url.hostname === d || url.hostname.endsWith('.' + d))
+
+      if (isInternal) {
+        // Navigate inside PWA — no full reload, no blank tab
+        onClose()
+        navigate(url.pathname + url.search + url.hash)
+      } else {
+        // External link — open in browser outside PWA
+        window.open(href, '_blank', 'noopener,noreferrer')
+      }
+    } catch {
+      // Fallback jika URL tidak valid
+      window.open(href, '_blank', 'noopener,noreferrer')
     }
-    vv?.addEventListener('resize', onResize)
-    vv?.addEventListener('scroll', onResize)
-    window.addEventListener('resize', onResize)
-    return () => {
-      vv?.removeEventListener('resize', onResize)
-      vv?.removeEventListener('scroll', onResize)
-      window.removeEventListener('resize', onResize)
-    }
-  }, [])
+  }, [navigate, onClose])
 
   const sendMessage = async () => {
     const text = input.trim()
@@ -66,19 +84,24 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
   }
 
   return (
-    <div onClick={onClose} style={{
-      position: 'fixed', inset: 0, zIndex: 700,
-      background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
-      display: 'flex', alignItems: 'flex-end',
-    }}>
-      <div onClick={e => e.stopPropagation()} style={{
-        width: '100%', maxWidth: 560, margin: '0 auto',
-        background: '#ffffff', borderRadius: '20px 20px 0 0',
-        height: vpHeight, maxHeight: vpHeight,
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-      }}>
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 700,
+        background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
+        display: 'flex', alignItems: 'flex-end',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 560, margin: '0 auto',
+          background: '#ffffff', borderRadius: '20px 20px 0 0',
+          height: '100dvh', maxHeight: '100dvh',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        }}
+      >
         <style>{`
-          @keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
           @keyframes spin { to { transform: rotate(360deg) } }
         `}</style>
 
@@ -97,15 +120,24 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
             <p style={{ fontWeight: 700, fontSize: '0.875rem', margin: 0, color: '#1a1a1a' }}>Asisten Showcase Exora</p>
             <p style={{ fontSize: '0.7rem', color: '#8a8a8a', margin: 0 }}>Cari produk & toko dengan AI</p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8a8a', display: 'flex', padding: 4 }}>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8a8a8a', display: 'flex', padding: 4 }}
+          >
             <X size={18} />
           </button>
         </div>
 
         {/* Messages */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}>
+        <div
+          ref={messagesRef}
+          style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 10, minHeight: 0 }}
+        >
           {messages.map((msg, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 7 }}>
+            <div
+              key={i}
+              style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-end', gap: 7 }}
+            >
               <div style={{
                 width: 26, height: 26, borderRadius: '50%',
                 background: msg.role === 'user' ? GRADIENT : '#f7f7f7',
@@ -114,14 +146,19 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
               }}>
                 {msg.role === 'user' ? <User size={12} color="#fff" /> : <Bot size={12} color={BLUE} />}
               </div>
-              <div dangerouslySetInnerHTML={renderMarkdown(msg.content)} style={{
-                maxWidth: '78%', padding: '9px 12px',
-                borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background: msg.role === 'user' ? GRADIENT : '#f7f7f7',
-                border: msg.role === 'user' ? 'none' : '1px solid #ececec',
-                color: msg.role === 'user' ? '#fff' : '#1a1a1a',
-                fontSize: '0.845rem', lineHeight: 1.55, whiteSpace: 'pre-wrap',
-              }} />
+              <div
+                dangerouslySetInnerHTML={renderMarkdown(msg.content)}
+                onClick={msg.role === 'assistant' ? handleMessageClick : undefined}
+                style={{
+                  maxWidth: '78%', padding: '9px 12px',
+                  borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                  background: msg.role === 'user' ? GRADIENT : '#f7f7f7',
+                  border: msg.role === 'user' ? 'none' : '1px solid #ececec',
+                  color: msg.role === 'user' ? '#fff' : '#1a1a1a',
+                  fontSize: '0.845rem', lineHeight: 1.55, whiteSpace: 'pre-wrap',
+                  cursor: 'text',
+                }}
+              />
             </div>
           ))}
           {loading && (
