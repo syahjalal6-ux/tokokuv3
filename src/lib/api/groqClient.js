@@ -66,7 +66,7 @@ Bantu calon pembeli dengan pertanyaan tentang toko, produk, pengiriman, atau hal
         'Authorization': 'Bearer ' + CONFIG.GROQ_PRODUK_KEY,
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         messages: groqMessages,
         max_tokens: 512,
         temperature: 0.7,
@@ -92,7 +92,7 @@ export const showcaseChatApi = {
     ).join('\n')
 
     const produkStr = (produkList || []).slice(0, 50).map((p, i) =>
-      `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}${p.kategori ? ' [' + p.kategori + ']' : ''} — Toko: ${p.tokoNama || ''}${p.tokoSlug ? ' (exorav2.vercel.app/toko/' + p.tokoSlug + ')' : ''}`
+      `${i + 1}. ${p.nama} — Rp ${Number(p.harga).toLocaleString('id-ID')}${p.stok === 0 ? ' (Habis)' : ''}${p.kategori ? ' [' + p.kategori + ']' : ''} — Toko: ${p.tokoNama || ''}${p.tokoSlug ? ' (exorav2.vercel.app/' + p.tokoSlug + ')' : ''}`
     ).join('\n')
 
     const systemPrompt = `Kamu adalah asisten Showcase Exora — platform toko online.
