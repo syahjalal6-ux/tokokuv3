@@ -115,29 +115,47 @@ export const useStreamStore = create((set, get) => ({
   },
 
   loadPostDetail: async (token, postId) => {
+    console.log('[DEBUG] loadPostDetail DIPANGGIL untuk postId:', postId)
     set({ postDetailLoading: true, postDetailError: null })
     try {
       const res = await streamApi.getPostDetail(token, postId)
+      console.log('[DEBUG] loadPostDetail SUKSES, replies count:', res.data?.replies?.length)
       set({ postDetail: res.data, postDetailLoading: false })
-    } catch (err) { set({ postDetailError: err.message, postDetailLoading: false }) }
+    } catch (err) {
+      console.error('[DEBUG] loadPostDetail GAGAL:', err)
+      set({ postDetailError: err.message, postDetailLoading: false })
+    }
   },
 
   clearPostDetail: () => set({ postDetail: null, postDetailError: null }),
 
   addReply: async (token, { postId, parentReplyId, teks }) => {
-    const res = await streamApi.addReply(token, { postId, parentReplyId, teks })
+    console.log('[DEBUG] addReply DIPANGGIL', { postId, parentReplyId, teks })
+    let res
+    try {
+      res = await streamApi.addReply(token, { postId, parentReplyId, teks })
+      console.log('[DEBUG] streamApi.addReply RESPONSE:', res)
+    } catch (err) {
+      console.error('[DEBUG] streamApi.addReply GAGAL/THROW:', err)
+      throw err
+    }
     const newReply = res?.data
+    console.log('[DEBUG] newReply extracted:', newReply, '| has id?', !!newReply?.id)
 
     // Kalau backend mengembalikan reply lengkap (ada id), sisipkan langsung
     // ke postDetail tanpa nunggu round-trip loadPostDetail lagi -> lebih responsif.
     if (newReply?.id) {
       set(s => {
-        if (!s.postDetail || s.postDetail.id !== postId) return {}
+        console.log('[DEBUG] cek postDetail di store. s.postDetail?.id:', s.postDetail?.id, '| postId param:', postId, '| match?', s.postDetail?.id === postId)
+        if (!s.postDetail || s.postDetail.id !== postId) {
+          console.warn('[DEBUG] !!! postDetail.id TIDAK MATCH dengan postId, optimistic insert DIBATALKAN (kemungkinan mismatch tipe data string vs number)')
+          return {}
+        }
 
-        // Pastikan shape-nya konsisten dengan reply lain (replies: [] kalau belum ada)
         const normalized = { replies: [], liked: false, likesCount: 0, ...newReply }
 
         if (!parentReplyId) {
+          console.log('[DEBUG] insert sebagai root reply')
           return { postDetail: { ...s.postDetail, replies: [...(s.postDetail.replies || []), normalized] } }
         }
 
@@ -152,13 +170,17 @@ export const useStreamStore = create((set, get) => ({
             return node
           })
         }
+        console.log('[DEBUG] insert sebagai nested reply ke parentReplyId:', parentReplyId)
         return { postDetail: { ...s.postDetail, replies: insertNested(s.postDetail.replies || []) } }
       })
+      console.log('[DEBUG] addReply SELESAI lewat jalur optimistic insert')
       return newReply
     }
 
     // Fallback: backend tidak mengembalikan data reply lengkap -> refetch seperti semula
+    console.log('[DEBUG] newReply tidak punya id, fallback ke loadPostDetail')
     await get().loadPostDetail(token, postId)
+    console.log('[DEBUG] addReply SELESAI lewat jalur fallback refetch')
   },
 
   toggleLike: async (token, { targetType, targetId }) => {
