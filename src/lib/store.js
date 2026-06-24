@@ -125,7 +125,39 @@ export const useStreamStore = create((set, get) => ({
   clearPostDetail: () => set({ postDetail: null, postDetailError: null }),
 
   addReply: async (token, { postId, parentReplyId, teks }) => {
-    await streamApi.addReply(token, { postId, parentReplyId, teks })
+    const res = await streamApi.addReply(token, { postId, parentReplyId, teks })
+    const newReply = res?.data
+
+    // Kalau backend mengembalikan reply lengkap (ada id), sisipkan langsung
+    // ke postDetail tanpa nunggu round-trip loadPostDetail lagi -> lebih responsif.
+    if (newReply?.id) {
+      set(s => {
+        if (!s.postDetail || s.postDetail.id !== postId) return {}
+
+        // Pastikan shape-nya konsisten dengan reply lain (replies: [] kalau belum ada)
+        const normalized = { replies: [], liked: false, likesCount: 0, ...newReply }
+
+        if (!parentReplyId) {
+          return { postDetail: { ...s.postDetail, replies: [...(s.postDetail.replies || []), normalized] } }
+        }
+
+        function insertNested(nodes) {
+          return nodes.map(node => {
+            if (node.id === parentReplyId) {
+              return { ...node, replies: [...(node.replies || []), normalized] }
+            }
+            if (node.replies?.length) {
+              return { ...node, replies: insertNested(node.replies) }
+            }
+            return node
+          })
+        }
+        return { postDetail: { ...s.postDetail, replies: insertNested(s.postDetail.replies || []) } }
+      })
+      return newReply
+    }
+
+    // Fallback: backend tidak mengembalikan data reply lengkap -> refetch seperti semula
     await get().loadPostDetail(token, postId)
   },
 
@@ -207,4 +239,3 @@ export const useStreamStore = create((set, get) => ({
 
   clear: () => set({ feed: [], feedLoading: false, feedError: null, activeTag: null, searchQuery: '', postDetail: null, postDetailLoading: false, postDetailError: null, dmThreads: [], dmThreadsLoading: false, activeThreadId: null, dmMessages: [], dmMessagesLoading: false, notifs: [], notifsLoading: false, unreadNotifCount: 0 }),
 }))
-
