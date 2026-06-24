@@ -117,6 +117,14 @@ function shortRupiah(value) {
   return `Rp ${Math.round(value)}`
 }
 
+// FIX 1: merge helper — selalu render semua slot skeleton, isi yang kosong dengan total: 0
+function mergeWithSkeleton(data, skeleton) {
+  return skeleton.map(s => {
+    const found = data.find(d => d.label === s.label)
+    return found ? { ...s, ...found } : { ...s, total: 0 }
+  })
+}
+
 const WEEKLY_SKELETON = [
   { label: 'W1', total: 0 }, { label: 'W2', total: 0 },
   { label: 'W3', total: 0 }, { label: 'W4', total: 0 },
@@ -290,20 +298,14 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
 
+  // FIX 1 applied: selalu merge dengan skeleton supaya semua slot selalu render
   const chartData = useMemo(() => {
     if (period === 'minggu') {
       const grouped = groupByWeek(revenueHarian)
-      if (grouped.length > 0) return grouped
-      const result = []
-      for (let i = 0; i < revenueHarian.length; i += 7) {
-        const chunk = revenueHarian.slice(i, i + 7)
-        const total = chunk.reduce((s, d) => s + (d.total || 0), 0)
-        result.push({ label: `W${result.length + 1}`, total })
-      }
-      return result.length > 0 ? result : WEEKLY_SKELETON
+      return mergeWithSkeleton(grouped, WEEKLY_SKELETON)
     }
     const bulanan = (revenueBulanan || []).map(d => ({ ...d, label: shortenMonthLabel(d.label) }))
-    return bulanan.length > 0 ? bulanan : MONTHLY_SKELETON
+    return mergeWithSkeleton(bulanan, MONTHLY_SKELETON)
   }, [period, revenueHarian, revenueBulanan])
 
   const maxRevenue = Math.max(...chartData.map(d => d.total || 0), 0)
@@ -367,7 +369,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
         {/* Kolom 1: Revenue card */}
         <div className="glass-card" style={{ padding: '20px', minWidth: 0, overflow: 'hidden' }}>
 
-          {/* Header: label + toggle */}
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
             <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Revenue
@@ -388,7 +389,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
             </div>
           </div>
 
-          {/* Revenue amount + badge */}
           <div style={{ marginBottom: 14 }}>
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.1 }}>
               {formatRupiah(revenueUtama)}
@@ -409,10 +409,8 @@ function AnalyticsContent({ data, period, setPeriod }) {
             </div>
           </div>
 
-          {/* Bar chart — selalu render, skeleton jika data kosong */}
           <BarChartRevenue data={chartData} maxVal={maxRevenue} period={period} />
 
-          {/* 4 KPI chips */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
             <SummaryChip label="Rata-rata" value={shortRupiah(Math.round(rataRata))} />
             <SummaryChip label="Tertinggi" value={shortRupiah(maxRevenue)} color="#fbbf24" />
@@ -521,7 +519,6 @@ function BarChartRevenue({ data, maxVal, period }) {
   const allZero = maxVal === 0
   const yMax = maxVal > 0 ? maxVal * 1.1 : 1
 
-  // Mobile-friendly sizing
   const BAR_W = isMonthly ? 28 : 0
   const BAR_GAP = isMonthly ? 8 : 8
   const CHART_H = 120
@@ -563,7 +560,6 @@ function BarChartRevenue({ data, maxVal, period }) {
 
   return (
     <div style={{ width: '100%', minWidth: 0, overflow: 'hidden' }}>
-      {/* Scrollable bars — overflow hidden di luar biar card gak melebar */}
       <div
         ref={scrollRef}
         onMouseDown={handleMouseDown}
@@ -578,6 +574,8 @@ function BarChartRevenue({ data, maxVal, period }) {
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
           cursor: isMonthly ? 'grab' : 'default',
+          // FIX 2: cegah scroll halaman saat swipe horizontal di dalam chart
+          touchAction: isMonthly ? 'pan-x' : 'auto',
         }}
       >
         <div style={{
@@ -591,16 +589,20 @@ function BarChartRevenue({ data, maxVal, period }) {
         }}>
           {data.map((d, i) => {
             const total = d.total || 0
-            const heightPct = total === 0
-              ? (allZero ? 35 : 4)
+            const isEmpty = total === 0
+
+            // FIX 3: ghost bar untuk slot kosong — tinggi minimal, warna transparan
+            const heightPct = isEmpty
+              ? 8
               : Math.max((total / yMax) * 100, 6)
+
             const isBarHighest = !allZero && total === maxVal && total > 0
             const isSelected = selected === i
             const dimmed = selected !== null && !isSelected
 
             let barBg
-            if (isSelected) barBg = '#7da4ff'
-            else if (total === 0) barBg = allZero ? 'rgba(91,138,245,0.15)' : 'rgba(255,255,255,0.06)'
+            if (isSelected && !isEmpty) barBg = '#7da4ff'
+            else if (isEmpty) barBg = 'rgba(91,138,245,0.12)' // ghost bar — transparan konsisten
             else if (isBarHighest) barBg = 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
             else barBg = 'linear-gradient(180deg, #5b8af5 0%, #3d6de0 100%)'
 
@@ -634,14 +636,14 @@ function BarChartRevenue({ data, maxVal, period }) {
                   borderRadius: '4px 4px 2px 2px',
                   background: barBg,
                   transition: 'height 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.2s',
-                  boxShadow: isSelected
+                  boxShadow: isSelected && !isEmpty
                     ? '0 0 10px rgba(125,164,255,0.5)'
                     : isBarHighest
                       ? '0 0 8px rgba(251,191,36,0.35)'
                       : 'none',
                   position: 'relative',
                 }}>
-                  {isSelected && (
+                  {isSelected && !isEmpty && (
                     <div style={{
                       position: 'absolute', top: -5, left: '50%',
                       transform: 'translateX(-50%)',
@@ -654,12 +656,12 @@ function BarChartRevenue({ data, maxVal, period }) {
                 <span style={{
                   fontSize: isMonthly ? 8 : 10,
                   lineHeight: 1,
-                  color: isSelected
+                  color: isSelected && !isEmpty
                     ? 'var(--text-primary)'
                     : isBarHighest
                       ? '#fbbf24'
                       : 'var(--text-tertiary)',
-                  fontWeight: isSelected || isBarHighest ? 700 : 400,
+                  fontWeight: (isSelected && !isEmpty) || isBarHighest ? 700 : 400,
                   userSelect: 'none',
                   letterSpacing: 0.2,
                 }}>
@@ -745,11 +747,11 @@ function AIInsightCard({ data }) {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-  if (data) {
-    const t = setTimeout(() => generateInsight(), 800)
-    return () => clearTimeout(t)
-  }
-}, [data])
+    if (data) {
+      const t = setTimeout(() => generateInsight(), 800)
+      return () => clearTimeout(t)
+    }
+  }, [data])
 
   const generateInsight = async () => {
     setLoading(true)
