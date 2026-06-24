@@ -128,7 +128,7 @@ export default function LoginPage() {
           </div>
 
           <h1 style={{ fontFamily: PJS, fontWeight: 800, fontSize: '1.6rem', marginBottom: 8 }}>
-            Masuk ke exora
+            Masuk ke EXORA
           </h1>
           <p style={{ fontFamily: PJS, color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 36, lineHeight: 1.6, textAlign: 'center' }}>
             Login dengan akun Google untuk mulai membuka toko online kamu
