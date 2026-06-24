@@ -6,6 +6,8 @@ import {
 } from 'lucide-react'
 import DashboardLayout from './DashboardLayout.jsx'
 import StreamImageUpload from './StreamImageUpload.jsx'
+import { useRealtimeReplies } from '../../hooks/useRealtimeReplies'
+import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
 import { useAuthStore, useTokoStore, useStreamStore } from '../../lib/store.js'
 import { isPro, getStorefrontUrl, getInitials } from '../../lib/utils.js'
 import toast from 'react-hot-toast'
@@ -102,10 +104,6 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
 // ================================================
 export default function StreamPage() {
   const { user, token } = useAuthStore()
-  // toko + load: load dipanggil di useEffect mount supaya isMine (icon hapus)
-  // gak bergantung ke page lain. Sebelum ini toko store gak pernah di-load
-  // di App.jsx / DashboardLayout / Sidebar, jadi pas refresh langsung di
-  // /dashboard/stream, toko = null -> myTokoId undefined -> isMine selalu false.
   const { toko, load: loadToko } = useTokoStore()
   const tokenObj = token
   const pro = isPro(user)
@@ -123,13 +121,15 @@ export default function StreamPage() {
     loadNotifs, markNotifsRead,
   } = useStreamStore()
 
+  // Realtime notifications
+  const { unreadCount: realtimeUnread, markRead: realtimeMarkRead } = useRealtimeNotifications(toko?.id)
+
   const [view, setView] = useState('feed')
   const [searchMode, setSearchMode] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [composing, setComposing] = useState(false)
   const [replyTarget, setReplyTarget] = useState(null)
   const [notifOpen, setNotifOpen] = useState(false)
-  // State untuk delete modal: null atau postId yang mau dihapus
   const [deleteTarget, setDeleteTarget] = useState(null)
 
   // Load feed + notif count + toko (punya sendiri) saat mount
@@ -190,6 +190,7 @@ export default function StreamPage() {
 
   const openNotif = async () => {
     setNotifOpen(v => !v)
+    realtimeMarkRead() // reset realtime counter
     await loadNotifs(tokenObj)
     markNotifsRead(tokenObj)
   }
@@ -219,12 +220,10 @@ export default function StreamPage() {
     setComposing(true)
   }
 
-  // Tampilkan custom modal konfirmasi hapus
   const handleDeletePost = (postId) => {
     setDeleteTarget(postId)
   }
 
-  // Eksekusi hapus setelah konfirmasi di modal
   const confirmDelete = async () => {
     const postId = deleteTarget
     setDeleteTarget(null)
@@ -351,7 +350,7 @@ export default function StreamPage() {
                 <IconBtn onClick={openDmList}><Mail size={15} /></IconBtn>
                 {/* Wrapper relative supaya dropdown notif nempel pas di bawah icon bell */}
                 <div style={{ position: 'relative' }}>
-                  <IconBtn onClick={openNotif} badge={unreadNotifCount}><Bell size={15} /></IconBtn>
+                  <IconBtn onClick={openNotif} badge={unreadNotifCount + realtimeUnread}><Bell size={15} /></IconBtn>
                   {notifOpen && (
                     <NotifDropdown
                       notifs={notifs}
@@ -479,10 +478,7 @@ export default function StreamPage() {
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
-  // Cast ke string agar tidak ada mismatch number vs string
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
-  // Fallback: kalau API belum ngirim previewReplies, pakai 2 reply pertama dari `replies`
-  // (kalau ada) supaya komentar tetap kelihatan di feed, bukan cuma pas masuk detail post.
   const previewReplies = post.previewReplies?.length
     ? post.previewReplies
     : (post.replies || []).slice(0, 2)
@@ -624,6 +620,9 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
 // POST DETAIL VIEW
 // ================================================
 function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete }) {
+  // Realtime replies — hook dipanggil selalu (rules of hooks), hasilnya dipakai di bawah
+  const { replies: liveReplies } = useRealtimeReplies(post?.id, post?.replies || [])
+
   if (loading || !post) {
     return (
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -656,7 +655,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-tertiary)', display: 'flex', padding: 4,
-                  borderRadius: 'var(--radius-md)', flexShrink: 0, 
+                  borderRadius: 'var(--radius-md)', flexShrink: 0,
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
@@ -674,7 +673,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
             <strong style={{ color: 'var(--text-secondary)' }}>{post.likesCount}</strong> suka · <strong style={{ color: 'var(--text-secondary)' }}>{post.repostsCount}</strong> repost
           </div>
           <PostActions
-            likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={countReplies(post.replies)}
+            likesCount={post.likesCount} repostsCount={post.repostsCount} repliesCount={countReplies(liveReplies)}
             liked={post.liked} reposted={post.reposted} bookmarked={post.bookmarked}
             commentsOpen={true}
             onLike={() => onLike('post', post.id)}
@@ -688,7 +687,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
       </div>
 
       <div style={{ paddingBottom: 100 }}>
-        {(post.replies || []).map(r => (
+        {liveReplies.map(r => (
           <ReplyThread
             key={r.id}
             reply={r}
@@ -865,7 +864,8 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
       setSubmitting(false)
     }
   }
-const handlePostType = (pt) => {
+
+  const handlePostType = (pt) => {
     const prev = POST_TYPES.find(p => p.value === postType)
     let next = teks
     if (prev) next = next.replace(new RegExp(`\\s*${prev.hashtag}\\b`, 'i'), '').trim()
@@ -877,6 +877,7 @@ const handlePostType = (pt) => {
       setTeks(next ? `${next} ${pt.hashtag}` : pt.hashtag)
     }
   }
+
   return (
     <Sheet onClose={onClose} title="Buat Post">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
@@ -899,23 +900,23 @@ const handlePostType = (pt) => {
         ))}
       </div>
       {postType && (() => {
-  const selected = POST_TYPES.find(p => p.value === postType)
-  const isPublic = selected?.public
-  return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 6,
-      background: isPublic ? 'rgba(52,211,153,0.1)' : 'var(--surface)',
-      border: `1px solid ${isPublic ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
-      borderRadius: 'var(--radius-md)', padding: '7px 11px', marginBottom: 12,
-      fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600,
-      color: isPublic ? 'var(--success, #34d399)' : 'var(--text-tertiary)',
-    }}>
-      {isPublic
-        ? '🌐 Post ini tampil di Showcase publik — buyer non-login bisa lihat'
-        : '🔒 Post ini cuma kelihatan sesama seller di komunitas'}
-    </div>
-  )
-})()}
+        const selected = POST_TYPES.find(p => p.value === postType)
+        const isPublic = selected?.public
+        return (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: isPublic ? 'rgba(52,211,153,0.1)' : 'var(--surface)',
+            border: `1px solid ${isPublic ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
+            borderRadius: 'var(--radius-md)', padding: '7px 11px', marginBottom: 12,
+            fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600,
+            color: isPublic ? 'var(--success, #34d399)' : 'var(--text-tertiary)',
+          }}>
+            {isPublic
+              ? '🌐 Post ini tampil di Showcase publik — buyer non-login bisa lihat'
+              : '🔒 Post ini cuma kelihatan sesama seller di komunitas'}
+          </div>
+        )
+      })()}
       <textarea
         value={teks}
         onChange={e => setTeks(e.target.value)}
@@ -1003,9 +1004,7 @@ function ReplySheet({ target, onClose, onSubmit }) {
 }
 
 // ================================================
-// NOTIF DROPDOWN (ganti dari NotifSheet bottom-sheet)
-// Nempel persis di bawah icon bell (absolute, anchor ke parent relative wrapper),
-// nutup otomatis kalau klik di luar area dropdown.
+// NOTIF DROPDOWN
 // ================================================
 function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
   const ICON = { like: '❤️', reply: '💬', repost: '🔁', dm: '✉️' }
