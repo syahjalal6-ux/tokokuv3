@@ -599,8 +599,7 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
 // POST DETAIL VIEW
 // ================================================
 function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete }) {
-  const { replies: liveReplies } = useRealtimeReplies(post?.id, post?.replies || [])
-
+  const liveReplies = post?.replies || []
   if (loading || !post) {
     return (
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
