@@ -120,7 +120,6 @@ export default function StreamPage() {
     loadNotifs, markNotifsRead,
   } = useStreamStore()
 
-  // Realtime notifications
   const { unreadCount: realtimeUnread, markRead: realtimeMarkRead } = useRealtimeNotifications(toko?.id)
 
   const [view, setView] = useState('feed')
@@ -131,16 +130,13 @@ export default function StreamPage() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
 
-  // Load feed + notif count + toko (punya sendiri) saat mount
   useEffect(() => {
     loadFeed(tokenObj, {})
     loadNotifs(tokenObj)
     if (!toko) loadToko(tokenObj)
   }, [])
 
-  const requirePro = () => {
-    toast.error('Fitur ini khusus seller Pro')
-  }
+  const requirePro = () => toast.error('Fitur ini khusus seller Pro')
 
   const handleTag = (tag) => {
     setActiveTag(activeTag === tag ? null : tag)
@@ -189,7 +185,7 @@ export default function StreamPage() {
 
   const openNotif = async () => {
     setNotifOpen(v => !v)
-    realtimeMarkRead() // reset realtime counter
+    realtimeMarkRead()
     await loadNotifs(tokenObj)
     markNotifsRead(tokenObj)
   }
@@ -211,7 +207,6 @@ export default function StreamPage() {
 
   const handleReply = (postId, parentReplyId, parentTokoNama) => {
     if (!pro) return requirePro()
-    toast('DEBUG: tombol Balas diklik, sheet dibuka', { icon: '🟦', duration: 4000 })
     setReplyTarget({ postId, parentReplyId, parentTokoNama })
   }
 
@@ -220,9 +215,7 @@ export default function StreamPage() {
     setComposing(true)
   }
 
-  const handleDeletePost = (postId) => {
-    setDeleteTarget(postId)
-  }
+  const handleDeletePost = (postId) => setDeleteTarget(postId)
 
   const confirmDelete = async () => {
     const postId = deleteTarget
@@ -230,29 +223,22 @@ export default function StreamPage() {
     try {
       await deletePost(tokenObj, postId)
       toast.success('Post berhasil dihapus')
-      if (view === 'post-detail') {
-        setView('feed')
-      }
+      if (view === 'post-detail') setView('feed')
     } catch (err) {
       toast.error(err.message || 'Gagal menghapus post')
     }
   }
 
-  // Submit reply terpusat, dipakai baik di feed maupun post-detail.
-  // Dibungkus toast manual supaya keliatan TANPA buka console DevTools.
   const handleSubmitReply = async (teks) => {
-    toast('DEBUG: mulai kirim, target=' + JSON.stringify(replyTarget), { icon: '🟨', duration: 6000 })
     try {
-      const result = await addReply(tokenObj, {
+      await addReply(tokenObj, {
         postId: replyTarget.postId,
         parentReplyId: replyTarget.parentReplyId,
         teks,
       })
-      toast('DEBUG: SUKSES, result=' + JSON.stringify(result), { icon: '🟩', duration: 8000 })
       setReplyTarget(null)
       toast.success('Balasan terkirim')
     } catch (err) {
-      toast('DEBUG: GAGAL -> ' + (err?.message || String(err)), { icon: '🟥', duration: 8000 })
       toast.error(err.message || 'Gagal membalas')
     }
   }
@@ -277,11 +263,7 @@ export default function StreamPage() {
   if (view === 'dm-list') {
     return (
       <DashboardLayout>
-        <DmListView
-          threads={dmThreads}
-          onBack={backToFeed}
-          onOpen={openThread}
-        />
+        <DmListView threads={dmThreads} onBack={backToFeed} onOpen={openThread} />
       </DashboardLayout>
     )
   }
@@ -325,7 +307,6 @@ export default function StreamPage() {
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
-        {/* Header */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           background: 'var(--bg-secondary)',
@@ -359,7 +340,6 @@ export default function StreamPage() {
                 <h1 style={{ flex: 1, fontFamily: PJS, fontSize: '1.1rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>Stream</h1>
                 <IconBtn onClick={() => setSearchMode(true)}><Search size={15} /></IconBtn>
                 <IconBtn onClick={openDmList}><Mail size={15} /></IconBtn>
-                {/* Wrapper relative supaya dropdown notif nempel pas di bawah icon bell */}
                 <div style={{ position: 'relative' }}>
                   <IconBtn onClick={openNotif} badge={unreadNotifCount + realtimeUnread}><Bell size={15} /></IconBtn>
                   {notifOpen && (
@@ -396,7 +376,6 @@ export default function StreamPage() {
           </div>
         )}
 
-        {/* Feed list */}
         <div style={{ paddingBottom: 100 }}>
           {feedLoading && (
             <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
@@ -427,7 +406,6 @@ export default function StreamPage() {
           ))}
         </div>
 
-        {/* FAB */}
         <button
           onClick={handleCompose}
           style={{
@@ -477,7 +455,7 @@ export default function StreamPage() {
 }
 
 // ================================================
-// POST CARD (feed item)
+// POST CARD
 // ================================================
 function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
@@ -505,8 +483,7 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-tertiary)', display: 'flex', padding: 4,
-                  borderRadius: 'var(--radius-md)',
-                  transition: 'color 0.15s', flexShrink: 0,
+                  borderRadius: 'var(--radius-md)', transition: 'color 0.15s', flexShrink: 0,
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
@@ -578,7 +555,6 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
 
 function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, onDm }) {
   const t = reply.toko
-  const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   const hasChildren = (reply.replies || []).length > 0
 
   return (
@@ -623,7 +599,6 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
 // POST DETAIL VIEW
 // ================================================
 function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete }) {
-  // Realtime replies — hook dipanggil selalu (rules of hooks), hasilnya dipakai di bawah
   const { replies: liveReplies } = useRealtimeReplies(post?.id, post?.replies || [])
 
   if (loading || !post) {
@@ -1015,9 +990,7 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
 
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) {
-        onClose()
-      }
+      if (ref.current && !ref.current.contains(e.target)) onClose()
     }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
@@ -1031,26 +1004,14 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
   const labelFor = (n) => {
     const name = n.actor?.nama || 'Seller'
     switch (n.type) {
-      case 'like':
-        return n.postExcerpt
-          ? `${name} menyukai postmu: "${n.postExcerpt}"`
-          : `${name} menyukai postmu`
+      case 'like': return n.postExcerpt ? `${name} menyukai postmu: "${n.postExcerpt}"` : `${name} menyukai postmu`
       case 'reply':
-        if (n.replyExcerpt && n.postExcerpt) {
-          return `${name} membalas postmu "${n.postExcerpt}": "${n.replyExcerpt}"`
-        }
-        if (n.replyExcerpt) {
-          return `${name} membalas: "${n.replyExcerpt}"`
-        }
+        if (n.replyExcerpt && n.postExcerpt) return `${name} membalas postmu "${n.postExcerpt}": "${n.replyExcerpt}"`
+        if (n.replyExcerpt) return `${name} membalas: "${n.replyExcerpt}"`
         return `${name} membalas postmu`
-      case 'repost':
-        return n.postExcerpt
-          ? `${name} merepost postmu: "${n.postExcerpt}"`
-          : `${name} merepost postmu`
-      case 'dm':
-        return `${name} mengirim pesan baru`
-      default:
-        return name
+      case 'repost': return n.postExcerpt ? `${name} merepost postmu: "${n.postExcerpt}"` : `${name} merepost postmu`
+      case 'dm': return `${name} mengirim pesan baru`
+      default: return name
     }
   }
 
@@ -1062,22 +1023,13 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
         width: 320, maxWidth: '90vw', maxHeight: 420, overflowY: 'auto',
         background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
         borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.35))',
-        padding: '10px',
-        animation: 'notifDropIn 0.15s ease',
+        padding: '10px', animation: 'notifDropIn 0.15s ease',
       }}
     >
-      <style>{`
-        @keyframes notifDropIn { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: translateY(0) } }
-      `}</style>
+      <style>{`@keyframes notifDropIn { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: translateY(0) } }`}</style>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 10px', borderBottom: '1px solid var(--glass-border)', marginBottom: 6 }}>
         <span style={{ fontFamily: PJS, fontSize: '0.85rem', fontWeight: 800 }}>Notifikasi</span>
-        <button
-          onClick={onClose}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            color: 'var(--text-tertiary)', display: 'flex', padding: 2,
-          }}
-        >
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}>
           <X size={14} />
         </button>
       </div>
@@ -1113,7 +1065,7 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
 }
 
 // ================================================
-// SHARED UI PIECES
+// SHARED UI
 // ================================================
 function Sheet({ children, onClose, title }) {
   return (
@@ -1122,8 +1074,7 @@ function Sheet({ children, onClose, title }) {
       style={{
         position: 'fixed', inset: 0, zIndex: 700,
         background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
-        display: 'flex', alignItems: 'flex-end',
-        animation: 'fadeIn 0.2s ease',
+        display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease',
       }}
     >
       <div
@@ -1179,18 +1130,11 @@ function DetailHeader({ title, onBack, avatar }) {
 
 function SellerAvatar({ toko, size = 40 }) {
   if (toko?.logo) {
-    return (
-      <img
-        src={toko.logo}
-        alt={toko.nama}
-        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
-      />
-    )
+    return <img src={toko.logo} alt={toko.nama} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
   }
   return (
     <div style={{
-      width: size, height: size, borderRadius: '50%',
-      background: 'var(--accent-gradient)',
+      width: size, height: size, borderRadius: '50%', background: 'var(--accent-gradient)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: PJS, fontSize: size * 0.32, fontWeight: 800, color: '#fff', flexShrink: 0,
     }}>
@@ -1201,12 +1145,7 @@ function SellerAvatar({ toko, size = 40 }) {
 
 function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
   const url = toko?.slug ? getStorefrontUrl(toko.slug) : null
-  const style = {
-    fontFamily: PJS, fontSize, fontWeight,
-    color: 'var(--text-primary)',
-    textDecoration: 'none',
-    cursor: url ? 'pointer' : 'default',
-  }
+  const style = { fontFamily: PJS, fontSize, fontWeight, color: 'var(--text-primary)', textDecoration: 'none', cursor: url ? 'pointer' : 'default' }
   if (url) {
     return (
       <a href={url} target="_blank" rel="noreferrer" style={style}
@@ -1221,11 +1160,7 @@ function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
 }
 
 function ProBadge({ small }) {
-  return (
-    <span className="badge badge-pro" style={{ fontSize: small ? '0.55rem' : '0.6rem', padding: '1px 6px' }}>
-      ⭐ Pro
-    </span>
-  )
+  return <span className="badge badge-pro" style={{ fontSize: small ? '0.55rem' : '0.6rem', padding: '1px 6px' }}>⭐ Pro</span>
 }
 
 function PostTypeBadge({ type }) {
@@ -1329,10 +1264,7 @@ function PostImages({ images }) {
   return (
     <>
       {images.length === 1 ? (
-        <div
-          onClick={() => setLightboxIdx(0)}
-          style={{ position: 'relative', marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)', cursor: 'pointer' }}
-        >
+        <div onClick={() => setLightboxIdx(0)} style={{ position: 'relative', marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)', cursor: 'pointer' }}>
           <img src={images[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
           <ZoomBadge />
         </div>
@@ -1346,22 +1278,14 @@ function PostImages({ images }) {
           ))}
         </div>
       )}
-
-      {lightboxIdx !== null && (
-        <ImageLightbox images={images} index={lightboxIdx} onClose={() => setLightboxIdx(null)} />
-      )}
+      {lightboxIdx !== null && <ImageLightbox images={images} index={lightboxIdx} onClose={() => setLightboxIdx(null)} />}
     </>
   )
 }
 
 function ZoomBadge() {
   return (
-    <div style={{
-      position: 'absolute', bottom: 8, right: 8,
-      width: 28, height: 28, borderRadius: 'var(--radius-full)',
-      background: 'rgba(0,0,0,0.5)', display: 'flex',
-      alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
-    }}>
+    <div style={{ position: 'absolute', bottom: 8, right: 8, width: 28, height: 28, borderRadius: 'var(--radius-full)', background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
       <Maximize2 size={13} color="#fff" />
     </div>
   )
@@ -1381,63 +1305,20 @@ function ImageLightbox({ images, index, onClose }) {
   }, [images.length, onClose])
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 1000,
-        background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        animation: 'fadeIn 0.15s ease',
-      }}
-    >
-      <button
-        onClick={onClose}
-        style={{
-          position: 'absolute', top: 16, right: 16, width: 38, height: 38,
-          borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.2)', display: 'flex',
-          alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2,
-        }}
-      >
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.15s ease' }}>
+      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
         <X size={18} color="#fff" />
       </button>
-
-      <img
-        src={images[current]}
-        alt=""
-        onClick={e => e.stopPropagation()}
-        style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }}
-      />
-
+      <img src={images[current]} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }} />
       {images.length > 1 && (
         <>
-          <button
-            onClick={e => { e.stopPropagation(); setCurrent(c => (c - 1 + images.length) % images.length) }}
-            style={{
-              position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)',
-              width: 40, height: 40, borderRadius: 'var(--radius-full)',
-              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
-          >
+          <button onClick={e => { e.stopPropagation(); setCurrent(c => (c - 1 + images.length) % images.length) }} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <ChevronLeft size={20} color="#fff" />
           </button>
-          <button
-            onClick={e => { e.stopPropagation(); setCurrent(c => (c + 1) % images.length) }}
-            style={{
-              position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)',
-              width: 40, height: 40, borderRadius: 'var(--radius-full)',
-              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}
-          >
+          <button onClick={e => { e.stopPropagation(); setCurrent(c => (c + 1) % images.length) }} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
             <ChevronRight size={20} color="#fff" />
           </button>
-          <div style={{
-            position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)',
-            color: '#fff', fontFamily: PJS, fontSize: '0.75rem', background: 'rgba(0,0,0,0.4)',
-            padding: '4px 12px', borderRadius: 'var(--radius-full)',
-          }}>
+          <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: '#fff', fontFamily: PJS, fontSize: '0.75rem', background: 'rgba(0,0,0,0.4)', padding: '4px 12px', borderRadius: 'var(--radius-full)' }}>
             {current + 1} / {images.length}
           </div>
         </>
@@ -1448,20 +1329,8 @@ function ImageLightbox({ images, index, onClose }) {
 
 function ShopLinkCard({ link }) {
   return (
-    <a
-      href={getStorefrontUrl(link.slug)}
-      target="_blank"
-      rel="noreferrer"
-      style={{
-        width: '100%', marginBottom: 10, background: 'var(--surface)', border: '1px solid var(--glass-border)',
-        borderRadius: 'var(--radius-lg)', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 10,
-        textDecoration: 'none', boxSizing: 'border-box',
-      }}
-    >
-      <div style={{
-        width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'var(--accent-gradient)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-      }}>
+    <a href={getStorefrontUrl(link.slug)} target="_blank" rel="noreferrer" style={{ width: '100%', marginBottom: 10, background: 'var(--surface)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-lg)', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', boxSizing: 'border-box' }}>
+      <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Store size={16} color="#fff" />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -1480,14 +1349,7 @@ function HashtagPills({ tags, onTag }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
       {tags.map(tag => (
-        <span
-          key={tag}
-          onClick={() => onTag(tag)}
-          style={{
-            fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer',
-            background: 'var(--accent-gradient-soft)', border: '1px solid var(--glass-border)', padding: '3px 9px', borderRadius: 'var(--radius-md)',
-          }}
-        >{tag}</span>
+        <span key={tag} onClick={() => onTag(tag)} style={{ fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer', background: 'var(--accent-gradient-soft)', border: '1px solid var(--glass-border)', padding: '3px 9px', borderRadius: 'var(--radius-md)' }}>{tag}</span>
       ))}
     </div>
   )
