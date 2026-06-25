@@ -53,7 +53,6 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
           @keyframes scaleIn { from { transform: scale(0.92); opacity: 0 } to { transform: scale(1); opacity: 1 } }
           @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
         `}</style>
-        {/* Ikon */}
         <div style={{
           width: 48, height: 48, borderRadius: 'var(--radius-full)',
           background: 'rgba(239,68,68,0.12)',
@@ -212,6 +211,7 @@ export default function StreamPage() {
 
   const handleReply = (postId, parentReplyId, parentTokoNama) => {
     if (!pro) return requirePro()
+    toast('DEBUG: tombol Balas diklik, sheet dibuka', { icon: '🟦', duration: 4000 })
     setReplyTarget({ postId, parentReplyId, parentTokoNama })
   }
 
@@ -235,6 +235,25 @@ export default function StreamPage() {
       }
     } catch (err) {
       toast.error(err.message || 'Gagal menghapus post')
+    }
+  }
+
+  // Submit reply terpusat, dipakai baik di feed maupun post-detail.
+  // Dibungkus toast manual supaya keliatan TANPA buka console DevTools.
+  const handleSubmitReply = async (teks) => {
+    toast('DEBUG: mulai kirim, target=' + JSON.stringify(replyTarget), { icon: '🟨', duration: 6000 })
+    try {
+      const result = await addReply(tokenObj, {
+        postId: replyTarget.postId,
+        parentReplyId: replyTarget.parentReplyId,
+        teks,
+      })
+      toast('DEBUG: SUKSES, result=' + JSON.stringify(result), { icon: '🟩', duration: 8000 })
+      setReplyTarget(null)
+      toast.success('Balasan terkirim')
+    } catch (err) {
+      toast('DEBUG: GAGAL -> ' + (err?.message || String(err)), { icon: '🟥', duration: 8000 })
+      toast.error(err.message || 'Gagal membalas')
     }
   }
 
@@ -289,15 +308,7 @@ export default function StreamPage() {
           <ReplySheet
             target={replyTarget}
             onClose={() => setReplyTarget(null)}
-            onSubmit={async (teks) => {
-              try {
-                await addReply(tokenObj, { postId: replyTarget.postId, parentReplyId: replyTarget.parentReplyId, teks })
-                setReplyTarget(null)
-                toast.success('Balasan terkirim')
-              } catch (err) {
-                toast.error(err.message || 'Gagal membalas')
-              }
-            }}
+            onSubmit={handleSubmitReply}
           />
         )}
         {deleteTarget && (
@@ -450,15 +461,7 @@ export default function StreamPage() {
           <ReplySheet
             target={replyTarget}
             onClose={() => setReplyTarget(null)}
-            onSubmit={async (teks) => {
-              try {
-                await addReply(tokenObj, { postId: replyTarget.postId, parentReplyId: replyTarget.parentReplyId, teks })
-                setReplyTarget(null)
-                toast.success('Balasan terkirim')
-              } catch (err) {
-                toast.error(err.message || 'Gagal membalas')
-              }
-            }}
+            onSubmit={handleSubmitReply}
           />
         )}
         {deleteTarget && (
@@ -1496,7 +1499,7 @@ function HashtagPills({ tags, onTag }) {
 function timeAgo(dateStr) {
   if (!dateStr) return ''
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60) return `${diff}d`
+  if (diff < 60) return `${diff}dtk`
   if (diff < 3600) return `${Math.floor(diff / 60)}m`
   if (diff < 86400) return `${Math.floor(diff / 3600)}j`
   return `${Math.floor(diff / 86400)}h`
