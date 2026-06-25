@@ -115,14 +115,11 @@ export const useStreamStore = create((set, get) => ({
   },
 
   loadPostDetail: async (token, postId) => {
-    console.log('[DEBUG] loadPostDetail DIPANGGIL untuk postId:', postId)
     set({ postDetailLoading: true, postDetailError: null })
     try {
       const res = await streamApi.getPostDetail(token, postId)
-      console.log('[DEBUG] loadPostDetail SUKSES, replies count:', res.data?.replies?.length)
       set({ postDetail: res.data, postDetailLoading: false })
     } catch (err) {
-      console.error('[DEBUG] loadPostDetail GAGAL:', err)
       set({ postDetailError: err.message, postDetailLoading: false })
     }
   },
@@ -130,57 +127,63 @@ export const useStreamStore = create((set, get) => ({
   clearPostDetail: () => set({ postDetail: null, postDetailError: null }),
 
   addReply: async (token, { postId, parentReplyId, teks }) => {
-    console.log('[DEBUG] addReply DIPANGGIL', { postId, parentReplyId, teks })
     let res
     try {
       res = await streamApi.addReply(token, { postId, parentReplyId, teks })
-      console.log('[DEBUG] streamApi.addReply RESPONSE:', res)
     } catch (err) {
-      console.error('[DEBUG] streamApi.addReply GAGAL/THROW:', err)
       throw err
     }
+
     const newReply = res?.data
-    console.log('[DEBUG] newReply extracted:', newReply, '| has id?', !!newReply?.id)
-
-    // Kalau backend mengembalikan reply lengkap (ada id), sisipkan langsung
-    // ke postDetail tanpa nunggu round-trip loadPostDetail lagi -> lebih responsif.
-    if (newReply?.id) {
-      set(s => {
-        console.log('[DEBUG] cek postDetail di store. s.postDetail?.id:', s.postDetail?.id, '| postId param:', postId, '| match?', s.postDetail?.id === postId)
-        if (!s.postDetail || s.postDetail.id !== postId) {
-          console.warn('[DEBUG] !!! postDetail.id TIDAK MATCH dengan postId, optimistic insert DIBATALKAN (kemungkinan mismatch tipe data string vs number)')
-          return {}
-        }
-
-        const normalized = { replies: [], liked: false, likesCount: 0, ...newReply }
-
-        if (!parentReplyId) {
-          console.log('[DEBUG] insert sebagai root reply')
-          return { postDetail: { ...s.postDetail, replies: [...(s.postDetail.replies || []), normalized] } }
-        }
-
-        function insertNested(nodes) {
-          return nodes.map(node => {
-            if (node.id === parentReplyId) {
-              return { ...node, replies: [...(node.replies || []), normalized] }
-            }
-            if (node.replies?.length) {
-              return { ...node, replies: insertNested(node.replies) }
-            }
-            return node
-          })
-        }
-        console.log('[DEBUG] insert sebagai nested reply ke parentReplyId:', parentReplyId)
-        return { postDetail: { ...s.postDetail, replies: insertNested(s.postDetail.replies || []) } }
-      })
-      console.log('[DEBUG] addReply SELESAI lewat jalur optimistic insert')
-      return newReply
+    if (!newReply?.id) {
+      // Fallback: backend tidak return reply lengkap
+      await get().loadPostDetail(token, postId)
+      return
     }
 
-    // Fallback: backend tidak mengembalikan data reply lengkap -> refetch seperti semula
-    console.log('[DEBUG] newReply tidak punya id, fallback ke loadPostDetail')
-    await get().loadPostDetail(token, postId)
-    console.log('[DEBUG] addReply SELESAI lewat jalur fallback refetch')
+    const normalized = { replies: [], liked: false, likesCount: 0, ...newReply }
+
+    set(s => {
+      const isInDetail = s.postDetail && String(s.postDetail.id) === String(postId)
+
+      // ── Update postDetail (kalau user lagi di detail view) ──
+      let nextDetail = s.postDetail
+      if (isInDetail) {
+        if (!parentReplyId) {
+          nextDetail = { ...s.postDetail, replies: [...(s.postDetail.replies || []), normalized] }
+        } else {
+          function insertNested(nodes) {
+            return nodes.map(node => {
+              if (String(node.id) === String(parentReplyId)) {
+                return { ...node, replies: [...(node.replies || []), normalized] }
+              }
+              if (node.replies?.length) {
+                return { ...node, replies: insertNested(node.replies) }
+              }
+              return node
+            })
+          }
+          nextDetail = { ...s.postDetail, replies: insertNested(s.postDetail.replies || []) }
+        }
+      }
+
+      // ── Update feed (optimistic insert ke previewReplies) ──
+      const nextFeed = s.feed.map(p => {
+        if (String(p.id) !== String(postId)) return p
+        if (!parentReplyId) {
+          return {
+            ...p,
+            previewReplies: [...(p.previewReplies || []), normalized],
+            repliesCount: (p.repliesCount || 0) + 1,
+          }
+        }
+        return { ...p, repliesCount: (p.repliesCount || 0) + 1 }
+      })
+
+      return { postDetail: nextDetail, feed: nextFeed }
+    })
+
+    return newReply
   },
 
   toggleLike: async (token, { targetType, targetId }) => {
