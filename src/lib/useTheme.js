@@ -35,6 +35,7 @@ export function useTheme() {
 
   useEffect(() => {
     setStoredTheme(theme)
+    document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
 
   const toggleTheme = useCallback(() => {
