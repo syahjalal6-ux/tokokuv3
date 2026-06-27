@@ -46,7 +46,7 @@ export default function StreamImageUpload({ value = [], onChange, tokenObj, disa
     try {
       const uploadedUrls = []
       for (const file of validFiles) {
-        const compressed = await compressImage(file, 900, 0.82)
+        const compressed = await compressImage(file, 800, 0.7)
         const fileBase64 = await fileToBase64(compressed)
         const res = await streamApi.uploadImage(tokenObj, {
           fileBase64,
