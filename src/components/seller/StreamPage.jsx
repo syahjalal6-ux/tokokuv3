@@ -14,6 +14,19 @@ import toast from 'react-hot-toast'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
+// ================================================
+// CLOUDINARY HELPER
+// ================================================
+function cloudinaryMedium(url) {
+  if (!url || !url.includes('cloudinary.com')) return url
+  return url.replace('/upload/', '/upload/q_60,w_800/')
+}
+
+function cloudinaryThumb(url) {
+  if (!url || !url.includes('cloudinary.com')) return url
+  return url.replace('/upload/', '/upload/q_60,w_120,h_120,c_fill/')
+}
+
 const POST_TYPES = [
   { value: 'produk_baru', label: 'Produk baru', emoji: '🔥', hashtag: '#ProdukBaru', public: true },
   { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝', hashtag: '#CariReseller', public: false },
@@ -600,6 +613,7 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
 // ================================================
 function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete }) {
   const liveReplies = post?.replies || []
+
   if (loading || !post) {
     return (
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
@@ -1129,7 +1143,13 @@ function DetailHeader({ title, onBack, avatar }) {
 
 function SellerAvatar({ toko, size = 40 }) {
   if (toko?.logo) {
-    return <img src={toko.logo} alt={toko.nama} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+    return (
+      <img
+        src={cloudinaryThumb(toko.logo)}
+        alt={toko.nama}
+        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+      />
+    )
   }
   return (
     <div style={{
@@ -1256,6 +1276,8 @@ function PostText({ text, onTag }) {
   )
 }
 
+// PostImages — gambar post pakai cloudinaryMedium (q_60,w_800)
+// Lightbox tetap pakai URL original supaya bisa zoom full-res
 function PostImages({ images }) {
   const [lightboxIdx, setLightboxIdx] = useState(null)
   if (!images?.length) return null
@@ -1264,19 +1286,20 @@ function PostImages({ images }) {
     <>
       {images.length === 1 ? (
         <div onClick={() => setLightboxIdx(0)} style={{ position: 'relative', marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)', cursor: 'pointer' }}>
-          <img src={images[0]} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
+          <img src={cloudinaryMedium(images[0])} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
           <ZoomBadge />
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
           {images.map((img, i) => (
             <div key={i} onClick={() => setLightboxIdx(i)} style={{ position: 'relative', cursor: 'pointer' }}>
-              <img src={img} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)' }} />
+              <img src={cloudinaryMedium(img)} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)' }} />
               <ZoomBadge />
             </div>
           ))}
         </div>
       )}
+      {/* Lightbox pakai URL original untuk kualitas penuh */}
       {lightboxIdx !== null && <ImageLightbox images={images} index={lightboxIdx} onClose={() => setLightboxIdx(null)} />}
     </>
   )
@@ -1308,6 +1331,7 @@ function ImageLightbox({ images, index, onClose }) {
       <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
         <X size={18} color="#fff" />
       </button>
+      {/* Lightbox URL original — full resolution */}
       <img src={images[current]} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }} />
       {images.length > 1 && (
         <>
