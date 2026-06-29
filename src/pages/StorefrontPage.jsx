@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon, Share2 } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi, trafficApi } from '../lib/api/index.js'
 import { liveApi } from '../lib/api/adminClient.js'
-import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
+import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate, generateShareProdukWA } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
 import { useTheme } from '../lib/useTheme.js'
@@ -70,17 +70,6 @@ function getYouTubeId(url) {
     if (m) return m[1]
   }
   return null
-}
-
-// Membuat link share WhatsApp untuk satu produk (judul, harga, link toko)
-function generateShareProdukWA(produk, toko) {
-  const lines = [
-    `Cek produk ini: *${produk?.nama || 'Produk'}*`,
-    produk?.harga != null ? formatRupiah(produk.harga) : null,
-    toko?.slug ? `${window.location.origin}/${toko.slug}?produk=${produk?.id ?? ''}` : null,
-  ].filter(Boolean)
-  const text = encodeURIComponent(lines.join('\n'))
-  return `https://wa.me/?text=${text}`
 }
 
 const TRACKING_CACHE = {}
