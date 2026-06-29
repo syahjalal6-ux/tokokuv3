@@ -2,12 +2,12 @@ import React, { useEffect, useState, useMemo, useRef } from 'react'
 import {
   TrendingUp, Package, ShoppingBag, DollarSign,
   BarChart2, Award, RefreshCw, Download, Zap,
-  Sparkles, Send, Trash2, Bot, User, Loader
+  Sparkles, Send, Trash2, Bot, User, Loader, Eye
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { useAuthStore } from '../lib/store.js'
-import { analyticsApi, authApi } from '../lib/api/index.js'
+import { analyticsApi, authApi, trafficApi } from '../lib/api/index.js'
 import { formatRupiah, isPro } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
@@ -117,7 +117,6 @@ function shortRupiah(value) {
   return `Rp ${Math.round(value)}`
 }
 
-// FIX 1: merge helper — selalu render semua slot skeleton, isi yang kosong dengan total: 0
 function mergeWithSkeleton(data, skeleton) {
   return skeleton.map(s => {
     const found = data.find(d => d.label === s.label)
@@ -133,12 +132,12 @@ const MONTHLY_SKELETON = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep',
   .map(label => ({ label, total: 0 }))
 
 const STATUS_PESANAN = [
-  { key: 'pesananPending',   label: 'Menunggu',     color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.18)' },
-  { key: 'pesananConfirmed', label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)',  border: 'rgba(91,138,245,0.18)' },
-  { key: 'pesananProcessing',label: 'Diproses',     color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
-  { key: 'pesananShipped',   label: 'Dikirim',      color: '#38bdf8', bg: 'rgba(56,189,248,0.08)',  border: 'rgba(56,189,248,0.18)' },
-  { key: 'pesananSelesai',   label: 'Selesai',      color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.18)' },
-  { key: 'pesananCancelled', label: 'Dibatalkan',   color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
+  { key: 'pesananPending',    label: 'Menunggu',     color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  border: 'rgba(245,158,11,0.18)' },
+  { key: 'pesananConfirmed',  label: 'Dikonfirmasi', color: '#5b8af5', bg: 'rgba(91,138,245,0.08)',  border: 'rgba(91,138,245,0.18)' },
+  { key: 'pesananProcessing', label: 'Diproses',     color: '#a78bfa', bg: 'rgba(167,139,250,0.08)', border: 'rgba(167,139,250,0.18)' },
+  { key: 'pesananShipped',    label: 'Dikirim',      color: '#38bdf8', bg: 'rgba(56,189,248,0.08)',  border: 'rgba(56,189,248,0.18)' },
+  { key: 'pesananSelesai',    label: 'Selesai',      color: '#34d399', bg: 'rgba(52,211,153,0.08)',  border: 'rgba(52,211,153,0.18)' },
+  { key: 'pesananCancelled',  label: 'Dibatalkan',   color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
 ]
 
 // ============ PAGE ENTRY ============
@@ -207,8 +206,17 @@ function AnalyticsDashboard({ tokenObj }) {
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('minggu')
   const [exporting, setExporting] = useState(false)
+  const [visitorStats, setVisitorStats] = useState(null)
 
   useEffect(() => { load() }, [tokenObj])
+
+  // Fetch visitor stats terpisah — tidak blok render analytics utama
+  useEffect(() => {
+    if (!tokenObj) return
+    trafficApi.getStats(tokenObj)
+      .then(res => setVisitorStats(res.data))
+      .catch(() => {})
+  }, [tokenObj])
 
   const load = async () => {
     setLoading(true)
@@ -234,6 +242,7 @@ function AnalyticsDashboard({ tokenObj }) {
         ['Pesanan Selesai', data.pesananSelesai],
         ['Produk Aktif', data.produkAktif],
         ['Total Produk', data.totalProduk],
+        ['Total Pengunjung (30 hari)', visitorStats?.totalVisit ?? '-'],
       ]
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ringkasan), 'Ringkasan')
       if (data.topProduk?.length > 0) {
@@ -275,7 +284,12 @@ function AnalyticsDashboard({ tokenObj }) {
       }
     >
       {loading ? <AnalyticsSkeleton /> : data ? (
-        <AnalyticsContent data={data} period={period} setPeriod={setPeriod} />
+        <AnalyticsContent
+          data={data}
+          period={period}
+          setPeriod={setPeriod}
+          visitorStats={visitorStats}
+        />
       ) : (
         <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
           <BarChart2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
@@ -287,7 +301,7 @@ function AnalyticsDashboard({ tokenObj }) {
 }
 
 // ============ CONTENT ============
-function AnalyticsContent({ data, period, setPeriod }) {
+function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
   const {
     totalProduk = 0, produkAktif = 0,
     totalPesanan = 0, pesananPending = 0, pesananSelesai = 0,
@@ -298,7 +312,6 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
   const conversionRate = totalPesanan > 0 ? Math.round((pesananSelesai / totalPesanan) * 100) : 0
 
-  // FIX 1 applied: selalu merge dengan skeleton supaya semua slot selalu render
   const chartData = useMemo(() => {
     if (period === 'minggu') {
       const grouped = groupByWeek(revenueHarian)
@@ -332,17 +345,30 @@ function AnalyticsContent({ data, period, setPeriod }) {
 
   const periodLabel = period === 'minggu' ? '4 minggu terakhir' : 'tahun ini'
 
+  // Nilai visitor — tampil angka kalau sudah ada, '-' kalau masih loading/null
+  const totalVisit = visitorStats?.totalVisit ?? '-'
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       <AIInsightCard data={data} />
 
+      {/* KPI Cards — 5 card: 2 kolom di baris 1, lalu 3 kolom di baris 2 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-        <KpiCard label="Total Revenue" value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" />
-        <KpiCard label="Total Pesanan" value={totalPesanan} icon={<ShoppingBag size={15} />} color="var(--accent)" sub={`${pesananPending} menunggu`} />
-        <KpiCard label="Pesanan Selesai" value={pesananSelesai} icon={<TrendingUp size={15} />} color="var(--warning)" sub={`${conversionRate}% conversion`} />
-        <KpiCard label="Produk Aktif" value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" />
+        <KpiCard label="Total Revenue"    value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" />
+        <KpiCard label="Total Pesanan"    value={totalPesanan}               icon={<ShoppingBag size={15} />} color="var(--accent)"  sub={`${pesananPending} menunggu`} />
+        <KpiCard label="Pesanan Selesai"  value={pesananSelesai}             icon={<TrendingUp size={15} />}  color="var(--warning)" sub={`${conversionRate}% conversion`} />
+        <KpiCard label="Produk Aktif"     value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" />
       </div>
+
+      {/* Visitor card — full width, terpisah supaya tetap menonjol */}
+      <KpiCard
+        label="Total Pengunjung (30 hari)"
+        value={totalVisit}
+        icon={<Eye size={15} />}
+        color="#38bdf8"
+        sub="unik ke halaman toko"
+      />
 
       <style>{`
         .analytics-3col {
@@ -412,9 +438,9 @@ function AnalyticsContent({ data, period, setPeriod }) {
           <BarChartRevenue data={chartData} maxVal={maxRevenue} period={period} />
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
-            <SummaryChip label="Rata-rata" value={shortRupiah(Math.round(rataRata))} />
-            <SummaryChip label="Tertinggi" value={shortRupiah(maxRevenue)} color="#fbbf24" />
-            <SummaryChip label="Transaksi" value={`${totalPesanan} pesanan`} />
+            <SummaryChip label="Rata-rata"  value={shortRupiah(Math.round(rataRata))} />
+            <SummaryChip label="Tertinggi"  value={shortRupiah(maxRevenue)} color="#fbbf24" />
+            <SummaryChip label="Transaksi"  value={`${totalPesanan} pesanan`} />
             <SummaryChip label="Conversion" value={`${conversionRate}%`} />
           </div>
         </div>
@@ -574,7 +600,6 @@ function BarChartRevenue({ data, maxVal, period }) {
           msOverflowStyle: 'none',
           WebkitOverflowScrolling: 'touch',
           cursor: isMonthly ? 'grab' : 'default',
-          // FIX 2: cegah scroll halaman saat swipe horizontal di dalam chart
           touchAction: isMonthly ? 'pan-x' : 'auto',
         }}
       >
@@ -590,19 +615,14 @@ function BarChartRevenue({ data, maxVal, period }) {
           {data.map((d, i) => {
             const total = d.total || 0
             const isEmpty = total === 0
-
-            // FIX 3: ghost bar untuk slot kosong — tinggi minimal, warna transparan
-            const heightPct = isEmpty
-              ? 8
-              : Math.max((total / yMax) * 100, 6)
-
+            const heightPct = isEmpty ? 8 : Math.max((total / yMax) * 100, 6)
             const isBarHighest = !allZero && total === maxVal && total > 0
             const isSelected = selected === i
             const dimmed = selected !== null && !isSelected
 
             let barBg
             if (isSelected && !isEmpty) barBg = '#7da4ff'
-            else if (isEmpty) barBg = 'rgba(91,138,245,0.12)' // ghost bar — transparan konsisten
+            else if (isEmpty) barBg = 'rgba(91,138,245,0.12)'
             else if (isBarHighest) barBg = 'linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%)'
             else barBg = 'linear-gradient(180deg, #5b8af5 0%, #3d6de0 100%)'
 
@@ -673,7 +693,6 @@ function BarChartRevenue({ data, maxVal, period }) {
         </div>
       </div>
 
-      {/* Scroll dots — monthly only */}
       {isMonthly && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 3, marginTop: 8 }}>
           {data.map((_, i) => (
@@ -687,7 +706,6 @@ function BarChartRevenue({ data, maxVal, period }) {
         </div>
       )}
 
-      {/* Tooltip slide bawah */}
       <div style={{
         overflow: 'hidden',
         maxHeight: selectedItem ? 72 : 0,
@@ -992,6 +1010,7 @@ function AnalyticsSkeleton() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
         {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)' }} />)}
       </div>
+      <div className="skeleton" style={{ height: 80, borderRadius: 'var(--radius-xl)' }} />
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
         <div className="skeleton" style={{ height: 300, borderRadius: 'var(--radius-xl)' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
