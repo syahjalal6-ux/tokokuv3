@@ -3,16 +3,6 @@
     { "source": "/toko/:slug", "destination": "/:slug", "permanent": true }
   ],
   "rewrites": [
-    {
-      "source": "/:slug",
-      "has": [
-        {
-          "type": "query",
-          "key": "produk"
-        }
-      ],
-      "destination": "/api/og?slug=:slug&produk={produk}"
-    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
