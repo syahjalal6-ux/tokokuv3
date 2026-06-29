@@ -769,9 +769,8 @@ function ProdukCard({ produk: p, tema, accentColor, c, onClick }) {
           {p.hargaCoret && <p style={{ fontSize: '0.65rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
         </div>
       </div>
-    </div>
-  )
-  <button
+      </div>
+     <button
   onClick={(e) => {
     e.stopPropagation()
     window.open(generateShareProdukWA(p, toko), '_blank')
@@ -787,7 +786,8 @@ function ProdukCard({ produk: p, tema, accentColor, c, onClick }) {
   <Share2 size={14} />
 </button>
 }
-
+  )
+ 
 function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckout, onChat }) {
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
