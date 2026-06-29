@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon, Share2 } from 'lucide-react'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon, Share2, Copy, Check } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi, trafficApi } from '../lib/api/index.js'
 import { liveApi } from '../lib/api/adminClient.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate, generateShareProdukWA } from '../lib/utils.js'
@@ -498,6 +498,143 @@ function RatingSection({ produkId, tokoId, tema, c }) {
   )
 }
 
+// ─── ShareModal ────────────────────────────────────────────────────────────────
+function ShareModal({ produk, toko, onClose, c }) {
+  const [copied, setCopied] = useState(false)
+  const isMobile = window.innerWidth < 640
+
+  const produkUrl = `${window.location.origin}/${toko.slug}?produk=${produk.id}`
+  const shareText = `${produk.nama} — ${formatRupiah(produk.harga)}\n${produkUrl}`
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(produkUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // fallback
+      const el = document.createElement('textarea')
+      el.value = produkUrl
+      document.body.appendChild(el)
+      el.select()
+      document.execCommand('copy')
+      document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const channels = [
+    {
+      key: 'wa',
+      label: 'WhatsApp',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+      ),
+      color: '#25d366',
+      action: () => window.open(generateShareProdukWA(produk, toko), '_blank'),
+    },
+    {
+      key: 'threads',
+      label: 'Threads',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 192 192" fill="currentColor">
+          <path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.968 0-27.414 6.396-35.059 18.036l13.177 9.048c5.728-8.695 14.724-10.548 21.882-10.548h.23c8.441.054 14.786 2.509 18.868 7.295 2.985 3.493 4.981 8.318 5.97 14.396-7.487-1.271-15.576-1.662-24.215-1.17-24.33 1.4-39.956 15.591-38.89 35.273.538 9.983 5.568 18.577 14.176 24.199 7.243 4.784 16.576 7.139 26.288 6.604 12.83-.703 22.889-5.603 29.909-14.572 5.362-6.963 8.749-15.978 10.245-27.397 6.147 3.71 10.705 8.595 13.184 14.374 4.237 9.853 4.491 26.021-8.79 39.241-11.774 11.73-25.963 16.809-47.317 16.966-23.615-.169-41.491-7.763-53.134-22.572C28.371 128.66 22.947 110.017 22.725 96c.222-14.017 5.646-32.66 17.472-47.acquisitions C51.84 34.183 69.716 26.589 93.331 26.42c23.76.17 41.924 7.798 54.073 22.688 5.953 7.376 10.474 16.53 13.451 27.056l15.45-4.14c-3.6-13.229-9.187-24.53-16.676-33.668C145.932 19.216 122.927 9.248 93.4 9.044h-.13c-29.456.204-52.291 10.232-67.939 29.812C13.553 54.it 7.17 75.68 6.923 96c.247 20.32 6.63 42 17.408 57.144 15.648 19.58 38.483 29.608 67.939 29.812h.13c26.545-.184 45.24-7.084 60.637-22.419 20.1-20.028 19.468-44.917 12.874-60.249-4.706-10.9-13.88-19.79-24.374-25.3zM96.45 129.03c-10.655.603-21.948-4.175-26.975-11.625-3.253-4.768-3.696-10.52-.88-15.886 3.696-7.01 12.687-11.187 23.818-11.82 1.763-.102 3.496-.152 5.2-.152 6.04 0 11.664.569 16.703 1.67-.988 12.34-4.52 21.516-10.282 27.283-3.81 3.79-8.812 6.11-14.594 6.47l-2.99.06z"/>
+        </svg>
+      ),
+      color: '#000000',
+      action: () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(shareText)}`, '_blank'),
+    },
+    {
+      key: 'ig-stories',
+      label: 'IG Stories',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881z"/>
+        </svg>
+      ),
+      color: '#e1306c',
+      // IG Stories deep link — works on mobile if Instagram app installed
+      action: () => {
+        const igUrl = `instagram-stories://share?backgroundTopColor=%23000000&backgroundBottomColor=%23000000`
+        window.location.href = igUrl
+        // fallback: after 1.5s jika IG tidak terbuka, copy link saja
+        setTimeout(() => {
+          navigator.clipboard.writeText(produkUrl).catch(() => {})
+        }, 1500)
+      },
+    },
+    {
+      key: 'copy',
+      label: copied ? 'Tersalin!' : 'Salin Link',
+      icon: copied ? <Check size={22} /> : <Copy size={22} />,
+      color: copied ? '#34d399' : '#6b7280',
+      action: handleCopyLink,
+    },
+  ]
+
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease', padding: isMobile ? 0 : 24 }}>
+      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: isMobile ? '100%' : 400, background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', animation: isMobile ? 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'fadeIn 0.25s ease', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Share2 size={17} color="var(--accent)" />
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', color: c.textPrimary }}>Bagikan Produk</span>
+          </div>
+          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+        </div>
+
+        {/* Product preview */}
+        <div style={{ padding: '12px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+          {parseFotos(produk.foto)[0]
+            ? <img src={parseFotos(produk.foto)[0]} alt={produk.nama} style={{ width: 42, height: 42, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
+            : <div style={{ width: 42, height: 42, borderRadius: 'var(--radius-md)', background: c.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Package size={18} color={c.textTertiary} /></div>
+          }
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontWeight: 700, fontSize: '0.82rem', color: c.textPrimary, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{produk.nama}</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 800 }}>{formatRupiah(produk.harga)}</p>
+          </div>
+        </div>
+
+        {/* Channel buttons */}
+        <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          {channels.map(ch => (
+            <button
+              key={ch.key}
+              onClick={ch.action}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-lg)', cursor: 'pointer', transition: 'all 0.15s ease', color: ch.color }}
+              onMouseEnter={e => { e.currentTarget.style.background = c.surfaceHover; e.currentTarget.style.borderColor = ch.color + '44' }}
+              onMouseLeave={e => { e.currentTarget.style.background = c.surface; e.currentTarget.style.borderColor = c.glassBorder }}
+            >
+              <div style={{ width: 42, height: 42, borderRadius: 'var(--radius-full)', background: ch.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ch.color, flexShrink: 0 }}>
+                {ch.icon}
+              </div>
+              <span style={{ fontSize: '0.65rem', fontWeight: 700, color: c.textSecondary, textAlign: 'center', lineHeight: 1.2 }}>{ch.label}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* URL bar */}
+        <div style={{ padding: '0 20px 20px', display: 'flex', gap: 8 }}>
+          <div style={{ flex: 1, padding: '8px 12px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', fontSize: '0.72rem', color: c.textTertiary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {produkUrl}
+          </div>
+          <button onClick={handleCopyLink} style={{ flexShrink: 0, padding: '8px 14px', background: copied ? 'rgba(52,211,153,0.15)' : c.surface, border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : c.glassBorder}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', color: copied ? '#34d399' : c.textSecondary, fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5 }}>
+            {copied ? <Check size={13} /> : <Copy size={13} />}
+            {copied ? 'Tersalin' : 'Salin'}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  )
+}
+// ──────────────────────────────────────────────────────────────────────────────
+
 export default function StorefrontPage() {
   const { slug } = useParams()
   const [searchParams] = useSearchParams()
@@ -514,12 +651,11 @@ export default function StorefrontPage() {
   const [ongkirOpen, setOngkirOpen] = useState(false)
   const [liveSession, setLiveSession] = useState(null)
   const [initialResi, setInitialResi] = useState('')
+  const [shareTarget, setShareTarget] = useState(null) // { produk }
 
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
 
-  // Setelah toko berhasil di-load, catat kunjungan untuk analitik traffic.
-  // Dibungkus try/catch agar kegagalan tracking tidak pernah mematikan halaman toko.
   useEffect(() => {
     if (toko?.id) {
       trafficApi.trackVisit(toko.id).catch(() => {})
@@ -588,7 +724,6 @@ export default function StorefrontPage() {
   }
 
   const tema = TEMA[toko?.tema] || TEMA.default
-  // Fix kontras aksen sunset di light mode
   const accentColor = (tema.accent === '#f59e0b' && theme === 'light') ? '#b45309' : tema.accent
 
   const kategoriList = [...new Set(produk.map(p => p.kategori).filter(Boolean))]
@@ -650,13 +785,7 @@ export default function StorefrontPage() {
               <button
                 onClick={toggleTheme}
                 title={theme === 'light' ? 'Tema gelap' : 'Tema terang'}
-                style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: c.surface, border: `1px solid ${c.glassBorder}`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', color: c.textSecondary, flexShrink: 0,
-                  transition: 'all 0.2s ease',
-                }}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: c.surface, border: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: c.textSecondary, flexShrink: 0, transition: 'all 0.2s ease' }}
               >
                 {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
               </button>
@@ -725,7 +854,18 @@ export default function StorefrontPage() {
           </div>
         ) : (
           <div className="produk-grid">
-            {filtered.map(p => <ProdukCard key={p.id} produk={p} toko={toko} tema={tema} accentColor={accentColor} c={c} onClick={() => setSelectedProduk(p)} />)}
+            {filtered.map(p => (
+              <ProdukCard
+                key={p.id}
+                produk={p}
+                toko={toko}
+                tema={tema}
+                accentColor={accentColor}
+                c={c}
+                onClick={() => setSelectedProduk(p)}
+                onShare={() => setShareTarget(p)}
+              />
+            ))}
           </div>
         )}
 
@@ -737,6 +877,7 @@ export default function StorefrontPage() {
       {chatOpen !== false && <ChatModal produk={chatOpen || null} toko={toko} tema={tema} onClose={() => setChatOpen(false)} onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }} semuaProduk={produk} />}
       {trackingOpen && <TrackingModal onClose={() => { setTrackingOpen(false); setInitialResi('') }} initialResi={initialResi} c={c} />}
       {ongkirOpen && <OngkirModal onClose={() => setOngkirOpen(false)} c={c} />}
+      {shareTarget && <ShareModal produk={shareTarget} toko={toko} onClose={() => setShareTarget(null)} c={c} />}
       {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} c={c} />}
 
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: c.footerBg, backdropFilter: 'blur(16px)', borderTop: `1px solid ${c.footerBorder}`, padding: '8px 16px', textAlign: 'center', fontSize: '0.72rem', color: c.textPrimary }}>
@@ -751,7 +892,7 @@ function TokoAvatar({ toko, tema, c, size = 52, radius = 14, fontSize = 22 }) {
   return <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>{toko.nama?.[0]?.toUpperCase()}</div>
 }
 
-function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick }) {
+function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
@@ -770,10 +911,11 @@ function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick }) {
           {p.hargaCoret && <p style={{ fontSize: '0.65rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
         </div>
       </div>
+      {/* Share button — sekarang buka ShareModal, bukan langsung ke WA */}
       <button
         onClick={(e) => {
           e.stopPropagation()
-          window.open(generateShareProdukWA(p, toko), '_blank')
+          onShare()
         }}
         title="Bagikan produk ini"
         style={{
