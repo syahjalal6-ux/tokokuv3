@@ -242,9 +242,3 @@ export function generateShareProdukWA(produk, toko) {
   const msg = `Cek produk ini di toko ${toko.nama} 🛍️\n\n*${produk.nama}*\n💰 ${formatRupiah(produk.harga)}\n\n👉 ${url}`
   return `https://wa.me/?text=${encodeURIComponent(msg)}`
 }
-
-// Generate share link Instagram Story (deep link)
-export function generateShareInstagram(toko) {
-  const url = getStorefrontUrl(toko.slug)
-  return `https://www.instagram.com/share?url=${encodeURIComponent(url)}`
-}
