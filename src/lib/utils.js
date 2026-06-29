@@ -231,7 +231,7 @@ export async function copyToClipboard(text) {
 
 // Generate share link WA untuk toko
 export function generateShareTokoWA(toko) {
-  const url = getStorefrontUrl(toko.slug)
+  const url = getStorefrontUrl(toko.slug)}?produk=${produk.id}`
   const msg = `Cek toko online saya di Exora 🛍️\n\n*${toko.nama}*\n${toko.deskripsi ? toko.deskripsi + '\n' : ''}\n👉 ${url}`
   return `https://wa.me/?text=${encodeURIComponent(msg)}`
 }
