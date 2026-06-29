@@ -503,7 +503,12 @@ function ShareModal({ produk, toko, onClose, c }) {
   const [copied, setCopied] = useState(false)
   const isMobile = window.innerWidth < 640
 
+  // URL untuk copy link & navigasi user biasa
   const produkUrl = `${window.location.origin}/${toko.slug}?produk=${produk.id}`
+
+  // URL untuk share ke sosmed — diarahkan ke /api/og agar crawler bisa baca OG meta tag
+  const ogUrl = `${window.location.origin}/api/og?slug=${toko.slug}&produk=${produk.id}`
+
   const shareText = `${produk.nama} — ${formatRupiah(produk.harga)}\n${produkUrl}`
 
   const handleCopyLink = async () => {
@@ -512,13 +517,34 @@ function ShareModal({ produk, toko, onClose, c }) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      // fallback
       const el = document.createElement('textarea')
       el.value = produkUrl
       document.body.appendChild(el)
       el.select()
       document.execCommand('copy')
       document.body.removeChild(el)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleShareIG = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: produk.nama,
+          text: `${produk.nama} — ${formatRupiah(produk.harga)}`,
+          url: produkUrl,
+        })
+      } catch (err) {
+        // user cancel atau tidak support, fallback copy link
+        if (err.name !== 'AbortError') {
+          navigator.clipboard.writeText(produkUrl).catch(() => {})
+        }
+      }
+    } else {
+      // Desktop fallback: copy link
+      navigator.clipboard.writeText(produkUrl).catch(() => {})
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
@@ -545,19 +571,21 @@ function ShareModal({ produk, toko, onClose, c }) {
         </svg>
       ),
       color: '#000000',
-      action: () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(shareText)}`, '_blank'),
+      // Pakai ogUrl supaya crawler Threads bisa baca OG image
+      action: () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(shareText.replace(produkUrl, ogUrl))}`, '_blank'),
     },
     {
-  key: 'facebook',
-  label: 'Facebook',
-  icon: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.994 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-    </svg>
-  ),
-  color: '#1877f2',
-  action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(produkUrl)}`, '_blank'),
-},
+      key: 'facebook',
+      label: 'Facebook',
+      icon: (
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.994 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+        </svg>
+      ),
+      color: '#1877f2',
+      // Pakai ogUrl supaya crawler Facebook bisa baca OG image
+      action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ogUrl)}`, '_blank'),
+    },
     {
       key: 'ig-stories',
       label: 'IG Stories',
@@ -567,15 +595,8 @@ function ShareModal({ produk, toko, onClose, c }) {
         </svg>
       ),
       color: '#e1306c',
-      // IG Stories deep link — works on mobile if Instagram app installed
-      action: () => {
-        const igUrl = `instagram-stories://share?backgroundTopColor=%23000000&backgroundBottomColor=%23000000`
-        window.location.href = igUrl
-        // fallback: after 1.5s jika IG tidak terbuka, copy link saja
-        setTimeout(() => {
-          navigator.clipboard.writeText(produkUrl).catch(() => {})
-        }, 1500)
-      },
+      // Pakai navigator.share (Web Share API) — buka native share sheet OS
+      action: handleShareIG,
     },
     {
       key: 'copy',
@@ -662,7 +683,7 @@ export default function StorefrontPage() {
   const [ongkirOpen, setOngkirOpen] = useState(false)
   const [liveSession, setLiveSession] = useState(null)
   const [initialResi, setInitialResi] = useState('')
-  const [shareTarget, setShareTarget] = useState(null) // { produk }
+  const [shareTarget, setShareTarget] = useState(null)
 
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
@@ -922,20 +943,10 @@ function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare })
           {p.hargaCoret && <p style={{ fontSize: '0.65rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
         </div>
       </div>
-      {/* Share button — sekarang buka ShareModal, bukan langsung ke WA */}
       <button
-        onClick={(e) => {
-          e.stopPropagation()
-          onShare()
-        }}
+        onClick={(e) => { e.stopPropagation(); onShare() }}
         title="Bagikan produk ini"
-        style={{
-          position: 'absolute', bottom: 8, right: 8,
-          background: 'rgba(0,0,0,0.5)', border: 'none',
-          borderRadius: '50%', width: 32, height: 32,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', color: '#fff',
-        }}
+        style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
       >
         <Share2 size={14} />
       </button>
