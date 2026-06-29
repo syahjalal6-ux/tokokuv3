@@ -1149,45 +1149,45 @@ const liveApi = {
   },
 
   getActiveSessions: async (token) => {
-  const { data, error } = await supabaseAdmin
-    .from('live_sessions')
-    .select('*, toko:toko_id(id, nama, slug, logo)')
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
-  if (error) handleError(error)
-  return { success: true, data: data || [] }
-},
+    const { data, error } = await supabaseAdmin
+      .from('live_sessions')
+      .select('*, toko:toko_id(id, nama, slug, logo)')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false })
+    if (error) handleError(error)
+    return { success: true, data: data || [] }
+  },
 
-joinLive: async (dataOrToken, maybeData) => {
-  const isTokenString = typeof dataOrToken === 'string'
-  const token = isTokenString ? dataOrToken : null
-  const { roomName } = isTokenString ? (maybeData || {}) : (dataOrToken || {})
+  joinLive: async (dataOrToken, maybeData) => {
+    const isTokenString = typeof dataOrToken === 'string'
+    const token = isTokenString ? dataOrToken : null
+    const { roomName } = isTokenString ? (maybeData || {}) : (dataOrToken || {})
 
-  let identity = `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-  let displayName = 'Pembeli'
+    let identity = `viewer-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+    let displayName = 'Pembeli'
 
-  if (token) {
-    try {
-      const userId = await verifyToken(token)
-      const { data: toko } = await supabaseAdmin.from('toko').select('id, nama').eq('user_id', userId).single()
-      if (toko) {
-        identity = `viewer-${toko.id}`
-        displayName = toko.nama
-      }
-    } catch {}
-  }
+    if (token) {
+      try {
+        const userId = await verifyToken(token)
+        const { data: toko } = await supabaseAdmin.from('toko').select('id, nama').eq('user_id', userId).single()
+        if (toko) {
+          identity = `viewer-${toko.id}`
+          displayName = toko.nama
+        }
+      } catch {}
+    }
 
-  const { data: session } = await supabaseAdmin.from('live_sessions').select('*').eq('room_name', roomName).eq('is_active', true).single()
-  if (!session) throw new ApiError('Session tidak ditemukan', 404)
+    const { data: session } = await supabaseAdmin.from('live_sessions').select('*').eq('room_name', roomName).eq('is_active', true).single()
+    if (!session) throw new ApiError('Session tidak ditemukan', 404)
 
-  await supabaseAdmin.from('live_sessions').update({ viewer_count: (session.viewer_count || 0) + 1 }).eq('id', session.id)
+    await supabaseAdmin.from('live_sessions').update({ viewer_count: (session.viewer_count || 0) + 1 }).eq('id', session.id)
 
-  const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, { identity, name: displayName })
-  at.addGrant({ roomJoin: true, room: roomName, canPublish: false, canSubscribe: true })
+    const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, { identity, name: displayName })
+    at.addGrant({ roomJoin: true, room: roomName, canPublish: false, canSubscribe: true })
 
-  return { success: true, data: { livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
-},
-  
+    return { success: true, data: { livekitToken: await at.toJwt(), roomName, livekitUrl: process.env.LIVEKIT_URL } }
+  },
+
   sendReaction: async (token, { roomName, emoji }) => {
     const userId = await verifyToken(token)
     const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
@@ -1216,6 +1216,47 @@ joinLive: async (dataOrToken, maybeData) => {
 }
 
 // ================================================
+// TRAFFIC API
+// ================================================
+
+const trafficApi = {
+  trackVisit: async (tokoId) => {
+    if (!tokoId) return { success: true }
+    const { error } = await supabaseAdmin
+      .from('toko_visits')
+      .insert({ toko_id: tokoId, visited_at: new Date().toISOString() })
+    if (error) console.warn('trackVisit error:', error.message)
+    return { success: true }
+  },
+
+  getStats: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) return { success: true, data: {} }
+    const now = new Date()
+    const start30 = new Date(now)
+    start30.setDate(now.getDate() - 30)
+    const { data: visits, error } = await supabaseAdmin
+      .from('toko_visits')
+      .select('visited_at')
+      .eq('toko_id', toko.id)
+      .gte('visited_at', start30.toISOString())
+      .order('visited_at', { ascending: true })
+    if (error) handleError(error)
+    const totalVisit = (visits || []).length
+    const byDay = {}
+    ;(visits || []).forEach(v => {
+      const day = v.visited_at?.slice(0, 10)
+      if (day) byDay[day] = (byDay[day] || 0) + 1
+    })
+    const visitHarian = Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }))
+    return { success: true, data: { totalVisit, visitHarian } }
+  },
+}
+
+// ================================================
 // REGISTRY — daftar semua action yang valid
 // Format action string: "namaApi.namaMethod"
 // ================================================
@@ -1223,6 +1264,7 @@ joinLive: async (dataOrToken, maybeData) => {
 const REGISTRY = {
   authApi, tokoApi, produkApi, pesananApi, analyticsApi,
   tokoInfoApi, ratingApi, adminApi, streamApi, liveApi,
+  trafficApi,
 }
 
 // ================================================
