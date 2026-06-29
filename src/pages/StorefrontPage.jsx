@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
-import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon } from 'lucide-react'
-import { tokoApi, produkApi, ratingApi, pesananApi } from '../lib/api/index.js'
+import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon, Share2 } from 'lucide-react'
+import { tokoApi, produkApi, ratingApi, pesananApi, trafficApi } from '../lib/api/index.js'
 import { liveApi } from '../lib/api/adminClient.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
@@ -70,6 +70,17 @@ function getYouTubeId(url) {
     if (m) return m[1]
   }
   return null
+}
+
+// Membuat link share WhatsApp untuk satu produk (judul, harga, link toko)
+function generateShareProdukWA(produk, toko) {
+  const lines = [
+    `Cek produk ini: *${produk?.nama || 'Produk'}*`,
+    produk?.harga != null ? formatRupiah(produk.harga) : null,
+    toko?.slug ? `${window.location.origin}/${toko.slug}?produk=${produk?.id ?? ''}` : null,
+  ].filter(Boolean)
+  const text = encodeURIComponent(lines.join('\n'))
+  return `https://wa.me/?text=${text}`
 }
 
 const TRACKING_CACHE = {}
@@ -518,13 +529,20 @@ export default function StorefrontPage() {
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
 
-  // Setelah toko berhasil di-load
+  // Setelah toko berhasil di-load, catat kunjungan untuk analitik traffic.
+  // Dibungkus try/catch agar kegagalan tracking tidak pernah mematikan halaman toko.
   useEffect(() => {
     if (toko?.id) {
-    trafficApi.trackVisit(toko.id)
-  }
+      (async () => {
+        try {
+          await trafficApi.trackVisit(toko.id)
+        } catch {
+          // Diam saja — tracking tidak boleh mengganggu pengalaman pembeli
+        }
+      })()
+    }
   }, [toko?.id])
-  
+
   useEffect(() => {
     const resiParam = searchParams.get('resi')
     if (resiParam) { setInitialResi(resiParam); setTrackingOpen(true) }
@@ -724,7 +742,7 @@ export default function StorefrontPage() {
           </div>
         ) : (
           <div className="produk-grid">
-            {filtered.map(p => <ProdukCard key={p.id} produk={p} tema={tema} accentColor={accentColor} c={c} onClick={() => setSelectedProduk(p)} />)}
+            {filtered.map(p => <ProdukCard key={p.id} produk={p} toko={toko} tema={tema} accentColor={accentColor} c={c} onClick={() => setSelectedProduk(p)} />)}
           </div>
         )}
 
@@ -750,12 +768,12 @@ function TokoAvatar({ toko, tema, c, size = 52, radius = 14, fontSize = 22 }) {
   return <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>{toko.nama?.[0]?.toUpperCase()}</div>
 }
 
-function ProdukCard({ produk: p, tema, accentColor, c, onClick }) {
+function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   return (
-    <div onClick={onClick} style={{ background: c.glass, backdropFilter: 'blur(20px)', border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${accentColor}44` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = c.glassBorder }}>
+    <div onClick={onClick} style={{ position: 'relative', background: c.glass, backdropFilter: 'blur(20px)', border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${accentColor}44` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = c.glassBorder }}>
       <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: c.surface }}>
         {thumbUrl ? <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.textTertiary }}><Package size={32} /></div>}
         {fotos.length > 1 && <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>1/{fotos.length}</div>}
@@ -769,25 +787,26 @@ function ProdukCard({ produk: p, tema, accentColor, c, onClick }) {
           {p.hargaCoret && <p style={{ fontSize: '0.65rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
         </div>
       </div>
-      </div>
-     <button
-  onClick={(e) => {
-    e.stopPropagation()
-    window.open(generateShareProdukWA(p, toko), '_blank')
-  }}
-  style={{
-    position: 'absolute', bottom: 8, right: 8,
-    background: 'rgba(0,0,0,0.5)', border: 'none',
-    borderRadius: '50%', width: 32, height: 32,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', color: '#fff',
-  }}
->
-  <Share2 size={14} />
-</button>
-}
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          window.open(generateShareProdukWA(p, toko), '_blank')
+        }}
+        title="Bagikan produk ini"
+        style={{
+          position: 'absolute', bottom: 8, right: 8,
+          background: 'rgba(0,0,0,0.5)', border: 'none',
+          borderRadius: '50%', width: 32, height: 32,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer', color: '#fff',
+        }}
+      >
+        <Share2 size={14} />
+      </button>
+    </div>
   )
- 
+}
+
 function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckout, onChat }) {
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
