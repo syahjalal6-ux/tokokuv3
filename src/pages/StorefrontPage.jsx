@@ -695,6 +695,14 @@ export default function StorefrontPage() {
   }, [toko?.id])
 
   useEffect(() => {
+  const produkParam = searchParams.get('produk')
+  if (produkParam && produk.length > 0) {
+    const found = produk.find(p => String(p.id) === String(produkParam))
+    if (found) setSelectedProduk(found)
+  }
+}, [produk])
+  
+  useEffect(() => {
     const resiParam = searchParams.get('resi')
     if (resiParam) { setInitialResi(resiParam); setTrackingOpen(true) }
 
