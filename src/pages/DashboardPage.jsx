@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Package, ShoppingBag, Eye, TrendingUp, Plus, ExternalLink, Copy, CheckCircle, ArrowRight, Zap, AlertCircle } from 'lucide-react'
+import { Package, ShoppingBag, Eye, TrendingUp, Plus, ExternalLink, Copy, CheckCircle, ArrowRight, Zap, AlertCircle, MessageCircle, Instagram } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { StatCard, Alert, EmptyState } from '../components/ui/index.jsx'
 import ProdukForm from '../components/seller/ProdukForm.jsx'
 import { useAuthStore, useTokoStore, useProdukStore } from '../lib/store.js'
 import { tokoApi, pesananApi } from '../lib/api/index.js'
-import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard } from '../lib/utils.js'
+import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard, generateShareTokoWA, generateShareInstagram } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
 
@@ -202,6 +202,22 @@ export default function DashboardPage() {
                   <ExternalLink size={13} />
                 </button> 
               </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <a
+                href={generateShareTokoWA(toko)}
+                target="_blank" rel="noreferrer"
+                className="btn btn-secondary btn-sm"
+              >
+                <MessageCircle size={13} /> Share ke WA
+              </a>
+              <a
+                href={generateShareInstagram(toko)}
+                target="_blank" rel="noreferrer"
+                className="btn btn-secondary btn-sm"
+              >
+                <Instagram size={13} /> Share ke IG
+              </a>
             </div>
           </div>
 
