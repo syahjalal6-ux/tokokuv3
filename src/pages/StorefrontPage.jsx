@@ -522,13 +522,7 @@ export default function StorefrontPage() {
   // Dibungkus try/catch agar kegagalan tracking tidak pernah mematikan halaman toko.
   useEffect(() => {
     if (toko?.id) {
-      (async () => {
-        try {
-          await trafficApi.trackVisit(toko.id)
-        } catch {
-          // Diam saja — tracking tidak boleh mengganggu pengalaman pembeli
-        }
-      })()
+      trafficApi.trackVisit(toko.id).catch(() => {})
     }
   }, [toko?.id])
 
