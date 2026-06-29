@@ -518,6 +518,13 @@ export default function StorefrontPage() {
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
 
+  // Setelah toko berhasil di-load
+  useEffect(() => {
+    if (toko?.id) {
+    trafficApi.trackVisit(toko.id)
+  }
+  }, [toko?.id])
+  
   useEffect(() => {
     const resiParam = searchParams.get('resi')
     if (resiParam) { setInitialResi(resiParam); setTrackingOpen(true) }
@@ -764,6 +771,21 @@ function ProdukCard({ produk: p, tema, accentColor, c, onClick }) {
       </div>
     </div>
   )
+  <button
+  onClick={(e) => {
+    e.stopPropagation()
+    window.open(generateShareProdukWA(p, toko), '_blank')
+  }}
+  style={{
+    position: 'absolute', bottom: 8, right: 8,
+    background: 'rgba(0,0,0,0.5)', border: 'none',
+    borderRadius: '50%', width: 32, height: 32,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    cursor: 'pointer', color: '#fff',
+  }}
+>
+  <Share2 size={14} />
+</button>
 }
 
 function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckout, onChat }) {
