@@ -57,12 +57,10 @@ export function isValidSlug(slug) {
 }
 
 // Validate & normalisasi nomor WA (format Indonesia)
-// Selalu return string E.164 tanpa '+' (misal '6281234567890'), atau null jika tidak valid
-// Guard: handle null, undefined, number (dari GAS spreadsheet yang simpan angka)
 export function validateWA(wa) {
   if (wa === null || wa === undefined || wa === '') return null
-  const clean = String(wa).replace(/\D/g, '')  // hapus semua non-digit, termasuk spasi dan +
-  if (clean.length < 8) return null             // terlalu pendek, pasti salah
+  const clean = String(wa).replace(/\D/g, '')
+  if (clean.length < 8) return null
   if (clean.startsWith('0')) return '62' + clean.slice(1)
   if (clean.startsWith('62')) return clean
   if (clean.startsWith('8')) return '62' + clean
@@ -77,7 +75,7 @@ export function formatWADisplay(wa) {
   return '+' + num.slice(0, 2) + ' ' + num.slice(2, 5) + '-' + num.slice(5, 9) + '-' + num.slice(9)
 }
 
-// Generate WA link — aman meski wa null/undefined/number
+// Generate WA link
 export function generateWALink(wa, message = '') {
   const clean = validateWA(wa)
   if (!clean) return '#'
@@ -87,34 +85,15 @@ export function generateWALink(wa, message = '') {
 
 // Generate pesan checkout WA
 export function generateCheckoutMessage(produk, toko, buyer) {
-  return `Halo ${toko.nama}, saya mau pesan:
-
-🛍️ *${produk.nama}*
-💰 Harga: ${formatRupiah(produk.harga)}
-📦 Qty: ${buyer.qty || 1}
-
-Nama: ${buyer.nama}
-Alamat: ${buyer.alamat}
-${buyer.catatan ? `Catatan: ${buyer.catatan}` : ''}
-
-Total: ${formatRupiah(produk.harga * (buyer.qty || 1))}
-
-Mohon konfirmasi ketersediaan ya! 🙏`
+  return `Halo ${toko.nama}, saya mau pesan:\n\n*${produk.nama}*\nHarga: ${formatRupiah(produk.harga)}\nQty: ${buyer.qty || 1}\n\nNama: ${buyer.nama}\nAlamat: ${buyer.alamat}\n${buyer.catatan ? 'Catatan: ' + buyer.catatan + '\n' : ''}\nTotal: ${formatRupiah(produk.harga * (buyer.qty || 1))}\n\nMohon konfirmasi ketersediaan ya!`
 }
 
 // Generate pesan upgrade pro ke admin
 export function generateUpgradeMessage(user, toko) {
-  return `Halo Admin Exora, saya ingin upgrade ke Pro:
-
-👤 Nama: ${user.name}
-📧 Email: ${user.email}
-🏪 Toko: ${toko?.nama || '-'}
-🔗 Slug: ${toko?.slug || '-'}
-
-Mohon info cara pembayarannya ya! 🙏`
+  return `Halo Admin Exora, saya ingin upgrade ke Pro:\n\nNama: ${user.name}\nEmail: ${user.email}\nToko: ${toko?.nama || '-'}\nSlug: ${toko?.slug || '-'}\n\nMohon info cara pembayarannya ya!`
 }
 
-// Truncate text — handle non-string values
+// Truncate text
 export function truncate(text, length = 100) {
   if (text === null || text === undefined || text === '') return ''
   const str = String(text)
@@ -189,7 +168,7 @@ export const PESANAN_STATUS = {
   cancelled: { label: 'Dibatalkan', color: 'danger' },
 }
 
-// Cek apakah user adalah pro (toleran format dari Supabase / Google Sheets)
+// Cek apakah user adalah pro
 export function isPro(user) {
   if (!user || user.plan !== 'pro') return false
   const expiry = user.planExpiry ?? user.plan_expiry
@@ -231,14 +210,14 @@ export async function copyToClipboard(text) {
 
 // Generate share link WA untuk toko
 export function generateShareTokoWA(toko) {
-  const url = getStorefrontUrl(toko.slug)}?produk=${produk.id}`
-  const msg = `Cek toko online saya di Exora 🛍️\n\n*${toko.nama}*\n${toko.deskripsi ? toko.deskripsi + '\n' : ''}\n👉 ${url}`
+  const url = getStorefrontUrl(toko.slug)
+  const msg = `Cek toko online saya di Exora\n\n*${toko.nama}*\n${toko.deskripsi ? toko.deskripsi + '\n' : ''}\n${url}`
   return `https://wa.me/?text=${encodeURIComponent(msg)}`
 }
 
 // Generate share link WA untuk produk
 export function generateShareProdukWA(produk, toko) {
-  const url = getStorefrontUrl(toko.slug)
-  const msg = `Cek produk ini di toko ${toko.nama} 🛍️\n\n*${produk.nama}*\n💰 ${formatRupiah(produk.harga)}\n\n👉 ${url}`
+  const url = `${getStorefrontUrl(toko.slug)}?produk=${produk.id}`
+  const msg = `Cek produk ini di toko ${toko.nama}\n\n*${produk.nama}*\n${formatRupiah(produk.harga)}\n\n${url}`
   return `https://wa.me/?text=${encodeURIComponent(msg)}`
 }
