@@ -1765,3 +1765,64 @@ async function generateLivekitToken({ apiKey, apiSecret, identity, name, roomNam
 
   return `${signingInput}.${sigB64}`
 }
+
+// ================================================
+// TRAFFIC / VISITOR ANALYTICS
+// ================================================
+
+export const trafficApi = {
+  // Dipanggil saat storefront di-load (tanpa token — public)
+  trackVisit: async (tokoId) => {
+    if (!tokoId) return
+    const { error } = await supabase
+      .from('toko_visits')
+      .insert({
+        toko_id: tokoId,
+        visited_at: new Date().toISOString(),
+        // referrer bisa ditambah nanti
+      })
+    if (error) console.warn('trackVisit error:', error.message)
+    return { success: true }
+  },
+
+  // Dipanggil dari AnalyticsPage (butuh token)
+  getStats: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin
+      .from('toko')
+      .select('id')
+      .eq('user_id', userId)
+      .single()
+    if (!toko) return { success: true, data: {} }
+
+    const now = new Date()
+    const start30 = new Date(now)
+    start30.setDate(now.getDate() - 30)
+
+    const { data: visits, error } = await supabaseAdmin
+      .from('toko_visits')
+      .select('visited_at')
+      .eq('toko_id', toko.id)
+      .gte('visited_at', start30.toISOString())
+      .order('visited_at', { ascending: true })
+
+    if (error) handleError(error)
+
+    const totalVisit = (visits || []).length
+
+    // Group per hari
+    const byDay = {}
+    ;(visits || []).forEach(v => {
+      const day = v.visited_at?.slice(0, 10)
+      if (day) byDay[day] = (byDay[day] || 0) + 1
+    })
+    const visitHarian = Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ date, count }))
+
+    return {
+      success: true,
+      data: { totalVisit, visitHarian }
+    }
+  },
+}
