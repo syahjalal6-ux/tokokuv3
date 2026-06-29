@@ -1774,7 +1774,7 @@ export const trafficApi = {
   // Dipanggil saat storefront di-load (tanpa token — public)
   trackVisit: async (tokoId) => {
     if (!tokoId) return
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('toko_visits')
       .insert({
         toko_id: tokoId,
