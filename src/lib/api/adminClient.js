@@ -133,3 +133,11 @@ export const liveApi = {
   sendReaction: (token, data) => call('liveApi.sendReaction', token, data),
   leaveRoom: (token, data) => call('liveApi.leaveRoom', token, data),
 }
+
+// ================================================
+// TRAFFIC
+// ================================================
+export const trafficApi = {
+  trackVisit: (tokoId) => call('trafficApi.trackVisit', null, tokoId),
+  getStats: (token) => call('trafficApi.getStats', token),
+}
