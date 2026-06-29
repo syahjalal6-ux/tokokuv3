@@ -228,3 +228,23 @@ export async function copyToClipboard(text) {
     return true
   }
 }
+
+// Generate share link WA untuk toko
+export function generateShareTokoWA(toko) {
+  const url = getStorefrontUrl(toko.slug)
+  const msg = `Cek toko online saya di Exora 🛍️\n\n*${toko.nama}*\n${toko.deskripsi ? toko.deskripsi + '\n' : ''}\n👉 ${url}`
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`
+}
+
+// Generate share link WA untuk produk
+export function generateShareProdukWA(produk, toko) {
+  const url = getStorefrontUrl(toko.slug)
+  const msg = `Cek produk ini di toko ${toko.nama} 🛍️\n\n*${produk.nama}*\n💰 ${formatRupiah(produk.harga)}\n\n👉 ${url}`
+  return `https://wa.me/?text=${encodeURIComponent(msg)}`
+}
+
+// Generate share link Instagram Story (deep link)
+export function generateShareInstagram(toko) {
+  const url = getStorefrontUrl(toko.slug)
+  return `https://www.instagram.com/share?url=${encodeURIComponent(url)}`
+}
