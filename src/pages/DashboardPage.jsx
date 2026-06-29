@@ -6,7 +6,7 @@ import { StatCard, Alert, EmptyState } from '../components/ui/index.jsx'
 import ProdukForm from '../components/seller/ProdukForm.jsx'
 import { useAuthStore, useTokoStore, useProdukStore } from '../lib/store.js'
 import { tokoApi, pesananApi } from '../lib/api/index.js'
-import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard, generateShareTokoWA, generateShareInstagram } from '../lib/utils.js'
+import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard, generateShareTokoWA } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
 
@@ -67,6 +67,24 @@ export default function DashboardPage() {
     setLinkCopied(true)
     toast.success('Link toko disalin!')
     setTimeout(() => setLinkCopied(false), 2000)
+  }
+
+  const handleShareIG = async () => {
+    const url = getStorefrontUrl(toko.slug)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: toko.nama,
+          text: `Cek toko online saya di Exora 🛍️\n${toko.nama}`,
+          url,
+        })
+      } catch (err) {
+        if (err.name !== 'AbortError') toast.error('Gagal share')
+      }
+    } else {
+      await copyToClipboard(url)
+      toast.success('Link disalin! Paste di Instagram kamu.')
+    }
   }
 
   const produkAktif = produk.filter(p => p.aktif).length
@@ -200,7 +218,7 @@ export default function DashboardPage() {
                 </button>
                 <button onClick={() => window.location.href = getStorefrontUrl(toko.slug)} className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
-                </button> 
+                </button>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -211,13 +229,12 @@ export default function DashboardPage() {
               >
                 <MessageCircle size={13} /> Share ke WA
               </a>
-              <a
-                href={generateShareInstagram(toko)}
-                target="_blank" rel="noreferrer"
+              <button
+                onClick={handleShareIG}
                 className="btn btn-secondary btn-sm"
               >
                 <Instagram size={13} /> Share ke IG
-              </a>
+              </button>
             </div>
           </div>
 
