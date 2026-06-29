@@ -6,7 +6,6 @@
 // chatApi dan showcaseChatApi (Groq) belum termasuk di sini —
 // itu langkah berikutnya, terpisah dari Supabase admin.
 // ================================================
-
 export {
   authApi,
   tokoApi,
@@ -17,7 +16,7 @@ export {
   ratingApi,
   adminApi,
   streamApi,
+  trafficApi,
 } from './adminClient.js'
-
 // liveApi (LiveKit) masih sementara di supabase.js — akan dipindah di tahap berikutnya
 export { liveApi } from './adminClient.js'
