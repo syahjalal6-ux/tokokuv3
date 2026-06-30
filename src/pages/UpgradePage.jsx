@@ -6,6 +6,8 @@ import { useAuthStore, useTokoStore } from '../lib/store.js'
 import { generateUpgradeMessage, generateWALink, isPro } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 
+const FOUNDER_SLOTS_TOTAL = 20
+
 export default function UpgradePage() {
   const { user } = useAuthStore()
   const { toko } = useTokoStore()
@@ -41,18 +43,18 @@ export default function UpgradePage() {
   return (
     <DashboardLayout title="Upgrade ke Pro">
       <div style={{ maxWidth: 960, margin: '0 auto' }}>
-        
+
         {/* Hero Banner */}
         <div style={{
-          textAlign: 'center', marginBottom: '32px', 
-          padding: 'clamp(24px, 4vw, 40px) clamp(16px, 4vw, 24px)', 
-          background: 'linear-gradient(135deg, rgba(91,138,245,0.08) 0%, rgba(167,139,250,0.08) 100%)', 
+          textAlign: 'center', marginBottom: '32px',
+          padding: 'clamp(24px, 4vw, 40px) clamp(16px, 4vw, 24px)',
+          background: 'linear-gradient(135deg, rgba(91,138,245,0.08) 0%, rgba(167,139,250,0.08) 100%)',
           borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(167,139,250,0.15)',
         }}>
           <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '8px', 
-            padding: '6px 16px', borderRadius: 'var(--radius-full)', 
-            background: 'var(--accent-gradient-soft)', border: '1px solid rgba(167,139,250,0.2)', 
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '6px 16px', borderRadius: 'var(--radius-full)',
+            background: 'var(--accent-gradient-soft)', border: '1px solid rgba(167,139,250,0.2)',
             marginBottom: '16px',
           }}>
             <Zap size={13} color="var(--accent-3)" />
@@ -76,7 +78,7 @@ export default function UpgradePage() {
 
         {/* Pricing Cards Comparison */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-          
+
           {/* Paket Free */}
           <div className="glass-card" style={{ padding: 'clamp(20px, 4vw, 32px)' }}>
             <span className="badge badge-free" style={{ marginBottom: 16 }}>Paket Sekarang</span>
@@ -84,15 +86,16 @@ export default function UpgradePage() {
               Rp 0
             </p>
             <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 20 }}>Selamanya gratis</p>
-            
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 24 }}>
               {[
                 'Maksimal 25 Produk',
                 'Upload Maksimal 2 Foto per Produk',
                 'Fitur Musik Toko',
                 'Fitur Pengumuman Toko',
-                'Asisten AI (basic)',
+                'Asisten AI di toko kamu',
                 'Subdomain exora.app/toko/namamu',
+                'Lihat Stream (tanpa posting)',
               ].map(f => (
                 <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                   <Check size={14} color="var(--success)" style={{ marginTop: 2, flexShrink: 0 }} />
@@ -100,7 +103,7 @@ export default function UpgradePage() {
                 </div>
               ))}
             </div>
-            
+
             <button className="btn btn-secondary" disabled style={{ width: '100%', opacity: 0.5 }}>
               Paket Aktif
             </button>
@@ -108,31 +111,44 @@ export default function UpgradePage() {
 
           {/* Paket Pro */}
           <div style={{
-            background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.15) 100%)', 
-            border: '2px solid rgba(167,139,250,0.3)', borderRadius: 'var(--radius-xl)', 
-            padding: 'clamp(20px, 4vw, 32px)', position: 'relative', overflow: 'hidden', 
+            background: 'linear-gradient(135deg, rgba(91,138,245,0.12) 0%, rgba(167,139,250,0.15) 100%)',
+            border: '2px solid rgba(167,139,250,0.3)', borderRadius: 'var(--radius-xl)',
+            padding: 'clamp(20px, 4vw, 32px)', position: 'relative', overflow: 'hidden',
             boxShadow: '0 8px 40px rgba(91,138,245,0.2)',
           }}>
             <div style={{
-              position: 'absolute', top: 12, right: 12, background: 'var(--accent-gradient)', 
-              color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px', 
+              position: 'absolute', top: 12, right: 12, background: 'var(--accent-gradient)',
+              color: '#fff', fontSize: '0.7rem', fontWeight: 800, padding: '3px 10px',
               borderRadius: 'var(--radius-full)',
             }}>
               POPULER
             </div>
-            <span className="badge badge-pro" style={{ marginBottom: 16 }}>⭐ Pro</span>
-            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', marginBottom: 4 }}>
+            <span className="badge badge-pro" style={{ marginBottom: 12 }}>⭐ Pro</span>
+
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.6rem, 4vw, 2.2rem)', marginBottom: 2 }}>
               {CONFIG.PRO_PRICE}
             </p>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 20 }}>per bulan</p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 24 }}>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.82rem', marginBottom: 4 }}>per bulan</p>
+
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: 'var(--accent-gradient-soft)', border: '1px solid rgba(167,139,250,0.2)',
+              borderRadius: 'var(--radius-full)', padding: '3px 10px',
+              marginBottom: 16,
+            }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--accent-3)' }}>
+                🔒 Harga Founder — Kunci Selamanya
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: 20 }}>
               {[
                 'Semua Fitur Paket Gratis',
-                'Unlimited Produk & Unlimited Foto',
-                'Asisten AI full',
-                'Statistik & Analytics Penjualan',
+                'Unlimited Produk & Foto Unlimited',
+                'Asisten Aira di Analitik',
+                'Analytics & Statistik Penjualan',
                 'Badge Toko PRO / Terverifikasi',
+                'Posting di Stream (crosspost ke Showcase)',
                 'Prioritas Support Admin',
               ].map(f => (
                 <div key={f} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
@@ -145,6 +161,10 @@ export default function UpgradePage() {
             <a href={waLink} target="_blank" rel="noreferrer" className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }}>
               <MessageCircle size={16} /> Upgrade via WhatsApp
             </a>
+
+            <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 10 }}>
+              Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke Rp 79.000/bulan
+            </p>
           </div>
 
         </div>
@@ -163,9 +183,9 @@ export default function UpgradePage() {
             ].map(s => (
               <div key={s.step} style={{ textAlign: 'center' }}>
                 <div style={{
-                  width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-gradient)', 
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                  fontFamily: 'var(--font-display)', fontWeight: 800, color: '#fff', 
+                  width: 36, height: 36, borderRadius: '50%', background: 'var(--accent-gradient)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontFamily: 'var(--font-display)', fontWeight: 800, color: '#fff',
                   margin: '0 auto 10px', fontSize: '0.9rem',
                 }}>
                   {s.step}
