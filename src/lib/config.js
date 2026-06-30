@@ -30,7 +30,7 @@ export const CONFIG = {
   FREE_PRODUCT_LIMIT: 25,
 
   // Harga pro (untuk ditampilkan di UI)
-  PRO_PRICE: 'Rp 79.000/bulan',
+  PRO_PRICE: 'Rp 49.000/bulan',
   NEXT_PRICE: 'Rp 79.000/bulan',
   BITESHIP_KEY: 'biteship_live.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiRXhvcmEiLCJ1c2VySWQiOiI2YTJhZmJiZGEyZTlhZjRjMzMyM2YzYTAiLCJpYXQiOjE3ODEyMDc2ODV9.jUyJf6vfA_Z51r7IfOXAlHTkFhIQ1X18HyLw15bsdok',
   GROQ_API_KEY: import.meta.env.VITE_GROQ_API_KEY || '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',
