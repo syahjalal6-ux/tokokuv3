@@ -388,7 +388,7 @@ export default function LandingPage() {
 
               <span className="badge badge-pro" style={{ marginBottom: 10 }}>⭐ Pro</span>
 
-              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2, color: c.textPrimary }}>Rp 19.000</p>
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2, color: c.textPrimary }}>Rp 49.000</p>
               <p style={{ fontFamily: PJS, color: c.textMuted, fontSize: '0.82rem', marginBottom: 4 }}>per bulan</p>
 
               <div style={{
@@ -423,7 +423,7 @@ export default function LandingPage() {
               </Link>
 
               <p style={{ fontFamily: PJS, fontSize: '0.72rem', color: c.textMuted, textAlign: 'center', marginTop: 10 }}>
-                Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke Rp 49.000/bulan
+                Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke Rp 79.000/bulan
               </p>
             </div>
 
