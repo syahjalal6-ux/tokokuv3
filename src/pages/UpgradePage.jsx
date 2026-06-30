@@ -163,7 +163,7 @@ export default function UpgradePage() {
             </a>
 
             <p style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)', textAlign: 'center', marginTop: 10 }}>
-              Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke Rp 79.000/bulan
+              Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke {CONFIG.NEXT_PRICE}
             </p>
           </div>
 
