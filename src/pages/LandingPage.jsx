@@ -30,7 +30,7 @@ const FAQ = [
   { q: 'Bagaimana cara checkout pembeli?', a: 'Pembeli klik tombol "Beli via WhatsApp" di toko kamu, lalu akan diarahkan ke chat WA kamu dengan pesan otomatis berisi detail pesanan.' },
   { q: 'Asisten AI itu apa?', a: 'Ada 3: Asisten di tokomu jawab pertanyaan pembeli soal produk. Asisten Aira kasih insight otomatis di Analitik. Asisten Showcase bantu buyer cari produk/toko yang mereka mau.' },
   { q: 'Foto produk disimpan di mana?', a: 'Foto disimpan di Supabase Storage (cloud milik Exora), sehingga kamu tidak perlu punya hosting sendiri.' },
-  { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.PRO_PRICE}.` },
+  { q: 'Bagaimana cara upgrade ke Pro?', a: `Klik tombol Upgrade di dashboard, kamu akan diarahkan ke WhatsApp admin untuk konfirmasi pembayaran. Harga: ${CONFIG.NEXT_PRICE}.` },
   { q: 'Apa itu Stream?', a: 'Tempat seller saling posting produk baru, cari reseller, atau tukar info supplier dengan seller lain di Exora. Bisa publik (buyer non-login bisa lihat) atau khusus sesama seller.' },
 ]
 
