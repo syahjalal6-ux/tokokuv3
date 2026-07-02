@@ -883,7 +883,7 @@ function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, 
                 {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
                 {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
               </button>
-              <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
+              <button onClick={() => { onEdit(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--text-primary, #1a1a1a)' }}>
                 <Edit2 size={13} /> Edit
               </button>
               {flashActive ? (
