@@ -88,6 +88,9 @@ export default function ProdukPage() {
   const [clearFlashSaleId, setClearFlashSaleId] = useState(null)
   const [clearingFlash, setClearingFlash] = useState(false)
 
+  // ── State menu aksi produk (dulu dropdown, sekarang popup modal)
+  const [actionTarget, setActionTarget] = useState(null)
+
   const loadBundles = async () => {
     try {
       const res = await bundleApi.getMine(token)
@@ -332,12 +335,7 @@ export default function ProdukPage() {
               <ProductCard
                 key={p.id}
                 produk={p}
-                pro={pro}
-                onEdit={() => handleEdit(p)}
-                onDelete={() => setDeleteId(p.id)}
-                onToggle={() => handleToggleAktif(p)}
-                onFlashSale={() => openFlashSale(p)}
-                onClearFlashSale={() => setClearFlashSaleId(p.id)}
+                onOpenActions={() => setActionTarget(p)}
               />
             ))}
           </div>
@@ -581,6 +579,20 @@ export default function ProdukPage() {
         )}
       </div>
 
+      {/* ── POPUP MENU AKSI PRODUK (pengganti dropdown titik tiga) ── */}
+      {actionTarget && (
+        <ProductActionsModal
+          produk={actionTarget}
+          pro={pro}
+          onClose={() => setActionTarget(null)}
+          onEdit={() => { handleEdit(actionTarget); setActionTarget(null) }}
+          onToggle={() => { handleToggleAktif(actionTarget); setActionTarget(null) }}
+          onFlashSale={() => { openFlashSale(actionTarget); setActionTarget(null) }}
+          onClearFlashSale={() => { setClearFlashSaleId(actionTarget.id); setActionTarget(null) }}
+          onDelete={() => { setDeleteId(actionTarget.id); setActionTarget(null) }}
+        />
+      )}
+
       {/* ── FORM FLASH SALE ── */}
       {flashSaleTarget && (
         <FlashSaleForm
@@ -631,6 +643,94 @@ export default function ProdukPage() {
       />
     </DashboardLayout>
   )
+}
+
+// ================================================
+// POPUP MENU AKSI PRODUK (ganti dropdown titik tiga yang suka kepotong di PC)
+// ================================================
+function ProductActionsModal({ produk: p, pro, onClose, onEdit, onToggle, onFlashSale, onClearFlashSale, onDelete }) {
+  const fotos = parseFotos(p.foto)
+  const thumbUrl = fotos[0] || null
+  const flashActive = isFlashActive(p)
+
+  return (
+    <div
+      style={{
+        position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+        zIndex: 999, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: 16,
+      }}
+      onClick={onClose}
+    >
+      <div
+        style={{
+          background: 'var(--bg-secondary)', borderRadius: 16,
+          padding: 16, width: '100%', maxWidth: 340,
+          border: '1px solid var(--glass-border)',
+          boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
+        }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header preview produk */}
+        <div style={{
+          display: 'flex', gap: 10, alignItems: 'center', padding: '4px 4px 14px',
+          marginBottom: 10, borderBottom: '1px solid var(--glass-border)',
+        }}>
+          {thumbUrl ? (
+            <img src={thumbUrl} alt={p.nama} style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 40, height: 40, borderRadius: 8, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Package size={16} color="var(--text-tertiary)" />
+            </div>
+          )}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {p.nama}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>{formatRupiah(p.harga)}</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text-tertiary)', flexShrink: 0 }}>×</button>
+        </div>
+
+        {/* List aksi */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <button onClick={onToggle} style={modalMenuItemStyle}>
+            {p.aktif ? <EyeOff size={15} /> : <Eye size={15} />}
+            {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
+          </button>
+          <button onClick={onEdit} style={modalMenuItemStyle}>
+            <Edit2 size={15} /> Edit Produk
+          </button>
+          {flashActive ? (
+            <button onClick={onClearFlashSale} style={{ ...modalMenuItemStyle, color: 'var(--danger)' }}>
+              <Ban size={15} /> Hentikan Flash Sale
+            </button>
+          ) : (
+            <button onClick={onFlashSale} style={{ ...modalMenuItemStyle, justifyContent: 'space-between' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Zap size={15} /> Flash Sale
+              </span>
+              {!pro && <Lock size={12} color="var(--text-tertiary)" />}
+            </button>
+          )}
+          <button onClick={onDelete} style={{ ...modalMenuItemStyle, color: 'var(--danger)' }}>
+            <Trash2 size={15} /> Hapus Produk
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const modalMenuItemStyle = {
+  display: 'flex', alignItems: 'center', gap: '10px',
+  width: '100%', padding: '11px 12px',
+  background: 'none', border: 'none',
+  borderRadius: '10px',
+  cursor: 'pointer',
+  fontSize: '0.86rem', fontWeight: 600,
+  color: 'var(--text-primary)',
+  textAlign: 'left',
 }
 
 // ================================================
@@ -768,8 +868,7 @@ function FlashSaleForm({ produk: p, harga, setHarga, sampai, setSampai, loading,
   )
 }
 
-function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, onClearFlashSale }) {
-  const [showActions, setShowActions] = useState(false)
+function ProductCard({ produk: p, onOpenActions }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = hitungDiskon(p.harga, p.hargaCoret)
@@ -849,65 +948,23 @@ function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, 
         )}
       </div>
 
-      {/* ACTION MENU BUTTON — sengaja diletakkan DI LUAR div foto (yang overflow:hidden)
-          biar dropdown-nya ga kepotong pas dibuka, terutama di layar lebar/PC.
-          Posisi absolute-nya sekarang relatif ke card utama, bukan ke div foto lagi,
-          jadi angka top/right disesuaikan supaya tetap nempel di pojok kanan atas foto. */}
-      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
-        <button
-          onClick={() => setShowActions(v => !v)}
-          style={{
-            width: 28, height: 28,
-            borderRadius: '50%',
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(6px)',
-            border: 'none', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff',
-          }}
-        >
-          <MoreVertical size={14} />
-        </button>
-
-        {showActions && (
-          <div
-            style={{
-              position: 'absolute', top: 32, right: 0,
-              background: '#1c1c24',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: '10px',
-              padding: '4px',
-              zIndex: 20,
-              minWidth: 160,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-            }}
-            onMouseLeave={() => setShowActions(false)}
-          >
-            <button onClick={() => { onToggle(); setShowActions(false) }} style={menuItemStyle}>
-              {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
-              {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
-            </button>
-            <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
-              <Edit2 size={13} /> Edit
-            </button>
-            {flashActive ? (
-              <button onClick={() => { onClearFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, color: '#ff6b6b' }}>
-                <Ban size={13} /> Hentikan Flash Sale
-              </button>
-            ) : (
-              <button onClick={() => { onFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, justifyContent: 'space-between' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Zap size={13} /> Flash Sale
-                </span>
-                {!pro && <Lock size={11} color="var(--text-tertiary)" />}
-              </button>
-            )}
-            <button onClick={() => { onDelete(); setShowActions(false) }} style={{ ...menuItemStyle, color: '#ff6b6b' }}>
-              <Trash2 size={13} /> Hapus
-            </button>
-          </div>
-        )}
-      </div>
+      {/* ACTION MENU BUTTON — sekarang cuma trigger popup modal terpusat,
+          jadi ga ada lagi dropdown absolute yang ketiban/ketimpa card sebelah. */}
+      <button
+        onClick={onOpenActions}
+        style={{
+          position: 'absolute', top: 8, right: 8, zIndex: 5,
+          width: 28, height: 28,
+          borderRadius: '50%',
+          background: 'rgba(0,0,0,0.6)',
+          backdropFilter: 'blur(6px)',
+          border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff',
+        }}
+      >
+        <MoreVertical size={14} />
+      </button>
 
       {/* INFO AREA */}
       <div style={{ padding: '10px 12px 12px' }}>
@@ -926,17 +983,6 @@ function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, 
       </div>
     </div>
   )
-}
-
-const menuItemStyle = {
-  display: 'flex', alignItems: 'center', gap: '8px',
-  width: '100%', padding: '7px 10px',
-  background: 'none', border: 'none',
-  borderRadius: '7px',
-  cursor: 'pointer',
-  fontSize: '0.78rem', fontWeight: 600,
-  color: '#f5f5f5',
-  textAlign: 'left',
 }
 
 // Helper function untuk color-mix
