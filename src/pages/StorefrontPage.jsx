@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon, Share2, Copy, Check } from 'lucide-react'
-import { tokoApi, produkApi, ratingApi, pesananApi, trafficApi } from '../lib/api/index.js'
+import { tokoApi, produkApi, ratingApi, pesananApi, trafficApi, bundleApi, flashSaleApi, voucherApi } from '../lib/api/index.js'
 import { liveApi } from '../lib/api/adminClient.js'
 import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, truncate, generateShareProdukWA } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
@@ -567,7 +567,7 @@ function ShareModal({ produk, toko, onClose, c }) {
       label: 'Threads',
       icon: (
         <svg width="22" height="22" viewBox="0 0 192 192" fill="currentColor">
-          <path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143c-1.482-27.307-16.403-42.94-41.457-43.1h-.34c-14.968 0-27.414 6.396-35.059 18.036l13.177 9.048c5.728-8.695 14.724-10.548 21.882-10.548h.23c8.441.054 14.786 2.509 18.868 7.295 2.985 3.493 4.981 8.318 5.97 14.396-7.487-1.271-15.576-1.662-24.215-1.17-24.33 1.4-39.956 15.591-38.89 35.273.538 9.983 5.568 18.577 14.176 24.199 7.243 4.784 16.576 7.139 26.288 6.604 12.83-.703 22.889-5.603 29.909-14.572 5.362-6.963 8.749-15.978 10.245-27.397 6.147 3.71 10.705 8.595 13.184 14.374 4.237 9.853 4.491 26.021-8.79 39.241-11.774 11.73-25.963 16.809-47.317 16.966-23.615-.169-41.491-7.763-53.134-22.572C28.371 128.66 22.947 110.017 22.725 96c.222-14.017 5.646-32.66 17.472-47.acquisitions C51.84 34.183 69.716 26.589 93.331 26.42c23.76.17 41.924 7.798 54.073 22.688 5.953 7.376 10.474 16.53 13.451 27.056l15.45-4.14c-3.6-13.229-9.187-24.53-16.676-33.668C145.932 19.216 122.927 9.248 93.4 9.044h-.13c-29.456.204-52.291 10.232-67.939 29.812C13.553 54.it 7.17 75.68 6.923 96c.247 20.32 6.63 42 17.408 57.144 15.648 19.58 38.483 29.608 67.939 29.812h.13c26.545-.184 45.24-7.084 60.637-22.419 20.1-20.028 19.468-44.917 12.874-60.249-4.706-10.9-13.88-19.79-24.374-25.3zM96.45 129.03c-10.655.603-21.948-4.175-26.975-11.625-3.253-4.768-3.696-10.52-.88-15.886 3.696-7.01 12.687-11.187 23.818-11.82 1.763-.102 3.496-.152 5.2-.152 6.04 0 11.664.569 16.703 1.67-.988 12.34-4.52 21.516-10.282 27.283-3.81 3.79-8.812 6.11-14.594 6.47l-2.99.06z"/>
+          <path d="M141.537 88.988a66.667 66.667 0 0 0-2.518-1.143C137.537 61.538 122.616 45.905 97.562 45.745H97.222c-14.968 0-27.414 6.396-35.059 18.036l13.177 9.048c5.728-8.695 14.724-10.548 21.882-10.548h.23c8.441.054 14.786 2.509 18.868 7.295 2.985 3.493 4.981 8.318 5.97 14.396-7.487-1.271-15.576-1.662-24.215-1.17-24.33 1.4-39.956 15.591-38.89 35.273.538 9.983 5.568 18.577 14.176 24.199 7.243 4.784 16.576 7.139 26.288 6.604 12.83-.703 22.889-5.603 29.909-14.572 5.362-6.963 8.749-15.978 10.245-27.397 6.147 3.71 10.705 8.595 13.184 14.374 4.237 9.853 4.491 26.021-8.79 39.241-11.774 11.73-25.963 16.809-47.317 16.966-23.615-.169-41.491-7.763-53.134-22.572C28.371 128.66 22.947 110.017 22.725 96c.222-14.017 5.646-32.66 17.472-47.16C51.84 34.183 69.716 26.589 93.331 26.42c23.76.17 41.924 7.798 54.073 22.688 5.953 7.376 10.474 16.53 13.451 27.056l15.45-4.14c-3.6-13.229-9.187-24.53-16.676-33.668C145.932 19.216 122.927 9.248 93.4 9.044h-.13c-29.456.204-52.291 10.232-67.939 29.812C13.553 54.18 7.17 75.68 6.923 96c.247 20.32 6.63 42 17.408 57.144 15.648 19.58 38.483 29.608 67.939 29.812h.13c26.545-.184 45.24-7.084 60.637-22.419 20.1-20.028 19.468-44.917 12.874-60.249-4.706-10.9-13.88-19.79-24.374-25.3zM96.45 129.03c-10.655.603-21.948-4.175-26.975-11.625-3.253-4.768-3.696-10.52-.88-15.886 3.696-7.01 12.687-11.187 23.818-11.82 1.763-.102 3.496-.152 5.2-.152 6.04 0 11.664.569 16.703 1.67-.988 12.34-4.52 21.516-10.282 27.283-3.81 3.79-8.812 6.11-14.594 6.47l-2.99.06z"/>
         </svg>
       ),
       color: '#000000',
@@ -685,6 +685,11 @@ export default function StorefrontPage() {
   const [initialResi, setInitialResi] = useState('')
   const [shareTarget, setShareTarget] = useState(null)
 
+  // ── State bundle & flash sale (voucher dipindah ke dalam CheckoutModal)
+  const [bundles, setBundles] = useState([])
+  const [flashProduk, setFlashProduk] = useState([])
+  const [countdown, setCountdown] = useState({})
+
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
 
@@ -741,6 +746,34 @@ export default function StorefrontPage() {
     return () => clearInterval(interval)
   }, [toko])
 
+  // ── Countdown timer flash sale
+  useEffect(() => {
+    if (!flashProduk.length) return
+    const interval = setInterval(() => {
+      const now = new Date()
+      const next = {}
+      flashProduk.forEach(p => {
+        if (!p.flashSaleUntil) return
+        const diff = new Date(p.flashSaleUntil) - now
+        if (diff <= 0) {
+          next[p.id] = null
+          return
+        }
+        const h = Math.floor(diff / 3600000)
+        const m = Math.floor((diff % 3600000) / 60000)
+        const s = Math.floor((diff % 60000) / 1000)
+        next[p.id] = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      })
+      setCountdown(next)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [flashProduk])
+
+  // ── HELPER: cek apakah produk sedang flash sale aktif
+  const getFlashInfo = (produkId) => {
+    return flashProduk.find(fp => fp.id === produkId) || null
+  }
+
   const loadStorefront = async () => {
     setLoading(true)
     try {
@@ -751,6 +784,17 @@ export default function StorefrontPage() {
       const tokoData = tokoRes.data ? { ...tokoRes.data, wa: safeWA(tokoRes.data.wa) } : null
       setToko(tokoData)
       setProduk((produkRes.data || []).filter(p => p.aktif === true || p.aktif === 'TRUE'))
+
+      // ── Load bundle & flash sale setelah toko & produk berhasil dimuat
+      if (tokoData?.id) {
+        const [bundleRes, flashRes] = await Promise.all([
+          bundleApi.getByToko(tokoData.id),
+          flashSaleApi.getActive(tokoData.id),
+        ])
+        if (bundleRes.success) setBundles(bundleRes.data)
+        if (flashRes.success) setFlashProduk(flashRes.data)
+      }
+
       try {
         const liveRes = await liveApi.getActiveSessions(null)
         const sesi = (liveRes.data || []).find(s => s.toko_id === tokoData?.id)
@@ -878,6 +922,37 @@ export default function StorefrontPage() {
           </div>
         </div>
 
+        {/* ── UI FLASH SALE BANNER */}
+        {flashProduk.length > 0 && (
+          <div style={{
+            margin: '0 0 16px',
+            background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
+            borderRadius: 12, padding: '12px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18 }}>⚡</span>
+              <div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>Flash Sale Aktif</div>
+                <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>
+                  {flashProduk.length} produk diskon terbatas
+                </div>
+              </div>
+            </div>
+            {countdown[flashProduk[0]?.id] && (
+              <div style={{
+                background: 'rgba(0,0,0,0.2)', borderRadius: 8,
+                padding: '6px 10px', textAlign: 'center',
+              }}>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, letterSpacing: '0.05em' }}>BERAKHIR</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>
+                  {countdown[flashProduk[0].id]}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {kategoriList.length > 1 && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: '16px', paddingBottom: 4, scrollbarWidth: 'none' }}>
             <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? accentColor + '22' : c.surface, color: filterKat === 'all' ? accentColor : c.textSecondary, border: `1px solid ${filterKat === 'all' ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
@@ -904,8 +979,106 @@ export default function StorefrontPage() {
                 c={c}
                 onClick={() => setSelectedProduk(p)}
                 onShare={() => setShareTarget(p)}
+                flashProduk={flashProduk}
+                countdown={countdown}
+                getFlashInfo={getFlashInfo}
               />
             ))}
+          </div>
+        )}
+
+        {/* ── UI SECTION BUNDLE */}
+        {bundles.length > 0 && (
+          <div style={{ margin: '24px 0' }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 12 }}>
+              🎁 Paket Bundle
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {bundles.map(bundle => {
+                const produkDiBundle = produk.filter(p => bundle.produkIds.includes(p.id))
+                const totalNormal = produkDiBundle.reduce((s, p) => s + Number(p.harga), 0)
+                const hemat = totalNormal - bundle.hargaBundle
+                return (
+                  <div key={bundle.id} style={{
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    borderRadius: 12, padding: '14px 16px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
+                          {bundle.nama}
+                        </div>
+                        {bundle.deskripsi && (
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            {bundle.deskripsi}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                          {produkDiBundle.map(p => p.nama).join(' + ')}
+                        </div>
+                        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--accent)' }}>
+                            Rp {Number(bundle.hargaBundle).toLocaleString('id-ID')}
+                          </span>
+                          {hemat > 0 && (
+                            <>
+                              <span style={{
+                                fontSize: 11, color: 'var(--text-secondary)',
+                                textDecoration: 'line-through',
+                              }}>
+                                Rp {totalNormal.toLocaleString('id-ID')}
+                              </span>
+                              <span style={{
+                                fontSize: 10, fontWeight: 700, color: '#fff',
+                                background: '#22c55e', padding: '2px 6px', borderRadius: 4,
+                              }}>
+                                Hemat Rp {hemat.toLocaleString('id-ID')}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Foto mini produk di bundle */}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                      {produkDiBundle.slice(0, 4).map(p => {
+                        const fotoUrl = parseFotos(p.foto)[0]
+                        return (
+                          <div key={p.id} style={{
+                            width: 44, height: 44, borderRadius: 8, overflow: 'hidden',
+                            border: '1px solid var(--border)', flexShrink: 0,
+                            background: 'var(--surface)',
+                          }}>
+                            {fotoUrl ? (
+                              <img src={fotoUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📦</div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const msg = `Halo ${toko.nama}, saya mau pesan bundle *${bundle.nama}*\n\nIsi bundle:\n${produkDiBundle.map(p => `- ${p.nama}`).join('\n')}\n\nTotal: Rp ${Number(bundle.hargaBundle).toLocaleString('id-ID')}\n\nMohon konfirmasi ya! 🙏`
+                        const waClean = toko.wa.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')
+                        window.open(`https://wa.me/${waClean}?text=${encodeURIComponent(msg)}`, '_blank')
+                      }}
+                      style={{
+                        width: '100%', marginTop: 12, padding: '10px',
+                        borderRadius: 100, background: '#25D366', color: '#fff',
+                        border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}
+                    >
+                      <span>💬</span> Pesan Bundle via WhatsApp
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -913,7 +1086,7 @@ export default function StorefrontPage() {
       </div>
 
       {selectedProduk && <ProdukModal produk={selectedProduk} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setSelectedProduk(null)} onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }} onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} />}
-      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} />}
+      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} getFlashInfo={getFlashInfo} />}
       {chatOpen !== false && <ChatModal produk={chatOpen || null} toko={toko} tema={tema} onClose={() => setChatOpen(false)} onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }} semuaProduk={produk} />}
       {trackingOpen && <TrackingModal onClose={() => { setTrackingOpen(false); setInitialResi('') }} initialResi={initialResi} c={c} />}
       {ongkirOpen && <OngkirModal onClose={() => setOngkirOpen(false)} c={c} />}
@@ -932,7 +1105,7 @@ function TokoAvatar({ toko, tema, c, size = 52, radius = 14, fontSize = 22 }) {
   return <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>{toko.nama?.[0]?.toUpperCase()}</div>
 }
 
-function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare }) {
+function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare, flashProduk, countdown, getFlashInfo }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
@@ -943,6 +1116,27 @@ function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare })
         {fotos.length > 1 && <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>1/{fotos.length}</div>}
         {diskon && <div style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 'var(--radius-full)' }}>-{diskon}%</div>}
         {p.stok === 0 && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Habis</span></div>}
+
+        {/* ── UI FLASH SALE BADGE di card produk */}
+        {(() => {
+          const flash = getFlashInfo(p.id)
+          if (!flash || !countdown[p.id]) return null
+          return (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
+              padding: '4px 8px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 11 }}>
+                ⚡ Rp {Number(flash.hargaFlash).toLocaleString('id-ID')}
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 10, fontFamily: 'monospace' }}>
+                {countdown[p.id]}
+              </span>
+            </div>
+          )
+        })()}
       </div>
       <div style={{ padding: '10px' }}>
         <p style={{ fontWeight: 700, fontSize: '0.78rem', marginBottom: 3, lineHeight: 1.3, color: c.textPrimary }}>{truncate(p.nama, 30)}</p>
@@ -999,15 +1193,25 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
   )
 }
 
-function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
+function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlashInfo }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const [form, setForm] = useState({ nama: '', wa: '', alamat: '', catatan: '', qty: 1 })
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
+  // ── Voucher state (self-contained di dalam CheckoutModal)
+  const [voucherKode, setVoucherKode] = useState('')
+  const [voucherApplied, setVoucherApplied] = useState(null)
+  const [voucherLoading, setVoucherLoading] = useState(false)
+  const [voucherError, setVoucherError] = useState('')
+
   const set = (field, val) => { setForm(f => ({ ...f, [field]: val })); if (errors[field]) setErrors(e => ({ ...e, [field]: null })) }
   const maxQty = p.stok || 99
+
+  // Harga efektif (pakai harga flash sale kalau sedang aktif)
+  const flashInfo = getFlashInfo ? getFlashInfo(p.id) : null
+  const hargaEfektif = flashInfo?.hargaFlash || p.harga
 
   const validate = () => {
     const e = {}
@@ -1019,12 +1223,28 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
     return Object.keys(e).length === 0
   }
 
+  const handleApplyVoucher = async () => {
+    if (!voucherKode.trim()) return
+    setVoucherLoading(true)
+    setVoucherError('')
+    setVoucherApplied(null)
+    try {
+      const totalBelanja = hargaEfektif * (form.qty || 1)
+      const res = await voucherApi.validate(toko.id, voucherKode.trim(), totalBelanja)
+      if (res.success) setVoucherApplied(res.data)
+      else setVoucherError(res.message || 'Voucher tidak valid')
+    } catch (e) {
+      setVoucherError(e.message || 'Voucher tidak valid')
+    }
+    setVoucherLoading(false)
+  }
+
   const handleCheckout = async () => {
     if (!validate()) return
     setSubmitting(true)
     try {
-      await pesananApi.create({ tokoId: toko.id, produkId: p.id, produkNama: p.nama, harga: p.harga, qty: form.qty, total: p.harga * form.qty, buyerNama: form.nama, buyerWa: form.wa, buyerAlamat: form.alamat, catatan: form.catatan || '' })
-      const message = generateCheckoutMessage(p, toko, form)
+      await pesananApi.create({ tokoId: toko.id, produkId: p.id, produkNama: p.nama, harga: hargaEfektif, qty: form.qty, total: hargaEfektif * form.qty, buyerNama: form.nama, buyerWa: form.wa, buyerAlamat: form.alamat, catatan: form.catatan || '' })
+      const message = generateCheckoutMessage(p, toko, form) + `${voucherApplied ? `\n🎟️ Voucher: ${voucherApplied.kode} (-Rp ${Number(voucherApplied.diskon).toLocaleString('id-ID')})\n💰 Total Bayar: Rp ${Number(voucherApplied.totalSetelahDiskon).toLocaleString('id-ID')}` : ''}`
       const link = generateWALink(toko.wa, message)
       window.open(link, '_blank')
       onClose()
@@ -1044,7 +1264,7 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
             {thumbUrl && <img src={thumbUrl} alt={p.nama} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 3, color: c.textPrimary }}>{p.nama}</p>
-              <p style={{ color: accentColor, fontWeight: 800, fontSize: '0.9rem' }}>{formatRupiah(p.harga)}</p>
+              <p style={{ color: accentColor, fontWeight: 800, fontSize: '0.9rem' }}>{formatRupiah(hargaEfektif)}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
               <button onClick={() => set('qty', Math.max(1, form.qty - 1))} style={{ width: 28, height: 28, borderRadius: '50%', background: c.surfaceHover, border: `1px solid ${c.glassBorder}`, cursor: 'pointer', color: c.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={12} /></button>
@@ -1071,9 +1291,84 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
             <label className="form-label">Catatan (Opsional)</label>
             <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} />
           </div>
+
+          {/* ── UI VOUCHER di form checkout */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+              KODE VOUCHER
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <input
+                value={voucherKode}
+                onChange={e => { setVoucherKode(e.target.value.toUpperCase()); setVoucherApplied(null); setVoucherError('') }}
+                placeholder="Masukkan kode voucher"
+                disabled={!!voucherApplied}
+                style={{
+                  flex: 1, padding: '9px 12px',
+                  background: 'var(--input-bg)', border: `1px solid ${voucherApplied ? '#22c55e' : 'var(--border)'}`,
+                  borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  fontFamily: 'monospace', letterSpacing: '0.05em',
+                }}
+              />
+              {voucherApplied ? (
+                <button
+                  onClick={() => { setVoucherApplied(null); setVoucherKode('') }}
+                  style={{
+                    padding: '9px 14px', borderRadius: 8, fontSize: 12,
+                    background: 'transparent', border: '1px solid var(--border-danger)',
+                    color: 'var(--danger)', cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >Hapus</button>
+              ) : (
+                <button
+                  onClick={handleApplyVoucher}
+                  disabled={voucherLoading || !voucherKode.trim()}
+                  style={{
+                    padding: '9px 14px', borderRadius: 8, fontSize: 12,
+                    background: 'var(--accent)', color: '#fff',
+                    border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                    opacity: voucherLoading || !voucherKode.trim() ? 0.6 : 1,
+                  }}
+                >{voucherLoading ? '...' : 'Pakai'}</button>
+              )}
+            </div>
+
+            {voucherError && (
+              <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4 }}>{voucherError}</div>
+            )}
+
+            {voucherApplied && (
+              <div style={{
+                marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>
+                  ✓ Voucher {voucherApplied.kode} berhasil dipakai
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>
+                  -Rp {Number(voucherApplied.diskon).toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+
+            {/* Update total di pesan WA kalau ada voucher */}
+            {voucherApplied && (
+              <div style={{
+                marginTop: 6, display: 'flex', justifyContent: 'space-between',
+                padding: '8px 0', borderTop: '1px solid var(--border)',
+              }}>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Total setelah diskon</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>
+                  Rp {Number(voucherApplied.totalSetelahDiskon).toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${accentColor}12`, border: `1px solid ${accentColor}22`, borderRadius: 'var(--radius-lg)' }}>
             <span style={{ fontWeight: 700, color: c.textPrimary }}>Total</span>
-            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: accentColor }}>{formatRupiah(p.harga * form.qty)}</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: accentColor }}>{formatRupiah(hargaEfektif * form.qty)}</span>
           </div>
           <button onClick={handleCheckout} disabled={submitting} style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${accentColor}44` }}>
             <MessageCircle size={17} />
