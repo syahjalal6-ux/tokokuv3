@@ -4,7 +4,7 @@ import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import ProdukForm from '../components/seller/ProdukForm.jsx'
 import { EmptyState, ConfirmDialog, Alert, ProductSkeleton } from '../components/ui/index.jsx'
 import { useAuthStore, useProdukStore, useTokoStore } from '../lib/store.js'
-import { produkApi } from '../lib/api/index.js'
+import { produkApi, bundleApi } from '../lib/api/index.js'
 import { formatRupiah, isPro, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import { Link } from 'react-router-dom'
@@ -46,10 +46,29 @@ export default function ProdukPage() {
   const pro = isPro(user)
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
 
+  // Tambah state di bagian atas komponen
+  const [bundles, setBundles] = useState([])
+  const [showBundleForm, setShowBundleForm] = useState(false)
+  const [editBundle, setEditBundle] = useState(null)
+  const [bundleNama, setBundleNama] = useState('')
+  const [bundleDeskripsi, setBundleDeskripsi] = useState('')
+  const [bundleHarga, setBundleHarga] = useState('')
+  const [bundleProdukIds, setBundleProdukIds] = useState([])
+  const [bundleLoading, setBundleLoading] = useState(false)
+  const [bundleError, setBundleError] = useState('')
+
+  const loadBundles = async () => {
+    try {
+      const res = await bundleApi.getMine(token)
+      if (res.success) setBundles(res.data)
+    } catch {}
+  }
+
   useEffect(() => {
     if (token) {
       load(tokenObj)
       loadToko(tokenObj)
+      loadBundles()
     }
   }, [token])
 
@@ -87,6 +106,55 @@ export default function ProdukPage() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  const handleBundleSubmit = async () => {
+    if (!bundleNama.trim()) { setBundleError('Nama bundle wajib diisi'); return }
+    if (!bundleHarga || isNaN(bundleHarga)) { setBundleError('Harga bundle tidak valid'); return }
+    if (bundleProdukIds.length < 2) { setBundleError('Pilih minimal 2 produk'); return }
+    setBundleLoading(true)
+    setBundleError('')
+    try {
+      const data = {
+        nama: bundleNama.trim(),
+        deskripsi: bundleDeskripsi.trim(),
+        hargaBundle: Number(bundleHarga),
+        produkIds: bundleProdukIds,
+        aktif: true,
+      }
+      if (editBundle) {
+        await bundleApi.update(token, editBundle.id, data)
+      } else {
+        await bundleApi.create(token, data)
+      }
+      await loadBundles()
+      setShowBundleForm(false)
+      setEditBundle(null)
+      setBundleNama('')
+      setBundleDeskripsi('')
+      setBundleHarga('')
+      setBundleProdukIds([])
+    } catch (e) {
+      setBundleError(e.message || 'Gagal menyimpan bundle')
+    }
+    setBundleLoading(false)
+  }
+
+  const handleDeleteBundle = async (bundleId) => {
+    if (!confirm('Hapus bundle ini?')) return
+    try {
+      await bundleApi.delete(token, bundleId)
+      setBundles(prev => prev.filter(b => b.id !== bundleId))
+    } catch {}
+  }
+
+  const openEditBundle = (bundle) => {
+    setEditBundle(bundle)
+    setBundleNama(bundle.nama)
+    setBundleDeskripsi(bundle.deskripsi || '')
+    setBundleHarga(bundle.hargaBundle.toString())
+    setBundleProdukIds(bundle.produkIds)
+    setShowBundleForm(true)
   }
 
   const renderContent = () => {
@@ -181,6 +249,226 @@ export default function ProdukPage() {
       }
     >
       {renderContent()}
+
+      {/* ── SECTION BUNDLE ── */}
+      <div style={{ marginTop: 40 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>Bundling Produk</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+              Gabungkan beberapa produk dengan harga spesial
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              setEditBundle(null)
+              setBundleNama('')
+              setBundleDeskripsi('')
+              setBundleHarga('')
+              setBundleProdukIds([])
+              setShowBundleForm(true)
+            }}
+            style={{
+              padding: '8px 16px', borderRadius: 100,
+              background: 'var(--accent)', color: '#fff',
+              border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            + Buat Bundle
+          </button>
+        </div>
+
+        {/* List bundles */}
+        {bundles.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '32px 16px',
+            background: 'var(--surface)', borderRadius: 12,
+            border: '1px dashed var(--border)',
+            color: 'var(--text-secondary)', fontSize: 13,
+          }}>
+            Belum ada bundle. Buat bundle untuk tingkatkan nilai transaksi.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {bundles.map(bundle => {
+              const produkDiBundle = produk.filter(p => bundle.produkIds.includes(p.id))
+              return (
+                <div key={bundle.id} style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '14px 16px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{bundle.nama}</div>
+                    {bundle.deskripsi && (
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{bundle.deskripsi}</div>
+                    )}
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                      {produkDiBundle.map(p => p.nama).join(' + ')}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', marginTop: 6 }}>
+                      Rp {Number(bundle.hargaBundle).toLocaleString('id-ID')}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginLeft: 12 }}>
+                    <button
+                      onClick={() => openEditBundle(bundle)}
+                      style={{
+                        padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                        background: 'transparent', border: '1px solid var(--border)',
+                        color: 'var(--text)', cursor: 'pointer',
+                      }}
+                    >Edit</button>
+                    <button
+                      onClick={() => handleDeleteBundle(bundle.id)}
+                      style={{
+                        padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                        background: 'transparent', border: '1px solid var(--border-danger)',
+                        color: 'var(--danger)', cursor: 'pointer',
+                      }}
+                    >Hapus</button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Form bundle — modal/drawer sederhana */}
+        {showBundleForm && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}>
+            <div style={{
+              background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+              padding: '24px 20px 32px', width: '100%', maxWidth: 480,
+              maxHeight: '90vh', overflowY: 'auto',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
+                  {editBundle ? 'Edit Bundle' : 'Buat Bundle'}
+                </div>
+                <button onClick={() => setShowBundleForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
+              </div>
+
+              {bundleError && (
+                <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
+                  {bundleError}
+                </div>
+              )}
+
+              {/* Nama bundle */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>NAMA BUNDLE *</label>
+                <input
+                  value={bundleNama}
+                  onChange={e => setBundleNama(e.target.value)}
+                  placeholder="cth: Paket Hemat Starter"
+                  style={{
+                    width: '100%', marginTop: 4, padding: '9px 12px',
+                    background: 'var(--input-bg)', border: '1px solid var(--border)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  }}
+                />
+              </div>
+
+              {/* Deskripsi */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>DESKRIPSI</label>
+                <textarea
+                  value={bundleDeskripsi}
+                  onChange={e => setBundleDeskripsi(e.target.value)}
+                  placeholder="Deskripsi bundle..."
+                  rows={2}
+                  style={{
+                    width: '100%', marginTop: 4, padding: '9px 12px',
+                    background: 'var(--input-bg)', border: '1px solid var(--border)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13, resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              {/* Harga bundle */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>HARGA BUNDLE (Rp) *</label>
+                <input
+                  type="number"
+                  value={bundleHarga}
+                  onChange={e => setBundleHarga(e.target.value)}
+                  placeholder="cth: 150000"
+                  style={{
+                    width: '100%', marginTop: 4, padding: '9px 12px',
+                    background: 'var(--input-bg)', border: '1px solid var(--border)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  }}
+                />
+              </div>
+
+              {/* Pilih produk */}
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                  PILIH PRODUK * (minimal 2)
+                </label>
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto' }}>
+                  {produk.map(p => {
+                    const selected = bundleProdukIds.includes(p.id)
+                    return (
+                      <label key={p.id} style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
+                        background: selected ? 'var(--accent-bg)' : 'var(--surface)',
+                        border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                      }}>
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => {
+                            setBundleProdukIds(prev =>
+                              selected ? prev.filter(id => id !== p.id) : [...prev, p.id]
+                            )
+                          }}
+                          style={{ accentColor: 'var(--accent)' }}
+                        />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{p.nama}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                            Rp {Number(p.harga).toLocaleString('id-ID')}
+                          </div>
+                        </div>
+                      </label>
+                    )
+                  })}
+                </div>
+                {bundleProdukIds.length >= 2 && (
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
+                    Total normal: Rp {produk.filter(p => bundleProdukIds.includes(p.id)).reduce((s, p) => s + Number(p.harga), 0).toLocaleString('id-ID')}
+                    {bundleHarga && Number(bundleHarga) > 0 && (
+                      <span style={{ color: 'var(--success)', marginLeft: 8 }}>
+                        → Hemat Rp {(produk.filter(p => bundleProdukIds.includes(p.id)).reduce((s, p) => s + Number(p.harga), 0) - Number(bundleHarga)).toLocaleString('id-ID')}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleBundleSubmit}
+                disabled={bundleLoading}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 100,
+                  background: 'var(--accent)', color: '#fff',
+                  border: 'none', fontSize: 14, fontWeight: 700,
+                  cursor: bundleLoading ? 'not-allowed' : 'pointer',
+                  opacity: bundleLoading ? 0.7 : 1,
+                }}
+              >
+                {bundleLoading ? 'Menyimpan...' : editBundle ? 'Perbarui Bundle' : 'Buat Bundle'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
       <ProdukForm
         isOpen={formOpen}
