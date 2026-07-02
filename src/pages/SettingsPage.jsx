@@ -4,7 +4,7 @@ import { useDropzone } from 'react-dropzone'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import { Alert } from '../components/ui/index.jsx'
 import { useAuthStore, useTokoStore } from '../lib/store.js'
-import { tokoApi, tokoInfoApi } from '../lib/api/index.js'
+import { tokoApi, tokoInfoApi, voucherApi } from '../lib/api/index.js'
 import { validateWA, getStorefrontUrl, isPro, compressImage } from '../lib/utils.js'
 import toast from 'react-hot-toast'
 
@@ -34,6 +34,20 @@ export default function SettingsPage() {
   const [tab, setTab] = useState('toko')
   const pro = isPro(user)
 
+  // Tambah state di bagian atas komponen (setelah state yang sudah ada)
+  const [vouchers, setVouchers] = useState([])
+  const [showVoucherForm, setShowVoucherForm] = useState(false)
+  const [voucherNama, setVoucherNama] = useState('')
+  const [voucherKode, setVoucherKode] = useState('')
+  const [voucherTipe, setVoucherTipe] = useState('persen')
+  const [voucherNilai, setVoucherNilai] = useState('')
+  const [voucherMinBelanja, setVoucherMinBelanja] = useState('')
+  const [voucherMaksDiskon, setVoucherMaksDiskon] = useState('')
+  const [voucherKuota, setVoucherKuota] = useState('')
+  const [voucherBerlakuSampai, setVoucherBerlakuSampai] = useState('')
+  const [voucherLoading, setVoucherLoading] = useState(false)
+  const [voucherError, setVoucherError] = useState('')
+
   useEffect(() => {
     if ((token) && !toko) {
       tokoApi.getMine(tokenObj).then(res => {
@@ -41,6 +55,66 @@ export default function SettingsPage() {
       }).catch(() => {})
     }
   }, [token])
+
+  // Tambah di useEffect load awal
+  const loadVouchers = async () => {
+    try {
+      const res = await voucherApi.getMine(token)
+      if (res.success) setVouchers(res.data)
+    } catch {}
+  }
+  // panggil loadVouchers() bareng load data lain
+
+  useEffect(() => {
+    if (token) loadVouchers()
+  }, [token])
+
+  const handleVoucherSubmit = async () => {
+    if (!voucherKode.trim()) { setVoucherError('Kode voucher wajib diisi'); return }
+    if (!voucherNilai || isNaN(voucherNilai)) { setVoucherError('Nilai voucher tidak valid'); return }
+    if (voucherTipe === 'persen' && Number(voucherNilai) > 100) {
+      setVoucherError('Persentase maksimal 100%'); return
+    }
+    setVoucherLoading(true)
+    setVoucherError('')
+    try {
+      await voucherApi.create(token, {
+        kode: voucherKode.trim().toUpperCase(),
+        tipe: voucherTipe,
+        nilai: Number(voucherNilai),
+        minBelanja: voucherMinBelanja ? Number(voucherMinBelanja) : null,
+        maksDiskon: voucherMaksDiskon ? Number(voucherMaksDiskon) : null,
+        kuota: voucherKuota ? Number(voucherKuota) : null,
+        berlakuSampai: voucherBerlakuSampai ? new Date(voucherBerlakuSampai).toISOString() : null,
+        aktif: true,
+      })
+      await loadVouchers()
+      setShowVoucherForm(false)
+      setVoucherKode('')
+      setVoucherNilai('')
+      setVoucherMinBelanja('')
+      setVoucherMaksDiskon('')
+      setVoucherKuota('')
+      setVoucherBerlakuSampai('')
+    } catch (e) {
+      setVoucherError(e.message || 'Gagal membuat voucher')
+    }
+    setVoucherLoading(false)
+  }
+
+  const handleDeleteVoucher = async (voucherId) => {
+    if (!confirm('Hapus voucher ini?')) return
+    try {
+      await voucherApi.delete(token, voucherId)
+      setVouchers(prev => prev.filter(v => v.id !== voucherId))
+    } catch {}
+  }
+
+  const generateKode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    const kode = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    setVoucherKode(kode)
+  }
 
   const TABS = [
     { key: 'toko', label: 'Info Toko', icon: Store },
@@ -74,6 +148,275 @@ export default function SettingsPage() {
         {tab === 'asisten' && <AsistenSettings tokenObj={tokenObj} toko={toko} />}
         {tab === 'profil' && <ProfilSettings user={user} />}
       </div>
+
+      {/* ── SECTION VOUCHER ── */}
+      {tab === 'toko' && (
+      <div style={{ marginTop: 32, maxWidth: 600 }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between',
+          alignItems: 'center', marginBottom: 16,
+        }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+              🎟️ Voucher & Kupon
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+              Buat kode diskon untuk buyer kamu
+            </div>
+          </div>
+          <button
+            onClick={() => { setShowVoucherForm(true); setVoucherError('') }}
+            style={{
+              padding: '8px 16px', borderRadius: 100,
+              background: 'var(--accent)', color: '#fff',
+              border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            + Buat Voucher
+          </button>
+        </div>
+
+        {/* List voucher */}
+        {vouchers.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '28px 16px',
+            background: 'var(--surface)', borderRadius: 12,
+            border: '1px dashed var(--border)',
+            color: 'var(--text-secondary)', fontSize: 13,
+          }}>
+            Belum ada voucher. Buat voucher untuk menarik lebih banyak pembeli.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {vouchers.map(v => {
+              const expired = v.berlakuSampai && new Date(v.berlakuSampai) < new Date()
+              const habis = v.kuota && v.terpakai >= v.kuota
+              return (
+                <div key={v.id} style={{
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  borderRadius: 12, padding: '14px 16px',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+                  opacity: expired || habis ? 0.6 : 1,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{
+                        fontFamily: 'monospace', fontWeight: 700, fontSize: 15,
+                        color: 'var(--accent)', letterSpacing: '0.08em',
+                      }}>
+                        {v.kode}
+                      </span>
+                      {expired && (
+                        <span style={{ fontSize: 10, color: 'var(--danger)', background: 'var(--danger-bg)', padding: '2px 6px', borderRadius: 4 }}>Kadaluarsa</span>
+                      )}
+                      {habis && !expired && (
+                        <span style={{ fontSize: 10, color: 'var(--warning)', background: 'var(--warning-bg)', padding: '2px 6px', borderRadius: 4 }}>Kuota Habis</span>
+                      )}
+                    </div>
+
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                      Diskon {v.tipe === 'persen'
+                        ? `${v.nilai}%${v.maksDiskon ? ` (maks Rp ${Number(v.maksDiskon).toLocaleString('id-ID')})` : ''}`
+                        : `Rp ${Number(v.nilai).toLocaleString('id-ID')}`
+                      }
+                      {v.minBelanja ? ` · Min. Rp ${Number(v.minBelanja).toLocaleString('id-ID')}` : ''}
+                    </div>
+
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, display: 'flex', gap: 12 }}>
+                      {v.kuota && (
+                        <span>Terpakai: {v.terpakai}/{v.kuota}</span>
+                      )}
+                      {v.berlakuSampai && (
+                        <span>Berlaku s/d: {new Date(v.berlakuSampai).toLocaleDateString('id-ID')}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleDeleteVoucher(v.id)}
+                    style={{
+                      padding: '6px 12px', borderRadius: 8, fontSize: 12,
+                      background: 'transparent', border: '1px solid var(--border-danger)',
+                      color: 'var(--danger)', cursor: 'pointer', marginLeft: 12, flexShrink: 0,
+                    }}
+                  >Hapus</button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Form buat voucher */}
+        {showVoucherForm && (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+            zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+          }}>
+            <div style={{
+              background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+              padding: '24px 20px 32px', width: '100%', maxWidth: 480,
+              maxHeight: '90vh', overflowY: 'auto',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>Buat Voucher</div>
+                <button onClick={() => setShowVoucherForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
+              </div>
+
+              {voucherError && (
+                <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
+                  {voucherError}
+                </div>
+              )}
+
+              {/* Kode */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>KODE VOUCHER *</label>
+                <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <input
+                    value={voucherKode}
+                    onChange={e => setVoucherKode(e.target.value.toUpperCase())}
+                    placeholder="cth: HEMAT20"
+                    style={{
+                      flex: 1, padding: '9px 12px',
+                      background: 'var(--input-bg)', border: '1px solid var(--border)',
+                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                      fontFamily: 'monospace', letterSpacing: '0.05em',
+                    }}
+                  />
+                  <button
+                    onClick={generateKode}
+                    style={{
+                      padding: '9px 14px', borderRadius: 8, fontSize: 12,
+                      background: 'var(--surface)', border: '1px solid var(--border)',
+                      color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap',
+                    }}
+                  >Generate</button>
+                </div>
+              </div>
+
+              {/* Tipe diskon */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>TIPE DISKON *</label>
+                <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  {[{ key: 'persen', label: '% Persentase' }, { key: 'nominal', label: 'Rp Nominal' }].map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setVoucherTipe(t.key)}
+                      style={{
+                        flex: 1, padding: '9px', borderRadius: 8, fontSize: 13,
+                        background: voucherTipe === t.key ? 'var(--accent-bg)' : 'var(--surface)',
+                        border: `1px solid ${voucherTipe === t.key ? 'var(--accent)' : 'var(--border)'}`,
+                        color: voucherTipe === t.key ? 'var(--accent)' : 'var(--text-secondary)',
+                        cursor: 'pointer', fontWeight: voucherTipe === t.key ? 600 : 400,
+                      }}
+                    >{t.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nilai */}
+              <div style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                  NILAI DISKON * {voucherTipe === 'persen' ? '(%)' : '(Rp)'}
+                </label>
+                <input
+                  type="number"
+                  value={voucherNilai}
+                  onChange={e => setVoucherNilai(e.target.value)}
+                  placeholder={voucherTipe === 'persen' ? 'cth: 20' : 'cth: 15000'}
+                  max={voucherTipe === 'persen' ? 100 : undefined}
+                  style={{
+                    width: '100%', marginTop: 4, padding: '9px 12px',
+                    background: 'var(--input-bg)', border: '1px solid var(--border)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  }}
+                />
+              </div>
+
+              {/* Row min belanja + maks diskon */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>MIN. BELANJA (Rp)</label>
+                  <input
+                    type="number"
+                    value={voucherMinBelanja}
+                    onChange={e => setVoucherMinBelanja(e.target.value)}
+                    placeholder="opsional"
+                    style={{
+                      width: '100%', marginTop: 4, padding: '9px 12px',
+                      background: 'var(--input-bg)', border: '1px solid var(--border)',
+                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    }}
+                  />
+                </div>
+                {voucherTipe === 'persen' && (
+                  <div style={{ flex: 1 }}>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>MAKS. DISKON (Rp)</label>
+                    <input
+                      type="number"
+                      value={voucherMaksDiskon}
+                      onChange={e => setVoucherMaksDiskon(e.target.value)}
+                      placeholder="opsional"
+                      style={{
+                        width: '100%', marginTop: 4, padding: '9px 12px',
+                        background: 'var(--input-bg)', border: '1px solid var(--border)',
+                        borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Row kuota + berlaku sampai */}
+              <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>KUOTA PEMAKAIAN</label>
+                  <input
+                    type="number"
+                    value={voucherKuota}
+                    onChange={e => setVoucherKuota(e.target.value)}
+                    placeholder="opsional"
+                    style={{
+                      width: '100%', marginTop: 4, padding: '9px 12px',
+                      background: 'var(--input-bg)', border: '1px solid var(--border)',
+                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>BERLAKU SAMPAI</label>
+                  <input
+                    type="date"
+                    value={voucherBerlakuSampai}
+                    onChange={e => setVoucherBerlakuSampai(e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)}
+                    style={{
+                      width: '100%', marginTop: 4, padding: '9px 12px',
+                      background: 'var(--input-bg)', border: '1px solid var(--border)',
+                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleVoucherSubmit}
+                disabled={voucherLoading}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: 100,
+                  background: 'var(--accent)', color: '#fff',
+                  border: 'none', fontSize: 14, fontWeight: 700,
+                  cursor: voucherLoading ? 'not-allowed' : 'pointer',
+                  opacity: voucherLoading ? 0.7 : 1,
+                }}
+              >
+                {voucherLoading ? 'Membuat...' : 'Buat Voucher'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      )}
     </DashboardLayout>
   )
 }
