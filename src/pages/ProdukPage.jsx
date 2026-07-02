@@ -778,7 +778,7 @@ function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, 
   return (
     <div
       className="glass-card"
-      style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0 }}
+      style={{ overflow: 'hidden', display: 'flex', flexDirection: 'column', padding: 0, position: 'relative' }}
     >
       {/* IMAGE AREA */}
       <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: 'var(--surface)', flexShrink: 0 }}>
@@ -847,63 +847,66 @@ function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, 
             </span>
           </div>
         )}
+      </div>
 
-        {/* ACTION MENU BUTTON */}
-        <div style={{ position: 'absolute', top: 8, right: 8 }}>
-          <button
-            onClick={() => setShowActions(v => !v)}
-            style={{
-              width: 28, height: 28,
-              borderRadius: '50%',
-              background: 'rgba(0,0,0,0.6)',
-              backdropFilter: 'blur(6px)',
-              border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: '#fff',
-            }}
-          >
-            <MoreVertical size={14} />
-          </button>
+      {/* ACTION MENU BUTTON — sengaja diletakkan DI LUAR div foto (yang overflow:hidden)
+          biar dropdown-nya ga kepotong pas dibuka, terutama di layar lebar/PC.
+          Posisi absolute-nya sekarang relatif ke card utama, bukan ke div foto lagi,
+          jadi angka top/right disesuaikan supaya tetap nempel di pojok kanan atas foto. */}
+      <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 5 }}>
+        <button
+          onClick={() => setShowActions(v => !v)}
+          style={{
+            width: 28, height: 28,
+            borderRadius: '50%',
+            background: 'rgba(0,0,0,0.6)',
+            backdropFilter: 'blur(6px)',
+            border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: '#fff',
+          }}
+        >
+          <MoreVertical size={14} />
+        </button>
 
-          {showActions && (
-           <div
+        {showActions && (
+          <div
             style={{
               position: 'absolute', top: 32, right: 0,
               background: '#1c1c24',
               border: '1px solid rgba(255,255,255,0.12)',
               borderRadius: '10px',
               padding: '4px',
-              zIndex: 10,
+              zIndex: 20,
               minWidth: 160,
               boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
-              }}
-              onMouseLeave={() => setShowActions(false)}
-              >
-              <button onClick={() => { onToggle(); setShowActions(false) }} style={menuItemStyle}>
-                {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
-                {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
+            }}
+            onMouseLeave={() => setShowActions(false)}
+          >
+            <button onClick={() => { onToggle(); setShowActions(false) }} style={menuItemStyle}>
+              {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
+              {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
+            </button>
+            <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
+              <Edit2 size={13} /> Edit
+            </button>
+            {flashActive ? (
+              <button onClick={() => { onClearFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, color: '#ff6b6b' }}>
+                <Ban size={13} /> Hentikan Flash Sale
               </button>
-              <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
-                 <Edit2 size={13} /> Edit
+            ) : (
+              <button onClick={() => { onFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, justifyContent: 'space-between' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Zap size={13} /> Flash Sale
+                </span>
+                {!pro && <Lock size={11} color="var(--text-tertiary)" />}
               </button>
-              {flashActive ? (
-                <button onClick={() => { onClearFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}>
-                  <Ban size={13} /> Hentikan Flash Sale
-                </button>
-              ) : (
-                <button onClick={() => { onFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, justifyContent: 'space-between' }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Zap size={13} /> Flash Sale
-                  </span>
-                  {!pro && <Lock size={11} color="var(--text-tertiary)" />}
-                </button>
-              )}
-              <button onClick={() => { onDelete(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}>
-                <Trash2 size={13} /> Hapus
-              </button>
-            </div>
-          )}
-        </div>
+            )}
+            <button onClick={() => { onDelete(); setShowActions(false) }} style={{ ...menuItemStyle, color: '#ff6b6b' }}>
+              <Trash2 size={13} /> Hapus
+            </button>
+          </div>
+        )}
       </div>
 
       {/* INFO AREA */}
