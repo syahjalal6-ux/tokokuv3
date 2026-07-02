@@ -157,7 +157,7 @@ export default function SettingsPage() {
           alignItems: 'center', marginBottom: 16,
         }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)' }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text-primary)' }}>
               🎟️ Voucher & Kupon
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
@@ -181,7 +181,7 @@ export default function SettingsPage() {
           <div style={{
             textAlign: 'center', padding: '28px 16px',
             background: 'var(--surface)', borderRadius: 12,
-            border: '1px dashed var(--border)',
+            border: '1px dashed var(--glass-border)',
             color: 'var(--text-secondary)', fontSize: 13,
           }}>
             Belum ada voucher. Buat voucher untuk menarik lebih banyak pembeli.
@@ -193,7 +193,7 @@ export default function SettingsPage() {
               const habis = v.kuota && v.terpakai >= v.kuota
               return (
                 <div key={v.id} style={{
-                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
                   borderRadius: 12, padding: '14px 16px',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                   opacity: expired || habis ? 0.6 : 1,
@@ -207,10 +207,10 @@ export default function SettingsPage() {
                         {v.kode}
                       </span>
                       {expired && (
-                        <span style={{ fontSize: 10, color: 'var(--danger)', background: 'var(--danger-bg)', padding: '2px 6px', borderRadius: 4 }}>Kadaluarsa</span>
+                        <span style={{ fontSize: 10, color: 'var(--danger)', background: 'color-mix(in srgb, var(--danger) 15%, transparent)', padding: '2px 6px', borderRadius: 4 }}>Kadaluarsa</span>
                       )}
                       {habis && !expired && (
-                        <span style={{ fontSize: 10, color: 'var(--warning)', background: 'var(--warning-bg)', padding: '2px 6px', borderRadius: 4 }}>Kuota Habis</span>
+                        <span style={{ fontSize: 10, color: 'var(--warning)', background: 'color-mix(in srgb, var(--warning) 15%, transparent)', padding: '2px 6px', borderRadius: 4 }}>Kuota Habis</span>
                       )}
                     </div>
 
@@ -236,7 +236,7 @@ export default function SettingsPage() {
                     onClick={() => handleDeleteVoucher(v.id)}
                     style={{
                       padding: '6px 12px', borderRadius: 8, fontSize: 12,
-                      background: 'transparent', border: '1px solid var(--border-danger)',
+                      background: 'transparent', border: '1px solid color-mix(in srgb, var(--danger) 30%, transparent)',
                       color: 'var(--danger)', cursor: 'pointer', marginLeft: 12, flexShrink: 0,
                     }}
                   >Hapus</button>
@@ -253,17 +253,17 @@ export default function SettingsPage() {
             zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           }}>
             <div style={{
-              background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+              background: 'var(--bg-secondary)', borderRadius: '20px 20px 0 0',
               padding: '24px 20px 32px', width: '100%', maxWidth: 480,
               maxHeight: '90vh', overflowY: 'auto',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>Buat Voucher</div>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>Buat Voucher</div>
                 <button onClick={() => setShowVoucherForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
               </div>
 
               {voucherError && (
-                <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
+                <div style={{ background: 'color-mix(in srgb, var(--danger) 15%, transparent)', color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
                   {voucherError}
                 </div>
               )}
@@ -278,8 +278,8 @@ export default function SettingsPage() {
                     placeholder="cth: HEMAT20"
                     style={{
                       flex: 1, padding: '9px 12px',
-                      background: 'var(--input-bg)', border: '1px solid var(--border)',
-                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                      background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                      borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                       fontFamily: 'monospace', letterSpacing: '0.05em',
                     }}
                   />
@@ -287,7 +287,7 @@ export default function SettingsPage() {
                     onClick={generateKode}
                     style={{
                       padding: '9px 14px', borderRadius: 8, fontSize: 12,
-                      background: 'var(--surface)', border: '1px solid var(--border)',
+                      background: 'var(--surface)', border: '1px solid var(--glass-border)',
                       color: 'var(--text-secondary)', cursor: 'pointer', whiteSpace: 'nowrap',
                     }}
                   >Generate</button>
@@ -304,8 +304,8 @@ export default function SettingsPage() {
                       onClick={() => setVoucherTipe(t.key)}
                       style={{
                         flex: 1, padding: '9px', borderRadius: 8, fontSize: 13,
-                        background: voucherTipe === t.key ? 'var(--accent-bg)' : 'var(--surface)',
-                        border: `1px solid ${voucherTipe === t.key ? 'var(--accent)' : 'var(--border)'}`,
+                        background: voucherTipe === t.key ? 'color-mix(in srgb, var(--accent) 12%, transparent)' : 'var(--surface)',
+                        border: `1px solid ${voucherTipe === t.key ? 'var(--accent)' : 'var(--glass-border)'}`,
                         color: voucherTipe === t.key ? 'var(--accent)' : 'var(--text-secondary)',
                         cursor: 'pointer', fontWeight: voucherTipe === t.key ? 600 : 400,
                       }}
@@ -327,8 +327,8 @@ export default function SettingsPage() {
                   max={voucherTipe === 'persen' ? 100 : undefined}
                   style={{
                     width: '100%', marginTop: 4, padding: '9px 12px',
-                    background: 'var(--input-bg)', border: '1px solid var(--border)',
-                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                    borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                   }}
                 />
               </div>
@@ -344,8 +344,8 @@ export default function SettingsPage() {
                     placeholder="opsional"
                     style={{
                       width: '100%', marginTop: 4, padding: '9px 12px',
-                      background: 'var(--input-bg)', border: '1px solid var(--border)',
-                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                      background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                      borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                     }}
                   />
                 </div>
@@ -359,8 +359,8 @@ export default function SettingsPage() {
                       placeholder="opsional"
                       style={{
                         width: '100%', marginTop: 4, padding: '9px 12px',
-                        background: 'var(--input-bg)', border: '1px solid var(--border)',
-                        borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                        background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                        borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                       }}
                     />
                   </div>
@@ -378,8 +378,8 @@ export default function SettingsPage() {
                     placeholder="opsional"
                     style={{
                       width: '100%', marginTop: 4, padding: '9px 12px',
-                      background: 'var(--input-bg)', border: '1px solid var(--border)',
-                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                      background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                      borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                     }}
                   />
                 </div>
@@ -392,8 +392,8 @@ export default function SettingsPage() {
                     min={new Date().toISOString().slice(0, 10)}
                     style={{
                       width: '100%', marginTop: 4, padding: '9px 12px',
-                      background: 'var(--input-bg)', border: '1px solid var(--border)',
-                      borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                      background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                      borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                     }}
                   />
                 </div>
