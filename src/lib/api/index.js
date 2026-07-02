@@ -17,6 +17,10 @@ export {
   adminApi,
   streamApi,
   trafficApi,
+  bundleApi,
+  flashSaleApi,
+  voucherApi,
 } from './adminClient.js'
+
 // liveApi (LiveKit) masih sementara di supabase.js — akan dipindah di tahap berikutnya
 export { liveApi } from './adminClient.js'
