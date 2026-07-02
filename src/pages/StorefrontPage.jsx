@@ -685,6 +685,15 @@ export default function StorefrontPage() {
   const [initialResi, setInitialResi] = useState('')
   const [shareTarget, setShareTarget] = useState(null)
 
+  // ── TAMBAH STATE
+  const [bundles, setBundles] = useState([])
+  const [flashProduk, setFlashProduk] = useState([])
+  const [voucherKode, setVoucherKode] = useState('')
+  const [voucherApplied, setVoucherApplied] = useState(null)
+  const [voucherLoading, setVoucherLoading] = useState(false)
+  const [voucherError, setVoucherError] = useState('')
+  const [countdown, setCountdown] = useState({})
+
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
 
@@ -741,6 +750,52 @@ export default function StorefrontPage() {
     return () => clearInterval(interval)
   }, [toko])
 
+  // ── TAMBAH useEffect countdown timer
+  useEffect(() => {
+    if (!flashProduk.length) return
+    const interval = setInterval(() => {
+      const now = new Date()
+      const next = {}
+      flashProduk.forEach(p => {
+        if (!p.flashSaleUntil) return
+        const diff = new Date(p.flashSaleUntil) - now
+        if (diff <= 0) {
+          next[p.id] = null
+          return
+        }
+        const h = Math.floor(diff / 3600000)
+        const m = Math.floor((diff % 3600000) / 60000)
+        const s = Math.floor((diff % 60000) / 1000)
+        next[p.id] = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+      })
+      setCountdown(next)
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [flashProduk])
+
+  // ── HELPER: cek apakah produk sedang flash sale aktif
+  const getFlashInfo = (produkId) => {
+    return flashProduk.find(fp => fp.id === produkId) || null
+  }
+
+  // ── HANDLE VOUCHER VALIDATE
+  const handleApplyVoucher = async () => {
+    if (!voucherKode.trim()) return
+    setVoucherLoading(true)
+    setVoucherError('')
+    setVoucherApplied(null)
+    try {
+      const totalBelanja = selectedProduk
+        ? (getFlashInfo(selectedProduk.id)?.hargaFlash || selectedProduk.harga) * (checkoutQty || 1)
+        : 0
+      const res = await voucherApi.validate(toko.id, voucherKode.trim(), totalBelanja)
+      if (res.success) setVoucherApplied(res.data)
+    } catch (e) {
+      setVoucherError(e.message || 'Voucher tidak valid')
+    }
+    setVoucherLoading(false)
+  }
+
   const loadStorefront = async () => {
     setLoading(true)
     try {
@@ -751,6 +806,15 @@ export default function StorefrontPage() {
       const tokoData = tokoRes.data ? { ...tokoRes.data, wa: safeWA(tokoRes.data.wa) } : null
       setToko(tokoData)
       setProduk((produkRes.data || []).filter(p => p.aktif === true || p.aktif === 'TRUE'))
+
+      // ── TAMBAH DI useEffect load toko (setelah load produk berhasil)
+      const [bundleRes, flashRes] = await Promise.all([
+        bundleApi.getByToko(tokoData.id),
+        flashSaleApi.getActive(tokoData.id),
+      ])
+      if (bundleRes.success) setBundles(bundleRes.data)
+      if (flashRes.success) setFlashProduk(flashRes.data)
+
       try {
         const liveRes = await liveApi.getActiveSessions(null)
         const sesi = (liveRes.data || []).find(s => s.toko_id === tokoData?.id)
@@ -878,6 +942,37 @@ export default function StorefrontPage() {
           </div>
         </div>
 
+        {/* ── UI FLASH SALE BANNER — tambah di atas grid produk (setelah search bar) */}
+        {flashProduk.length > 0 && (
+          <div style={{
+            margin: '0 0 16px',
+            background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
+            borderRadius: 12, padding: '12px 16px',
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 18 }}>⚡</span>
+              <div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 13 }}>Flash Sale Aktif</div>
+                <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11 }}>
+                  {flashProduk.length} produk diskon terbatas
+                </div>
+              </div>
+            </div>
+            {countdown[flashProduk[0]?.id] && (
+              <div style={{
+                background: 'rgba(0,0,0,0.2)', borderRadius: 8,
+                padding: '6px 10px', textAlign: 'center',
+              }}>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9, letterSpacing: '0.05em' }}>BERAKHIR</div>
+                <div style={{ color: '#fff', fontWeight: 700, fontSize: 14, fontFamily: 'monospace' }}>
+                  {countdown[flashProduk[0].id]}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {kategoriList.length > 1 && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: '16px', paddingBottom: 4, scrollbarWidth: 'none' }}>
             <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? accentColor + '22' : c.surface, color: filterKat === 'all' ? accentColor : c.textSecondary, border: `1px solid ${filterKat === 'all' ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
@@ -904,8 +999,103 @@ export default function StorefrontPage() {
                 c={c}
                 onClick={() => setSelectedProduk(p)}
                 onShare={() => setShareTarget(p)}
+                flashProduk={flashProduk}
+                countdown={countdown}
+                getFlashInfo={getFlashInfo}
               />
             ))}
+          </div>
+        )}
+
+        {/* ── UI SECTION BUNDLE — tambah setelah grid produk, sebelum footer */}
+        {bundles.length > 0 && (
+          <div style={{ margin: '24px 0' }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 12 }}>
+              🎁 Paket Bundle
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {bundles.map(bundle => {
+                const produkDiBundle = produk.filter(p => bundle.produkIds.includes(p.id))
+                const totalNormal = produkDiBundle.reduce((s, p) => s + Number(p.harga), 0)
+                const hemat = totalNormal - bundle.hargaBundle
+                return (
+                  <div key={bundle.id} style={{
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    borderRadius: 12, padding: '14px 16px',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
+                          {bundle.nama}
+                        </div>
+                        {bundle.deskripsi && (
+                          <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            {bundle.deskripsi}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                          {produkDiBundle.map(p => p.nama).join(' + ')}
+                        </div>
+                        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--accent)' }}>
+                            Rp {Number(bundle.hargaBundle).toLocaleString('id-ID')}
+                          </span>
+                          {hemat > 0 && (
+                            <>
+                              <span style={{
+                                fontSize: 11, color: 'var(--text-secondary)',
+                                textDecoration: 'line-through',
+                              }}>
+                                Rp {totalNormal.toLocaleString('id-ID')}
+                              </span>
+                              <span style={{
+                                fontSize: 10, fontWeight: 700, color: '#fff',
+                                background: '#22c55e', padding: '2px 6px', borderRadius: 4,
+                              }}>
+                                Hemat Rp {hemat.toLocaleString('id-ID')}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Foto mini produk di bundle */}
+                    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                      {produkDiBundle.slice(0, 4).map(p => (
+                        <div key={p.id} style={{
+                          width: 44, height: 44, borderRadius: 8, overflow: 'hidden',
+                          border: '1px solid var(--border)', flexShrink: 0,
+                          background: 'var(--surface)',
+                        }}>
+                          {p.foto?.[0] ? (
+                            <img src={p.foto[0]} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📦</div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const msg = `Halo ${toko.nama}, saya mau pesan bundle *${bundle.nama}*\n\nIsi bundle:\n${produkDiBundle.map(p => `- ${p.nama}`).join('\n')}\n\nTotal: Rp ${Number(bundle.hargaBundle).toLocaleString('id-ID')}\n\nMohon konfirmasi ya! 🙏`
+                        const waClean = toko.wa.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')
+                        window.open(`https://wa.me/${waClean}?text=${encodeURIComponent(msg)}`, '_blank')
+                      }}
+                      style={{
+                        width: '100%', marginTop: 12, padding: '10px',
+                        borderRadius: 100, background: '#25D366', color: '#fff',
+                        border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                      }}
+                    >
+                      <span>💬</span> Pesan Bundle via WhatsApp
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
           </div>
         )}
 
@@ -913,7 +1103,7 @@ export default function StorefrontPage() {
       </div>
 
       {selectedProduk && <ProdukModal produk={selectedProduk} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setSelectedProduk(null)} onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }} onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} />}
-      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} />}
+      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} voucherKode={voucherKode} setVoucherKode={setVoucherKode} voucherApplied={voucherApplied} setVoucherApplied={setVoucherApplied} voucherLoading={voucherLoading} voucherError={voucherError} handleApplyVoucher={handleApplyVoucher} />}
       {chatOpen !== false && <ChatModal produk={chatOpen || null} toko={toko} tema={tema} onClose={() => setChatOpen(false)} onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }} semuaProduk={produk} />}
       {trackingOpen && <TrackingModal onClose={() => { setTrackingOpen(false); setInitialResi('') }} initialResi={initialResi} c={c} />}
       {ongkirOpen && <OngkirModal onClose={() => setOngkirOpen(false)} c={c} />}
@@ -932,7 +1122,7 @@ function TokoAvatar({ toko, tema, c, size = 52, radius = 14, fontSize = 22 }) {
   return <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>{toko.nama?.[0]?.toUpperCase()}</div>
 }
 
-function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare }) {
+function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare, flashProduk, countdown, getFlashInfo }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
@@ -943,6 +1133,27 @@ function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare })
         {fotos.length > 1 && <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>1/{fotos.length}</div>}
         {diskon && <div style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 'var(--radius-full)' }}>-{diskon}%</div>}
         {p.stok === 0 && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Habis</span></div>}
+
+        {/* ── UI FLASH SALE BADGE di card produk */}
+        {(() => {
+          const flash = getFlashInfo(p.id)
+          if (!flash || !countdown[p.id]) return null
+          return (
+            <div style={{
+              position: 'absolute', bottom: 0, left: 0, right: 0,
+              background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
+              padding: '4px 8px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ color: '#fff', fontWeight: 700, fontSize: 11 }}>
+                ⚡ Rp {Number(flash.hargaFlash).toLocaleString('id-ID')}
+              </span>
+              <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 10, fontFamily: 'monospace' }}>
+                {countdown[p.id]}
+              </span>
+            </div>
+          )
+        })()}
       </div>
       <div style={{ padding: '10px' }}>
         <p style={{ fontWeight: 700, fontSize: '0.78rem', marginBottom: 3, lineHeight: 1.3, color: c.textPrimary }}>{truncate(p.nama, 30)}</p>
@@ -999,7 +1210,7 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
   )
 }
 
-function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
+function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, voucherKode, setVoucherKode, voucherApplied, setVoucherApplied, voucherLoading, voucherError, handleApplyVoucher }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const [form, setForm] = useState({ nama: '', wa: '', alamat: '', catatan: '', qty: 1 })
@@ -1024,7 +1235,7 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
     setSubmitting(true)
     try {
       await pesananApi.create({ tokoId: toko.id, produkId: p.id, produkNama: p.nama, harga: p.harga, qty: form.qty, total: p.harga * form.qty, buyerNama: form.nama, buyerWa: form.wa, buyerAlamat: form.alamat, catatan: form.catatan || '' })
-      const message = generateCheckoutMessage(p, toko, form)
+      const message = generateCheckoutMessage(p, toko, form) + `${voucherApplied ? `\n🎟️ Voucher: ${voucherApplied.kode} (-Rp ${Number(voucherApplied.diskon).toLocaleString('id-ID')})\n💰 Total Bayar: Rp ${Number(voucherApplied.totalSetelahDiskon).toLocaleString('id-ID')}` : ''}`
       const link = generateWALink(toko.wa, message)
       window.open(link, '_blank')
       onClose()
@@ -1071,6 +1282,81 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose }) {
             <label className="form-label">Catatan (Opsional)</label>
             <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} />
           </div>
+
+          {/* ── UI VOUCHER di form checkout — tambah sebelum tombol "Pesan via WhatsApp" */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+              KODE VOUCHER
+            </label>
+            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+              <input
+                value={voucherKode}
+                onChange={e => { setVoucherKode(e.target.value.toUpperCase()); setVoucherApplied(null); setVoucherError('') }}
+                placeholder="Masukkan kode voucher"
+                disabled={!!voucherApplied}
+                style={{
+                  flex: 1, padding: '9px 12px',
+                  background: 'var(--input-bg)', border: `1px solid ${voucherApplied ? '#22c55e' : 'var(--border)'}`,
+                  borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  fontFamily: 'monospace', letterSpacing: '0.05em',
+                }}
+              />
+              {voucherApplied ? (
+                <button
+                  onClick={() => { setVoucherApplied(null); setVoucherKode('') }}
+                  style={{
+                    padding: '9px 14px', borderRadius: 8, fontSize: 12,
+                    background: 'transparent', border: '1px solid var(--border-danger)',
+                    color: 'var(--danger)', cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >Hapus</button>
+              ) : (
+                <button
+                  onClick={handleApplyVoucher}
+                  disabled={voucherLoading || !voucherKode.trim()}
+                  style={{
+                    padding: '9px 14px', borderRadius: 8, fontSize: 12,
+                    background: 'var(--accent)', color: '#fff',
+                    border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                    opacity: voucherLoading || !voucherKode.trim() ? 0.6 : 1,
+                  }}
+                >{voucherLoading ? '...' : 'Pakai'}</button>
+              )}
+            </div>
+
+            {voucherError && (
+              <div style={{ fontSize: 11, color: 'var(--danger)', marginTop: 4 }}>{voucherError}</div>
+            )}
+
+            {voucherApplied && (
+              <div style={{
+                marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              }}>
+                <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>
+                  ✓ Voucher {voucherApplied.kode} berhasil dipakai
+                </span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>
+                  -Rp {Number(voucherApplied.diskon).toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+
+            {/* Update total di pesan WA kalau ada voucher */}
+            {voucherApplied && (
+              <div style={{
+                marginTop: 6, display: 'flex', justifyContent: 'space-between',
+                padding: '8px 0', borderTop: '1px solid var(--border)',
+              }}>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Total setelah diskon</span>
+                <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>
+                  Rp {Number(voucherApplied.totalSetelahDiskon).toLocaleString('id-ID')}
+                </span>
+              </div>
+            )}
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${accentColor}12`, border: `1px solid ${accentColor}22`, borderRadius: 'var(--radius-lg)' }}>
             <span style={{ fontWeight: 700, color: c.textPrimary }}>Total</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: accentColor }}>{formatRupiah(p.harga * form.qty)}</span>
