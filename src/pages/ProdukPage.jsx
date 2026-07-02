@@ -866,25 +866,25 @@ function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, 
           </button>
 
           {showActions && (
-            <div
-              style={{
-                position: 'absolute', top: 32, right: 0,
-                background: 'var(--surface-elevated, var(--surface))',
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
-                padding: '4px',
-                zIndex: 10,
-                minWidth: 160,
-                boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+           <div
+            style={{
+              position: 'absolute', top: 32, right: 0,
+              background: '#1c1c24',
+              border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: '10px',
+              padding: '4px',
+              zIndex: 10,
+              minWidth: 160,
+              boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
               }}
               onMouseLeave={() => setShowActions(false)}
-            >
+              >
               <button onClick={() => { onToggle(); setShowActions(false) }} style={menuItemStyle}>
                 {p.aktif ? <EyeOff size={13} /> : <Eye size={13} />}
                 {p.aktif ? 'Nonaktifkan' : 'Aktifkan'}
               </button>
-              <button onClick={() => { onEdit(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--text-primary, #1a1a1a)' }}>
-                <Edit2 size={13} /> Edit
+              <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
+                 <Edit2 size={13} /> Edit
               </button>
               {flashActive ? (
                 <button onClick={() => { onClearFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}>
@@ -932,7 +932,7 @@ const menuItemStyle = {
   borderRadius: '7px',
   cursor: 'pointer',
   fontSize: '0.78rem', fontWeight: 600,
-  color: 'var(--text-primary)',
+  color: '#f5f5f5',
   textAlign: 'left',
 }
 
