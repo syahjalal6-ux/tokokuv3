@@ -141,3 +141,25 @@ export const trafficApi = {
   trackVisit: (tokoId) => call('trafficApi.trackVisit', null, tokoId),
   getStats: (token) => call('trafficApi.getStats', token),
 }
+
+export const bundleApi = {
+  create: (token, data) => call('bundleApi.create', token, data),
+  update: (token, bundleId, data) => call('bundleApi.update', token, bundleId, data),
+  delete: (token, bundleId) => call('bundleApi.delete', token, bundleId),
+  getMine: (token) => call('bundleApi.getMine', token),
+  getByToko: (tokoId) => call('bundleApi.getByToko', null, tokoId),
+}
+
+export const flashSaleApi = {
+  set: (token, produkId, data) => call('flashSaleApi.set', token, produkId, data),
+  clear: (token, produkId) => call('flashSaleApi.clear', token, produkId),
+  getActive: (tokoId) => call('flashSaleApi.getActive', null, tokoId),
+}
+
+export const voucherApi = {
+  create: (token, data) => call('voucherApi.create', token, data),
+  getMine: (token) => call('voucherApi.getMine', token),
+  delete: (token, voucherId) => call('voucherApi.delete', token, voucherId),
+  validate: (tokoId, kode, totalBelanja) => call('voucherApi.validate', null, tokoId, kode, totalBelanja),
+  redeem: (voucherId) => call('voucherApi.redeem', null, voucherId),
+}
