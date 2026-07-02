@@ -85,7 +85,12 @@ function mapProduk(p) {
     id: p.id, tokoId: p.toko_id, userId: p.user_id, nama: p.nama,
     deskripsi: p.deskripsi, harga: p.harga, hargaCoret: p.harga_coret,
     stok: p.stok, kategori: p.kategori, berat: p.berat, foto: p.foto,
-    aktif: p.aktif, createdAt: p.created_at, updatedAt: p.updated_at,
+    aktif: p.aktif,
+    isPreorder: p.is_preorder || false,
+    preorderReadyDate: p.preorder_ready_date || null,
+    hargaFlash: p.harga_flash || null,
+    flashSaleUntil: p.flash_sale_until || null,
+    createdAt: p.created_at, updatedAt: p.updated_at,
   }
 }
 
@@ -340,6 +345,10 @@ const produkApi = {
         stok: data.stok ? Number(data.stok) : null, kategori: data.kategori || '',
         berat: data.berat ? Number(data.berat) : null, foto: data.foto || '[]',
         aktif: data.aktif !== false,
+        is_preorder: data.isPreorder || false,
+        preorder_ready_date: data.isPreorder && data.preorderReadyDate ? data.preorderReadyDate : null,
+        harga_flash: data.hargaFlash ? Number(data.hargaFlash) : null,
+        flash_sale_until: data.flashSaleUntil || null,
         created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
       })
       .select()
@@ -360,6 +369,10 @@ const produkApi = {
     if (data.berat !== undefined) updatePayload.berat = data.berat
     if (data.foto !== undefined) updatePayload.foto = data.foto
     if (data.aktif !== undefined) updatePayload.aktif = data.aktif
+    if (data.isPreorder !== undefined) updatePayload.is_preorder = data.isPreorder
+    if (data.preorderReadyDate !== undefined) updatePayload.preorder_ready_date = data.isPreorder ? data.preorderReadyDate : null
+    if (data.hargaFlash !== undefined) updatePayload.harga_flash = data.hargaFlash
+    if (data.flashSaleUntil !== undefined) updatePayload.flash_sale_until = data.flashSaleUntil
     updatePayload.updated_at = new Date().toISOString()
 
     const { error } = await supabaseAdmin.from('produk').update(updatePayload).eq('id', produkId).eq('user_id', userId)
@@ -381,7 +394,6 @@ const produkApi = {
     return { success: true, data: (data || []).map(mapProduk) }
   },
 
-  // FIX: ganti .single() → .maybeSingle() biar tidak crash kalau toko tidak ketemu
   getByToko: async (tokoId, params = {}) => {
     let actualTokoId = tokoId
     const { data: toko } = await supabasePublic.from('toko').select('id').or(`id.eq.${tokoId},slug.eq.${tokoId}`).maybeSingle()
@@ -1111,7 +1123,6 @@ const liveApi = {
     const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
     requirePro(userRow)
 
-    // Matiin session lama kalau ada
     await supabaseAdmin.from('live_sessions').update({ is_active: false }).eq('toko_id', toko.id).eq('is_active', true)
 
     const roomName = `live-${toko.id}-${Date.now()}`
@@ -1123,7 +1134,6 @@ const liveApi = {
       .single()
     if (error) handleError(error)
 
-    // Generate LiveKit token untuk host
     const at = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
       identity: `host-${toko.id}`,
       name: toko.nama,
@@ -1257,6 +1267,238 @@ const trafficApi = {
 }
 
 // ================================================
+// BUNDLE PRODUK
+// ================================================
+
+function mapBundle(b) {
+  if (!b) return null
+  let produkIds = []
+  try { produkIds = b.produk_ids ? JSON.parse(b.produk_ids) : [] } catch { produkIds = [] }
+  return {
+    id: b.id, tokoId: b.toko_id, nama: b.nama, deskripsi: b.deskripsi,
+    hargaBundle: b.harga_bundle, produkIds, aktif: b.aktif,
+    createdAt: b.created_at, updatedAt: b.updated_at,
+  }
+}
+
+const bundleApi = {
+  create: async (token, data) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+
+    const { data: bundle, error } = await supabaseAdmin
+      .from('produk_bundle')
+      .insert({
+        toko_id: toko.id, nama: data.nama, deskripsi: data.deskripsi || '',
+        harga_bundle: Number(data.hargaBundle), produk_ids: JSON.stringify(data.produkIds || []),
+        aktif: data.aktif !== false,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+
+    if (error) handleError(error)
+    return { success: true, data: mapBundle(bundle) }
+  },
+
+  update: async (token, bundleId, data) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const payload = {}
+    if (data.nama !== undefined) payload.nama = data.nama
+    if (data.deskripsi !== undefined) payload.deskripsi = data.deskripsi
+    if (data.hargaBundle !== undefined) payload.harga_bundle = Number(data.hargaBundle)
+    if (data.produkIds !== undefined) payload.produk_ids = JSON.stringify(data.produkIds)
+    if (data.aktif !== undefined) payload.aktif = data.aktif
+    payload.updated_at = new Date().toISOString()
+
+    const { error } = await supabaseAdmin.from('produk_bundle').update(payload).eq('id', bundleId).eq('toko_id', toko.id)
+    if (error) handleError(error)
+    return { success: true }
+  },
+
+  delete: async (token, bundleId) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { error } = await supabaseAdmin.from('produk_bundle').delete().eq('id', bundleId).eq('toko_id', toko.id)
+    if (error) handleError(error)
+    return { success: true }
+  },
+
+  getMine: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) return { success: true, data: [] }
+
+    const { data, error } = await supabaseAdmin
+      .from('produk_bundle').select('*').eq('toko_id', toko.id).order('created_at', { ascending: false })
+    if (error) handleError(error)
+    return { success: true, data: (data || []).map(mapBundle) }
+  },
+
+  getByToko: async (tokoId) => {
+    const { data, error } = await supabasePublic
+      .from('produk_bundle').select('*').eq('toko_id', tokoId).eq('aktif', true).order('created_at', { ascending: false })
+    if (error) handleError(error)
+    return { success: true, data: (data || []).map(mapBundle) }
+  },
+}
+
+// ================================================
+// FLASH SALE
+// ================================================
+
+const flashSaleApi = {
+  set: async (token, produkId, data) => {
+    const userId = await verifyToken(token)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const payload = {}
+    if (data.hargaFlash !== undefined) payload.harga_flash = Number(data.hargaFlash)
+    if (data.flashSaleUntil !== undefined) payload.flash_sale_until = data.flashSaleUntil
+    payload.updated_at = new Date().toISOString()
+
+    const { error } = await supabaseAdmin.from('produk').update(payload).eq('id', produkId).eq('user_id', userId)
+    if (error) handleError(error)
+    return { success: true }
+  },
+
+  clear: async (token, produkId) => {
+    const userId = await verifyToken(token)
+    const { error } = await supabaseAdmin
+      .from('produk')
+      .update({ harga_flash: null, flash_sale_until: null, updated_at: new Date().toISOString() })
+      .eq('id', produkId)
+      .eq('user_id', userId)
+    if (error) handleError(error)
+    return { success: true }
+  },
+
+  getActive: async (tokoId) => {
+    const now = new Date().toISOString()
+    const { data, error } = await supabasePublic
+      .from('produk')
+      .select('*')
+      .eq('toko_id', tokoId)
+      .eq('aktif', true)
+      .not('harga_flash', 'is', null)
+      .gt('flash_sale_until', now)
+      .order('flash_sale_until', { ascending: true })
+    if (error) handleError(error)
+    return {
+      success: true,
+      data: (data || []).map(p => ({ ...mapProduk(p), hargaFlash: p.harga_flash, flashSaleUntil: p.flash_sale_until }))
+    }
+  },
+}
+
+// ================================================
+// VOUCHER / KUPON
+// ================================================
+
+function mapVoucher(v) {
+  if (!v) return null
+  return {
+    id: v.id, tokoId: v.toko_id, kode: v.kode, tipe: v.tipe, nilai: v.nilai,
+    minBelanja: v.min_belanja, maksDiskon: v.maks_diskon, kuota: v.kuota,
+    terpakai: v.terpakai, aktif: v.aktif, berlakuSampai: v.berlaku_sampai,
+    createdAt: v.created_at, updatedAt: v.updated_at,
+  }
+}
+
+const voucherApi = {
+  create: async (token, data) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Buat toko dulu', 400)
+    const { data: userRow } = await supabaseAdmin.from('users').select('plan, plan_expiry').eq('id', userId).single()
+    requirePro(userRow)
+
+    const kode = data.kode?.toUpperCase().trim()
+    if (!kode) throw new ApiError('Kode voucher wajib diisi', 400)
+
+    const { data: existing } = await supabaseAdmin
+      .from('vouchers').select('id').eq('toko_id', toko.id).eq('kode', kode).maybeSingle()
+    if (existing) throw new ApiError('Kode voucher sudah dipakai', 400)
+
+    const { data: voucher, error } = await supabaseAdmin
+      .from('vouchers')
+      .insert({
+        toko_id: toko.id, kode, tipe: data.tipe || 'persen', nilai: Number(data.nilai),
+        min_belanja: data.minBelanja ? Number(data.minBelanja) : null,
+        maks_diskon: data.maksDiskon ? Number(data.maksDiskon) : null,
+        kuota: data.kuota ? Number(data.kuota) : null, terpakai: 0,
+        aktif: data.aktif !== false, berlaku_sampai: data.berlakuSampai || null,
+        created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single()
+    if (error) handleError(error)
+    return { success: true, data: mapVoucher(voucher) }
+  },
+
+  getMine: async (token) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) return { success: true, data: [] }
+
+    const { data, error } = await supabaseAdmin
+      .from('vouchers').select('*').eq('toko_id', toko.id).order('created_at', { ascending: false })
+    if (error) handleError(error)
+    return { success: true, data: (data || []).map(mapVoucher) }
+  },
+
+  delete: async (token, voucherId) => {
+    const userId = await verifyToken(token)
+    const { data: toko } = await supabaseAdmin.from('toko').select('id').eq('user_id', userId).single()
+    if (!toko) throw new ApiError('Toko tidak ditemukan', 404)
+
+    const { error } = await supabaseAdmin.from('vouchers').delete().eq('id', voucherId).eq('toko_id', toko.id)
+    if (error) handleError(error)
+    return { success: true }
+  },
+
+  validate: async (tokoId, kode, totalBelanja) => {
+    const now = new Date().toISOString()
+    const { data: voucher, error } = await supabasePublic
+      .from('vouchers').select('*').eq('toko_id', tokoId).eq('kode', kode.toUpperCase().trim()).eq('aktif', true).single()
+
+    if (error || !voucher) throw new ApiError('Kode voucher tidak valid', 400)
+    if (voucher.berlaku_sampai && voucher.berlaku_sampai < now) throw new ApiError('Voucher sudah kadaluarsa', 400)
+    if (voucher.kuota && voucher.terpakai >= voucher.kuota) throw new ApiError('Kuota voucher habis', 400)
+    if (voucher.min_belanja && Number(totalBelanja) < voucher.min_belanja) {
+      throw new ApiError(`Minimum belanja Rp ${Number(voucher.min_belanja).toLocaleString('id-ID')}`, 400)
+    }
+
+    let diskon = 0
+    if (voucher.tipe === 'persen') {
+      diskon = Math.round(Number(totalBelanja) * (voucher.nilai / 100))
+      if (voucher.maks_diskon) diskon = Math.min(diskon, voucher.maks_diskon)
+    } else {
+      diskon = voucher.nilai
+    }
+    diskon = Math.min(diskon, Number(totalBelanja))
+
+    return {
+      success: true,
+      data: { voucherId: voucher.id, kode: voucher.kode, tipe: voucher.tipe, nilai: voucher.nilai, diskon, totalSetelahDiskon: Number(totalBelanja) - diskon }
+    }
+  },
+
+  redeem: async (voucherId) => {
+    const { error } = await supabasePublic.rpc('increment_voucher_terpakai', { p_voucher_id: voucherId })
+    if (error) console.warn('redeem voucher error:', error.message)
+    return { success: true }
+  },
+}
+
+// ================================================
 // REGISTRY — daftar semua action yang valid
 // Format action string: "namaApi.namaMethod"
 // ================================================
@@ -1264,7 +1506,7 @@ const trafficApi = {
 const REGISTRY = {
   authApi, tokoApi, produkApi, pesananApi, analyticsApi,
   tokoInfoApi, ratingApi, adminApi, streamApi, liveApi,
-  trafficApi,
+  trafficApi, bundleApi, flashSaleApi, voucherApi,
 }
 
 // ================================================
@@ -1272,7 +1514,6 @@ const REGISTRY = {
 // ================================================
 
 export default async function handler(req, res) {
-  // CORS dasar (sesuaikan domain kalau perlu dibatasi)
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
