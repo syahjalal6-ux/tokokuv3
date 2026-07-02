@@ -102,6 +102,14 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
   const [form, setForm] = useState(INITIAL)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
+
+  // State tambahan untuk Flash Sale & Pre-order
+  const [isFlashSale, setIsFlashSale] = useState(false)
+  const [hargaFlash, setHargaFlash] = useState('')
+  const [flashSaleUntil, setFlashSaleUntil] = useState('')
+  const [isPreorder, setIsPreorder] = useState(false)
+  const [preorderReadyDate, setPreorderReadyDate] = useState('')
+
   const { token, user } = useAuthStore()
   const tokenObj = token
   const { add, update } = useProdukStore()
@@ -124,6 +132,7 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
           fotos = String(editData.foto).split(',').map(s => s.trim()).filter(Boolean)
         }
       }
+      
       setForm({
         nama: editData.nama || '',
         deskripsi: editData.deskripsi || '',
@@ -135,8 +144,21 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
         fotos,
         aktif: editData.aktif !== false,
       })
+
+      // Set state Flash Sale & Pre-order dari data edit
+      setIsFlashSale(!!(editData?.hargaFlash && editData?.flashSaleUntil))
+      setHargaFlash(editData?.hargaFlash?.toString() || '')
+      setFlashSaleUntil(editData?.flashSaleUntil ? editData.flashSaleUntil.slice(0, 16) : '')
+      setIsPreorder(editData?.isPreorder || false)
+      setPreorderReadyDate(editData?.preorderReadyDate ? editData.preorderReadyDate.slice(0, 10) : '')
     } else {
       setForm(INITIAL)
+      // Reset state Flash Sale & Pre-order
+      setIsFlashSale(false)
+      setHargaFlash('')
+      setFlashSaleUntil('')
+      setIsPreorder(false)
+      setPreorderReadyDate('')
     }
     setErrors({})
   }, [editData, isOpen])
@@ -158,6 +180,19 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
 
   const handleSubmit = async () => {
     if (!validate()) return
+
+    // Validasi tambahan untuk Flash Sale
+    if (isFlashSale) {
+      if (!hargaFlash || !flashSaleUntil) {
+        toast.error('Isi harga flash dan tanggal berakhir flash sale')
+        return
+      }
+      if (Number(hargaFlash) >= Number(form.harga)) {
+        toast.error('Harga flash harus lebih kecil dari harga normal')
+        return
+      }
+    }
+
     setLoading(true)
     try {
       // Simpan sebagai JSON array string
@@ -173,6 +208,11 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
         berat: form.berat ? Number(form.berat) : null,
         aktif: form.aktif,
         foto: fotoStr,
+        // Payload tambahan
+        hargaFlash: isFlashSale ? Number(hargaFlash) : null,
+        flashSaleUntil: isFlashSale ? new Date(flashSaleUntil).toISOString() : null,
+        isPreorder,
+        preorderReadyDate: isPreorder && preorderReadyDate ? preorderReadyDate : null,
       }
 
       if (isEdit) {
@@ -308,6 +348,118 @@ export default function ProdukForm({ isOpen, onClose, editData }) {
           <label htmlFor="aktif" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', cursor: 'pointer' }}>
             Produk aktif (tampil di toko)
           </label>
+        </div>
+
+        {/* ── Flash Sale ── */}
+        <div style={{
+          gridColumn: '1 / -1',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 12,
+          padding: '14px 16px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+                ⚡ Flash Sale
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                Harga spesial dengan countdown timer di toko
+              </div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={isFlashSale}
+                onChange={e => setIsFlashSale(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: 'var(--accent)' }}
+              />
+            </label>
+          </div>
+
+          {isFlashSale && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                  HARGA FLASH (Rp)
+                </label>
+                <input
+                  type="number"
+                  value={hargaFlash}
+                  onChange={e => setHargaFlash(e.target.value)}
+                  placeholder="cth: 45000"
+                  style={{
+                    width: '100%', marginTop: 4, padding: '8px 12px',
+                    background: 'var(--input-bg)', border: '1px solid var(--border)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                  BERAKHIR PADA
+                </label>
+                <input
+                  type="datetime-local"
+                  value={flashSaleUntil}
+                  onChange={e => setFlashSaleUntil(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                  style={{
+                    width: '100%', marginTop: 4, padding: '8px 12px',
+                    background: 'var(--input-bg)', border: '1px solid var(--border)',
+                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Pre-order ── */}
+        <div style={{
+          gridColumn: '1 / -1',
+          background: 'var(--surface)',
+          border: '1px solid var(--border)',
+          borderRadius: 12,
+          padding: '14px 16px',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+                📦 Pre-order
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                Terima pesanan sebelum stok ready
+              </div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={isPreorder}
+                onChange={e => setIsPreorder(e.target.checked)}
+                style={{ width: 16, height: 16, accentColor: 'var(--accent)' }}
+              />
+            </label>
+          </div>
+
+          {isPreorder && (
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                ESTIMASI READY
+              </label>
+              <input
+                type="date"
+                value={preorderReadyDate}
+                onChange={e => setPreorderReadyDate(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                style={{
+                  width: '100%', marginTop: 4, padding: '8px 12px',
+                  background: 'var(--input-bg)', border: '1px solid var(--border)',
+                  borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
     </Modal>
