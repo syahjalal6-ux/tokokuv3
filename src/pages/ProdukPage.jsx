@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Plus, Search, Package, Edit2, Trash2, Eye, EyeOff, MoreVertical } from 'lucide-react'
+import { Plus, Search, Package, Edit2, Trash2, Eye, EyeOff, MoreVertical, Zap, Ban, Lock, Clock } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
 import ProdukForm from '../components/seller/ProdukForm.jsx'
 import { EmptyState, ConfirmDialog, Alert, ProductSkeleton } from '../components/ui/index.jsx'
 import { useAuthStore, useProdukStore, useTokoStore } from '../lib/store.js'
-import { produkApi, bundleApi } from '../lib/api/index.js'
+import { produkApi, bundleApi, flashSaleApi } from '../lib/api/index.js'
 import { formatRupiah, isPro, truncate } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import { Link } from 'react-router-dom'
@@ -23,6 +23,24 @@ function parseFotos(foto) {
 function hitungDiskon(harga, hargaCoret) {
   if (!hargaCoret || hargaCoret <= harga) return null
   return Math.round((1 - harga / hargaCoret) * 100)
+}
+
+// ── Helper flash sale ──────────────────────────────────────────────────────
+function toDatetimeLocal(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function isFlashActive(p) {
+  return !!(p.hargaFlash && p.flashSaleUntil && new Date(p.flashSaleUntil) > new Date())
+}
+
+function formatFlashSampai(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 const gridStyle = {
@@ -56,6 +74,19 @@ export default function ProdukPage() {
   const [bundleProdukIds, setBundleProdukIds] = useState([])
   const [bundleLoading, setBundleLoading] = useState(false)
   const [bundleError, setBundleError] = useState('')
+
+  // ── State hapus bundle (popup ConfirmDialog, bukan window.confirm lagi)
+  const [deleteBundleId, setDeleteBundleId] = useState(null)
+  const [deletingBundle, setDeletingBundle] = useState(false)
+
+  // ── State flash sale
+  const [flashSaleTarget, setFlashSaleTarget] = useState(null)
+  const [flashHarga, setFlashHarga] = useState('')
+  const [flashSampai, setFlashSampai] = useState('')
+  const [flashLoading, setFlashLoading] = useState(false)
+  const [flashError, setFlashError] = useState('')
+  const [clearFlashSaleId, setClearFlashSaleId] = useState(null)
+  const [clearingFlash, setClearingFlash] = useState(false)
 
   const loadBundles = async () => {
     try {
@@ -140,12 +171,19 @@ export default function ProdukPage() {
     setBundleLoading(false)
   }
 
-  const handleDeleteBundle = async (bundleId) => {
-    if (!confirm('Hapus bundle ini?')) return
+  // ── Hapus bundle lewat ConfirmDialog (redesign dari window.confirm)
+  const handleDeleteBundle = async () => {
+    setDeletingBundle(true)
     try {
-      await bundleApi.delete(token, bundleId)
-      setBundles(prev => prev.filter(b => b.id !== bundleId))
-    } catch {}
+      await bundleApi.delete(token, deleteBundleId)
+      setBundles(prev => prev.filter(b => b.id !== deleteBundleId))
+      toast.success('Bundle dihapus')
+      setDeleteBundleId(null)
+    } catch (err) {
+      toast.error(err.message || 'Gagal menghapus bundle')
+    } finally {
+      setDeletingBundle(false)
+    }
   }
 
   const openEditBundle = (bundle) => {
@@ -155,6 +193,74 @@ export default function ProdukPage() {
     setBundleHarga(bundle.hargaBundle.toString())
     setBundleProdukIds(bundle.produkIds)
     setShowBundleForm(true)
+  }
+
+  // ── Handler flash sale
+  const openFlashSale = (p) => {
+    if (!pro) {
+      toast.error('Flash Sale khusus seller Pro')
+      return
+    }
+    setFlashSaleTarget(p)
+    setFlashHarga(p.hargaFlash ? String(p.hargaFlash) : '')
+    setFlashSampai(toDatetimeLocal(p.flashSaleUntil))
+    setFlashError('')
+  }
+
+  const closeFlashSale = () => {
+    setFlashSaleTarget(null)
+    setFlashHarga('')
+    setFlashSampai('')
+    setFlashError('')
+  }
+
+  const handleFlashSaleSubmit = async () => {
+    if (!flashHarga || isNaN(flashHarga) || Number(flashHarga) <= 0) {
+      setFlashError('Harga flash sale tidak valid'); return
+    }
+    if (Number(flashHarga) >= Number(flashSaleTarget.harga)) {
+      setFlashError('Harga flash sale harus lebih murah dari harga normal'); return
+    }
+    if (!flashSampai) {
+      setFlashError('Tentukan waktu berakhir flash sale'); return
+    }
+    const untilDate = new Date(flashSampai)
+    if (untilDate <= new Date()) {
+      setFlashError('Waktu berakhir harus di masa depan'); return
+    }
+    setFlashLoading(true)
+    setFlashError('')
+    try {
+      const flashSaleUntil = untilDate.toISOString()
+      await flashSaleApi.set(token, flashSaleTarget.id, { hargaFlash: Number(flashHarga), flashSaleUntil })
+      update(flashSaleTarget.id, { hargaFlash: Number(flashHarga), flashSaleUntil })
+      toast.success('Flash sale aktif')
+      closeFlashSale()
+    } catch (e) {
+      setFlashError(e.message || 'Gagal mengaktifkan flash sale')
+    }
+    setFlashLoading(false)
+  }
+
+  // Diminta dari dalam modal — tutup modal, buka ConfirmDialog
+  const requestClearFlashSaleFromModal = () => {
+    const id = flashSaleTarget.id
+    closeFlashSale()
+    setClearFlashSaleId(id)
+  }
+
+  const handleClearFlashSaleConfirm = async () => {
+    setClearingFlash(true)
+    try {
+      await flashSaleApi.clear(token, clearFlashSaleId)
+      update(clearFlashSaleId, { hargaFlash: null, flashSaleUntil: null })
+      toast.success('Flash sale dihentikan')
+      setClearFlashSaleId(null)
+    } catch (e) {
+      toast.error(e.message || 'Gagal menghentikan flash sale')
+    } finally {
+      setClearingFlash(false)
+    }
   }
 
   const renderContent = () => {
@@ -226,9 +332,12 @@ export default function ProdukPage() {
               <ProductCard
                 key={p.id}
                 produk={p}
+                pro={pro}
                 onEdit={() => handleEdit(p)}
                 onDelete={() => setDeleteId(p.id)}
                 onToggle={() => handleToggleAktif(p)}
+                onFlashSale={() => openFlashSale(p)}
+                onClearFlashSale={() => setClearFlashSaleId(p.id)}
               />
             ))}
           </div>
@@ -320,13 +429,15 @@ export default function ProdukPage() {
                       }}
                     >Edit</button>
                     <button
-                      onClick={() => handleDeleteBundle(bundle.id)}
+                      onClick={() => setDeleteBundleId(bundle.id)}
                       style={{
                         padding: '6px 12px', borderRadius: 8, fontSize: 12,
-                        background: 'transparent', border: `1px solid ${colorMix('var(--danger)', '30%')}`,
-                        color: 'var(--danger)', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        background: colorMix('var(--danger)', '10%'),
+                        border: `1px solid ${colorMix('var(--danger)', '30%')}`,
+                        color: 'var(--danger)', cursor: 'pointer', fontWeight: 600,
                       }}
-                    >Hapus</button>
+                    ><Trash2 size={12} /> Hapus</button>
                   </div>
                 </div>
               )
@@ -470,6 +581,22 @@ export default function ProdukPage() {
         )}
       </div>
 
+      {/* ── FORM FLASH SALE ── */}
+      {flashSaleTarget && (
+        <FlashSaleForm
+          produk={flashSaleTarget}
+          harga={flashHarga}
+          setHarga={setFlashHarga}
+          sampai={flashSampai}
+          setSampai={setFlashSampai}
+          loading={flashLoading}
+          error={flashError}
+          onClose={closeFlashSale}
+          onSubmit={handleFlashSaleSubmit}
+          onRequestClear={isFlashActive(flashSaleTarget) ? requestClearFlashSaleFromModal : null}
+        />
+      )}
+
       <ProdukForm
         isOpen={formOpen}
         onClose={() => { setFormOpen(false); setEditData(null) }}
@@ -484,15 +611,169 @@ export default function ProdukPage() {
         title="Hapus Produk"
         message="Produk yang dihapus tidak dapat dikembalikan. Yakin ingin menghapus?"
       />
+
+      <ConfirmDialog
+        isOpen={!!deleteBundleId}
+        onClose={() => setDeleteBundleId(null)}
+        onConfirm={handleDeleteBundle}
+        isLoading={deletingBundle}
+        title="Hapus Bundle"
+        message="Bundle yang dihapus tidak dapat dikembalikan. Pembeli tidak akan lagi melihat paket ini. Yakin ingin menghapus?"
+      />
+
+      <ConfirmDialog
+        isOpen={!!clearFlashSaleId}
+        onClose={() => setClearFlashSaleId(null)}
+        onConfirm={handleClearFlashSaleConfirm}
+        isLoading={clearingFlash}
+        title="Hentikan Flash Sale"
+        message="Produk akan kembali ke harga normal dan hilang dari banner flash sale di toko. Yakin ingin menghentikan?"
+      />
     </DashboardLayout>
   )
 }
 
-function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
+// ================================================
+// FLASH SALE FORM (bottom sheet, konsisten dgn pola bundle)
+// ================================================
+function FlashSaleForm({ produk: p, harga, setHarga, sampai, setSampai, loading, error, onClose, onSubmit, onRequestClear }) {
+  const fotos = parseFotos(p.foto)
+  const thumbUrl = fotos[0] || null
+  const diskon = harga && !isNaN(harga) && Number(harga) < Number(p.harga)
+    ? Math.round((1 - Number(harga) / Number(p.harga)) * 100)
+    : null
+  const nowLocal = toDatetimeLocal(new Date().toISOString())
+  const active = isFlashActive(p)
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+      zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+    }}>
+      <div style={{
+        background: 'var(--bg-secondary)', borderRadius: '20px 20px 0 0',
+        padding: '24px 20px 32px', width: '100%', maxWidth: 480,
+        maxHeight: '90vh', overflowY: 'auto',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Zap size={17} color="var(--accent)" />
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
+              {active ? 'Edit Flash Sale' : 'Buat Flash Sale'}
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)' }}>×</button>
+        </div>
+
+        {/* Preview produk */}
+        <div style={{
+          display: 'flex', gap: 10, alignItems: 'center', padding: '10px 12px',
+          background: 'var(--surface)', border: '1px solid var(--glass-border)',
+          borderRadius: 10, marginBottom: 16,
+        }}>
+          {thumbUrl ? (
+            <img src={thumbUrl} alt={p.nama} style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--glass-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Package size={18} color="var(--text-tertiary)" />
+            </div>
+          )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nama}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>Harga normal: Rp {Number(p.harga).toLocaleString('id-ID')}</div>
+          </div>
+        </div>
+
+        {error && (
+          <div style={{ background: colorMix('var(--danger)', '12%'), color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
+            {error}
+          </div>
+        )}
+
+        {/* Harga flash */}
+        <div style={{ marginBottom: 14 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>HARGA FLASH SALE (Rp) *</label>
+          <input
+            type="number"
+            value={harga}
+            onChange={e => setHarga(e.target.value)}
+            placeholder="cth: 89000"
+            style={{
+              width: '100%', marginTop: 4, padding: '9px 12px',
+              background: 'var(--surface)', border: '1px solid var(--glass-border)',
+              borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
+            }}
+          />
+          {diskon !== null && (
+            <div style={{ fontSize: 12, color: 'var(--success)', marginTop: 6 }}>
+              Hemat {diskon}% dari harga normal
+            </div>
+          )}
+        </div>
+
+        {/* Berakhir pada */}
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>BERAKHIR PADA *</label>
+          <input
+            type="datetime-local"
+            value={sampai}
+            min={nowLocal}
+            onChange={e => setSampai(e.target.value)}
+            style={{
+              width: '100%', marginTop: 4, padding: '9px 12px',
+              background: 'var(--surface)', border: '1px solid var(--glass-border)',
+              borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
+            }}
+          />
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Clock size={11} /> Countdown otomatis muncul di halaman toko
+          </div>
+        </div>
+
+        <button
+          onClick={onSubmit}
+          disabled={loading}
+          style={{
+            width: '100%', padding: '12px', borderRadius: 100,
+            background: 'var(--accent)', color: '#fff',
+            border: 'none', fontSize: 14, fontWeight: 700,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            cursor: loading ? 'not-allowed' : 'pointer',
+            opacity: loading ? 0.7 : 1,
+          }}
+        >
+          <Zap size={15} />
+          {loading ? 'Menyimpan...' : active ? 'Perbarui Flash Sale' : 'Aktifkan Flash Sale'}
+        </button>
+
+        {/* Tombol hentikan — hanya muncul kalau flash sale sedang aktif */}
+        {onRequestClear && (
+          <button
+            onClick={onRequestClear}
+            style={{
+              width: '100%', padding: '12px', borderRadius: 100, marginTop: 10,
+              background: colorMix('var(--danger)', '10%'),
+              border: `1px solid ${colorMix('var(--danger)', '35%')}`,
+              color: 'var(--danger)', fontSize: 14, fontWeight: 700,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              cursor: 'pointer',
+            }}
+          >
+            <Ban size={15} />
+            Hentikan Flash Sale
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ProductCard({ produk: p, pro, onEdit, onDelete, onToggle, onFlashSale, onClearFlashSale }) {
   const [showActions, setShowActions] = useState(false)
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = hitungDiskon(p.harga, p.hargaCoret)
+  const flashActive = isFlashActive(p)
 
   return (
     <div
@@ -532,7 +813,7 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
         {/* FOTO COUNT */}
         {fotos.length > 1 && (
           <div style={{
-            position: 'absolute', bottom: 8, right: 8,
+            position: 'absolute', bottom: flashActive ? 32 : 8, right: 8,
             background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
             borderRadius: 'var(--radius-full)',
             padding: '2px 7px',
@@ -549,6 +830,21 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <span className="badge badge-free">Nonaktif</span>
+          </div>
+        )}
+
+        {/* FLASH SALE BADGE */}
+        {flashActive && (
+          <div style={{
+            position: 'absolute', bottom: 0, left: 0, right: 0,
+            background: 'var(--accent)',
+            padding: '4px 8px',
+            display: 'flex', alignItems: 'center', gap: 5,
+          }}>
+            <Zap size={11} color="#fff" fill="#fff" />
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: 10.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Rp {Number(p.hargaFlash).toLocaleString('id-ID')} · s/d {formatFlashSampai(p.flashSaleUntil)}
+            </span>
           </div>
         )}
 
@@ -578,7 +874,7 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
                 borderRadius: '10px',
                 padding: '4px',
                 zIndex: 10,
-                minWidth: 130,
+                minWidth: 160,
                 boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
               }}
               onMouseLeave={() => setShowActions(false)}
@@ -590,6 +886,18 @@ function ProductCard({ produk: p, onEdit, onDelete, onToggle }) {
               <button onClick={() => { onEdit(); setShowActions(false) }} style={menuItemStyle}>
                 <Edit2 size={13} /> Edit
               </button>
+              {flashActive ? (
+                <button onClick={() => { onClearFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}>
+                  <Ban size={13} /> Hentikan Flash Sale
+                </button>
+              ) : (
+                <button onClick={() => { onFlashSale(); setShowActions(false) }} style={{ ...menuItemStyle, justifyContent: 'space-between' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Zap size={13} /> Flash Sale
+                  </span>
+                  {!pro && <Lock size={11} color="var(--text-tertiary)" />}
+                </button>
+              )}
               <button onClick={() => { onDelete(); setShowActions(false) }} style={{ ...menuItemStyle, color: 'var(--danger, #ef4444)' }}>
                 <Trash2 size={13} /> Hapus
               </button>
