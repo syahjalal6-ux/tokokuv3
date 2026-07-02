@@ -254,8 +254,8 @@ export default function ProdukPage() {
       <div style={{ marginTop: 40 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>Bundling Produk</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+            <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>Bundling Produk</div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary)' }}>
               Gabungkan beberapa produk dengan harga spesial
             </div>
           </div>
@@ -283,8 +283,8 @@ export default function ProdukPage() {
           <div style={{
             textAlign: 'center', padding: '32px 16px',
             background: 'var(--surface)', borderRadius: 12,
-            border: '1px dashed var(--border)',
-            color: 'var(--text-secondary)', fontSize: 13,
+            border: '1px dashed var(--glass-border)',
+            color: 'var(--text-tertiary)', fontSize: 13,
           }}>
             Belum ada bundle. Buat bundle untuk tingkatkan nilai transaksi.
           </div>
@@ -294,16 +294,16 @@ export default function ProdukPage() {
               const produkDiBundle = produk.filter(p => bundle.produkIds.includes(p.id))
               return (
                 <div key={bundle.id} style={{
-                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  background: 'var(--surface)', border: '1px solid var(--glass-border)',
                   borderRadius: 12, padding: '14px 16px',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
                 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text)' }}>{bundle.nama}</div>
+                    <div style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{bundle.nama}</div>
                     {bundle.deskripsi && (
-                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{bundle.deskripsi}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>{bundle.deskripsi}</div>
                     )}
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 6 }}>
                       {produkDiBundle.map(p => p.nama).join(' + ')}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent)', marginTop: 6 }}>
@@ -315,15 +315,15 @@ export default function ProdukPage() {
                       onClick={() => openEditBundle(bundle)}
                       style={{
                         padding: '6px 12px', borderRadius: 8, fontSize: 12,
-                        background: 'transparent', border: '1px solid var(--border)',
-                        color: 'var(--text)', cursor: 'pointer',
+                        background: 'transparent', border: '1px solid var(--glass-border)',
+                        color: 'var(--text-primary)', cursor: 'pointer',
                       }}
                     >Edit</button>
                     <button
                       onClick={() => handleDeleteBundle(bundle.id)}
                       style={{
                         padding: '6px 12px', borderRadius: 8, fontSize: 12,
-                        background: 'transparent', border: '1px solid var(--border-danger)',
+                        background: 'transparent', border: `1px solid ${colorMix('var(--danger)', '30%')}`,
                         color: 'var(--danger)', cursor: 'pointer',
                       }}
                     >Hapus</button>
@@ -341,41 +341,41 @@ export default function ProdukPage() {
             zIndex: 999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           }}>
             <div style={{
-              background: 'var(--bg)', borderRadius: '20px 20px 0 0',
+              background: 'var(--bg-secondary)', borderRadius: '20px 20px 0 0',
               padding: '24px 20px 32px', width: '100%', maxWidth: 480,
               maxHeight: '90vh', overflowY: 'auto',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)' }}>
+                <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-primary)' }}>
                   {editBundle ? 'Edit Bundle' : 'Buat Bundle'}
                 </div>
-                <button onClick={() => setShowBundleForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-secondary)' }}>×</button>
+                <button onClick={() => setShowBundleForm(false)} style={{ background: 'none', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text-tertiary)' }}>×</button>
               </div>
 
               {bundleError && (
-                <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
+                <div style={{ background: colorMix('var(--danger)', '12%'), color: 'var(--danger)', padding: '10px 12px', borderRadius: 8, fontSize: 13, marginBottom: 14 }}>
                   {bundleError}
                 </div>
               )}
 
               {/* Nama bundle */}
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>NAMA BUNDLE *</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>NAMA BUNDLE *</label>
                 <input
                   value={bundleNama}
                   onChange={e => setBundleNama(e.target.value)}
                   placeholder="cth: Paket Hemat Starter"
                   style={{
                     width: '100%', marginTop: 4, padding: '9px 12px',
-                    background: 'var(--input-bg)', border: '1px solid var(--border)',
-                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                    borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                   }}
                 />
               </div>
 
               {/* Deskripsi */}
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>DESKRIPSI</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>DESKRIPSI</label>
                 <textarea
                   value={bundleDeskripsi}
                   onChange={e => setBundleDeskripsi(e.target.value)}
@@ -383,15 +383,15 @@ export default function ProdukPage() {
                   rows={2}
                   style={{
                     width: '100%', marginTop: 4, padding: '9px 12px',
-                    background: 'var(--input-bg)', border: '1px solid var(--border)',
-                    borderRadius: 8, color: 'var(--text)', fontSize: 13, resize: 'vertical',
+                    background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                    borderRadius: 8, color: 'var(--text-primary)', fontSize: 13, resize: 'vertical',
                   }}
                 />
               </div>
 
               {/* Harga bundle */}
               <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>HARGA BUNDLE (Rp) *</label>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>HARGA BUNDLE (Rp) *</label>
                 <input
                   type="number"
                   value={bundleHarga}
@@ -399,15 +399,15 @@ export default function ProdukPage() {
                   placeholder="cth: 150000"
                   style={{
                     width: '100%', marginTop: 4, padding: '9px 12px',
-                    background: 'var(--input-bg)', border: '1px solid var(--border)',
-                    borderRadius: 8, color: 'var(--text)', fontSize: 13,
+                    background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                    borderRadius: 8, color: 'var(--text-primary)', fontSize: 13,
                   }}
                 />
               </div>
 
               {/* Pilih produk */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
+                <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', letterSpacing: '0.05em' }}>
                   PILIH PRODUK * (minimal 2)
                 </label>
                 <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 200, overflowY: 'auto' }}>
@@ -417,8 +417,8 @@ export default function ProdukPage() {
                       <label key={p.id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
                         padding: '8px 12px', borderRadius: 8, cursor: 'pointer',
-                        background: selected ? 'var(--accent-bg)' : 'var(--surface)',
-                        border: `1px solid ${selected ? 'var(--accent)' : 'var(--border)'}`,
+                        background: selected ? colorMix('var(--accent)', '12%') : 'var(--surface)',
+                        border: `1px solid ${selected ? 'var(--accent)' : 'var(--glass-border)'}`,
                       }}>
                         <input
                           type="checkbox"
@@ -431,8 +431,8 @@ export default function ProdukPage() {
                           style={{ accentColor: 'var(--accent)' }}
                         />
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{p.nama}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{p.nama}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-tertiary)' }}>
                             Rp {Number(p.harga).toLocaleString('id-ID')}
                           </div>
                         </div>
@@ -441,7 +441,7 @@ export default function ProdukPage() {
                   })}
                 </div>
                 {bundleProdukIds.length >= 2 && (
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 8 }}>
                     Total normal: Rp {produk.filter(p => bundleProdukIds.includes(p.id)).reduce((s, p) => s + Number(p.harga), 0).toLocaleString('id-ID')}
                     {bundleHarga && Number(bundleHarga) > 0 && (
                       <span style={{ color: 'var(--success)', marginLeft: 8 }}>
@@ -626,4 +626,9 @@ const menuItemStyle = {
   fontSize: '0.78rem', fontWeight: 600,
   color: 'var(--text-primary)',
   textAlign: 'left',
+}
+
+// Helper function untuk color-mix
+function colorMix(color, opacity) {
+  return `color-mix(in srgb, ${color} ${opacity}, transparent)`
 }
