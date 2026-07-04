@@ -244,9 +244,15 @@ function AnalyticsGate() {
               </motion.div>
             ))}
           </div>
-          <Link to="/dashboard/upgrade" className="btn btn-primary">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => window.location.href = '/dashboard/upgrade'}
+            className="btn btn-primary"
+            style={{ width: '100%' }}
+          >
             <Zap size={15} /> Upgrade ke Pro
-          </Link>
+          </motion.button>
         </div>
       </motion.div>
     </DashboardLayout>
@@ -355,10 +361,15 @@ function AnalyticsDashboard({ tokenObj }) {
           visitorStats={visitorStats}
         />
       ) : (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+          style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-tertiary)' }}
+        >
           <BarChart2 size={40} style={{ margin: '0 auto 12px', opacity: 0.3 }} />
           <p>Belum ada data analytics</p>
-        </div>
+        </motion.div>
       )}
     </DashboardLayout>
   )
@@ -413,6 +424,43 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
+      <style>{`
+        .analytics-3col {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 20px;
+        }
+        @media (min-width: 1024px) {
+          .analytics-3col {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+            align-items: start;
+          }
+        }
+        .analytics-right-col {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          min-width: 0;
+        }
+        
+        .top-produk-row { transition: background 0.2s ease; padding: 8px; margin: -8px; border-radius: var(--radius-md); }
+        .top-produk-row:hover { background: var(--surface-hover); }
+        
+        .shimmer-effect { position: relative; overflow: hidden; }
+        .shimmer-effect::after {
+          content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+          animation: shimmer 1.5s infinite;
+        }
+        @keyframes shimmer { to { left: 200%; } }
+        
+        .typing-bounce { animation: typingBounce 1.2s ease-in-out infinite; }
+        @keyframes typingBounce {
+          0%, 60%, 100% { transform: translateY(0); }
+          30% { transform: translateY(-6px); }
+        }
+      `}</style>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -439,50 +487,21 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
           icon={<Eye size={15} />}
           color="#38bdf8"
           sub="unik ke halaman toko"
+          delay={0.5}
         />
       </motion.div>
 
-      <style>{`
-        .kpi-card-hover { transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease; }
-        .kpi-card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); }
-        
-        .top-produk-row { transition: background 0.2s ease; padding: 8px; margin: -8px; border-radius: var(--radius-md); }
-        .top-produk-row:hover { background: var(--surface-hover); }
-        .top-produk-row:hover .progress-bar-glow { box-shadow: 0 0 8px currentColor; }
-        
-        .status-card-hover { transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease; }
-        .status-card-hover:hover { transform: scale(1.05); }
-        
-        .typing-dot { animation: typingBounce 1.2s ease-in-out infinite; }
-        @keyframes typingBounce {
-          0%, 60%, 100% { transform: translateY(0); }
-          30% { transform: translateY(-6px); }
-        }
-        
-        .chat-input-glow:focus { box-shadow: 0 0 0 3px rgba(91, 138, 245, 0.15); }
-        
-        .shimmer-effect { position: relative; overflow: hidden; }
-        .shimmer-effect::before {
-          content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
-          background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-          animation: shimmer 1.5s infinite;
-        }
-        @keyframes shimmer { to { left: 100%; } }
-        
-        .progress-bar-animate { animation: growFromLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; transform-origin: left; }
-        @keyframes growFromLeft { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-      `}</style>
-
       <div className="analytics-3col">
 
-        {/* Kolom 1: Revenue card (STRUKTUR ASLI, CUMA GANTI DIV JADI MOTION.DIV) */}
+        {/* Kolom 1: Revenue card (REPLACE DIV WITH MOTION.DIV) */}
         <motion.div
           className="glass-card"
           style={{ padding: '20px', minWidth: 0, overflow: 'hidden' }}
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.5, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
         >
+
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
             <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Revenue
@@ -544,14 +563,14 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
           </div>
         </motion.div>
 
-        {/* Kolom 2: Top produk + Status pesanan (STRUKTUR ASLI) */}
+        {/* Kolom 2: Top produk + Status pesanan */}
         <div className="analytics-right-col">
           <motion.div
             className="glass-card"
             style={{ padding: '20px' }}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.5, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Award size={16} color="var(--warning)" />
@@ -568,7 +587,7 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                       className="top-produk-row"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.4, delay: 0.7 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
+                      transition={{ duration: 0.4, delay: 0.5 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -584,14 +603,15 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                         <span style={{ fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-tertiary)', flexShrink: 0 }}>×{p.qty}</span>
                       </div>
                       <div style={{ height: 4, borderRadius: 2, background: 'var(--surface)', overflow: 'hidden' }}>
-                        <div
-                          className="progress-bar-glow progress-bar-animate"
+                        <motion.div
+                          initial={{ scaleX: 0 }}
+                          animate={{ scaleX: 1 }}
+                          transition={{ duration: 0.8, delay: 0.8 + i * 0.1, ease: "easeOut" }}
                           style={{
                             height: '100%', width: `${pct}%`,
                             background: i === 0 ? 'var(--accent-gradient)' : 'rgba(91,138,245,0.4)',
                             borderRadius: 2,
-                            transition: 'width 0.6s ease',
-                            color: i === 0 ? 'var(--accent)' : 'rgba(91,138,245,0.4)',
+                            transformOrigin: 'left',
                           }}
                         />
                       </div>
@@ -612,7 +632,7 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
             style={{ padding: '20px' }}
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
           >
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>Status Pesanan</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -621,7 +641,6 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                 return (
                   <motion.div
                     key={s.key}
-                    className="status-card-hover"
                     style={{
                       padding: '12px',
                       borderRadius: 'var(--radius-lg)',
@@ -631,8 +650,8 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                     }}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.8 + idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.4, delay: 0.6 + idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ scale: 1.05, y: -2 }}
                   >
                     <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {s.label}
@@ -652,14 +671,8 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
           </motion.div>
         </div>
 
-        {/* Kolom 3: AI Chat (STRUKTUR ASLI) */}
-        <motion.div
-          initial={{ opacity: 0, x: 30 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <AIChatCard data={data} />
-        </motion.div>
+        {/* Kolom 3: AI Chat */}
+        <AIChatCard data={data} />
       </div>
     </div>
   )
@@ -765,6 +778,9 @@ function BarChartRevenue({ data, maxVal, period }) {
             return (
               <motion.div
                 key={i}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.05 }}
                 onClick={() => {
                   if (isDragging.current) return
                   setSelected(selected === i ? null : i)
@@ -783,25 +799,28 @@ function BarChartRevenue({ data, maxVal, period }) {
                   transition: 'opacity 0.15s',
                   WebkitTapHighlightColor: 'transparent',
                 }}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
               >
-                <div style={{
-                  width: isMonthly ? BAR_W : '100%',
-                  maxWidth: isMonthly ? BAR_W : 40,
-                  height: `${heightPct}%`,
-                  minHeight: 3,
-                  borderRadius: '4px 4px 2px 2px',
-                  background: barBg,
-                  transition: 'height 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.2s',
-                  boxShadow: isSelected && !isEmpty
-                    ? '0 0 10px rgba(125,164,255,0.5)'
-                    : isBarHighest
-                      ? '0 0 8px rgba(251,191,36,0.35)'
-                      : 'none',
-                  position: 'relative',
-                }}>
+                <motion.div
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                  style={{
+                    width: isMonthly ? BAR_W : '100%',
+                    maxWidth: isMonthly ? BAR_W : 40,
+                    height: `${heightPct}%`,
+                    minHeight: 3,
+                    borderRadius: '4px 4px 2px 2px',
+                    background: barBg,
+                    transition: 'background 0.2s',
+                    boxShadow: isSelected && !isEmpty
+                      ? '0 0 10px rgba(125,164,255,0.5)'
+                      : isBarHighest
+                        ? '0 0 8px rgba(251,191,36,0.35)'
+                        : 'none',
+                    position: 'relative',
+                    transformOrigin: 'bottom',
+                  }}
+                >
                   {isSelected && !isEmpty && (
                     <div style={{
                       position: 'absolute', top: -5, left: '50%',
@@ -811,7 +830,7 @@ function BarChartRevenue({ data, maxVal, period }) {
                       boxShadow: '0 0 5px rgba(125,164,255,0.9)',
                     }} />
                   )}
-                </div>
+                </motion.div>
                 <span style={{
                   fontSize: isMonthly ? 8 : 10,
                   lineHeight: 1,
@@ -934,8 +953,6 @@ function AIInsightCard({ data }) {
       border: '1px solid rgba(167,139,250,0.2)',
       borderRadius: 'var(--radius-xl)',
       padding: '18px 20px',
-      position: 'relative',
-      overflow: 'hidden',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1020,7 +1037,13 @@ function AIChatCard({ data }) {
   }
 
   return (
-    <div className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 0 }}>
+    <motion.div
+      className="glass-card"
+      style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 0 }}
+      initial={{ opacity: 0, x: 30 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 28, height: 28, borderRadius: 'var(--radius-md)', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1046,11 +1069,16 @@ function AIChatCard({ data }) {
 
       <div style={{ height: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16, paddingRight: 2 }}>
         {messages.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-tertiary)', fontSize: '0.82rem' }}
+          >
             <Bot size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
             <p>Tanya apa saja tentang toko kamu</p>
             <p style={{ fontSize: '0.72rem', marginTop: 4 }}>Misal: "Kenapa revenue saya nol?" atau "Produk mana yang perlu dioptimasi?"</p>
-          </div>
+          </motion.div>
         )}
         <AnimatePresence>
           {messages.map((m, i) => (
@@ -1096,7 +1124,7 @@ function AIChatCard({ data }) {
             </div>
             <div style={{ padding: '10px 14px', borderRadius: 'var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', gap: 4, alignItems: 'center' }}>
               {[0, 1, 2].map(i => (
-                <div key={i} className="typing-dot" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animationDelay: `${i * 0.2}s` }} />
+                <div key={i} className="typing-bounce" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--text-tertiary)', animationDelay: `${i * 0.2}s` }} />
               ))}
             </div>
           </motion.div>
@@ -1111,7 +1139,6 @@ function AIChatCard({ data }) {
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
           placeholder="Tanya sesuatu tentang toko kamu..."
           rows={1}
-          className="chat-input-glow"
           style={{
             flex: 1, padding: '10px 14px',
             background: 'var(--surface)', border: '1px solid var(--glass-border)',
@@ -1120,8 +1147,8 @@ function AIChatCard({ data }) {
             outline: 'none', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto',
             transition: 'border-color 0.2s, box-shadow 0.2s',
           }}
-          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={e => e.target.style.borderColor = 'var(--glass-border)'}
+          onFocus={e => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 0 3px rgba(91, 138, 245, 0.15)'; }}
+          onBlur={e => { e.target.style.borderColor = 'var(--glass-border)'; e.target.style.boxShadow = 'none'; }}
         />
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -1147,7 +1174,7 @@ function AIChatCard({ data }) {
       <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', marginTop: 8, textAlign: 'center' }}>
         Enter untuk kirim · Shift+Enter baris baru · Riwayat tersimpan di perangkat ini
       </p>
-    </div>
+    </motion.div>
   )
 }
 
@@ -1155,7 +1182,7 @@ function AIChatCard({ data }) {
 function SummaryChip({ label, value, color }) {
   return (
     <motion.div
-      whileHover={{ scale: 1.02 }}
+      whileHover={{ scale: 1.02, y: -2 }}
       style={{ padding: '10px 12px', borderRadius: 'var(--radius-lg)', background: 'var(--surface)', border: '1px solid var(--glass-border)', display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}
     >
       <p style={{ fontSize: '0.62rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1172,12 +1199,12 @@ function SummaryChip({ label, value, color }) {
 function KpiCard({ label, value, icon, color, sub, delay = 0 }) {
   return (
     <motion.div
-      className="glass-card kpi-card-hover"
+      className="glass-card"
       style={{ padding: '14px 16px' }}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -3 }}
+      whileHover={{ y: -4, transition: { duration: 0.2 } }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
