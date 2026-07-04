@@ -177,38 +177,6 @@ const STATUS_PESANAN = [
   { key: 'pesananCancelled',  label: 'Dibatalkan',   color: '#f87171', bg: 'rgba(248,113,113,0.08)', border: 'rgba(248,113,113,0.18)' },
 ]
 
-// ============ ANIMATION VARIANTS ============
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
-}
-
-const slideInLeft = {
-  hidden: { opacity: 0, x: -30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
-}
-
-const slideInRight = {
-  hidden: { opacity: 0, x: 30 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
-}
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }
-}
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1
-    }
-  }
-}
-
 // ============ PAGE ENTRY ============
 export default function AnalyticsPage() {
   const { user, token, isLoading, updateUser } = useAuthStore()
@@ -262,19 +230,20 @@ function AnalyticsGate() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.7, marginBottom: 28 }}>
             Pantau performa toko kamu: revenue, produk terlaris, tren pesanan, dan lebih banyak lagi.
           </p>
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}
-          >
-            {['Grafik revenue mingguan & bulanan', 'Produk terlaris', 'Statistik pesanan lengkap', 'Export data ke Excel', 'AI Insight & Chat Konsultan'].map(f => (
-              <motion.div key={f} variants={fadeInUp} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 28, textAlign: 'left' }}>
+            {['Grafik revenue mingguan & bulanan', 'Produk terlaris', 'Statistik pesanan lengkap', 'Export data ke Excel', 'AI Insight & Chat Konsultan'].map((f, i) => (
+              <motion.div
+                key={f}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 0.3 + i * 0.1 }}
+                style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}
+              >
                 <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />
                 {f}
               </motion.div>
             ))}
-          </motion.div>
+          </div>
           <Link to="/dashboard/upgrade" className="btn btn-primary">
             <Zap size={15} /> Upgrade ke Pro
           </Link>
@@ -439,13 +408,11 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
   }, [period, revenueMingguIni, revenueBulanan])
 
   const periodLabel = period === 'minggu' ? '4 minggu terakhir' : 'tahun ini'
-
   const totalVisit = visitorStats?.totalVisit ?? '-'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* AI Insight Card with entrance animation */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -454,32 +421,17 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
         <AIInsightCard data={data} />
       </motion.div>
 
-      {/* KPI Cards with staggered animation */}
-      <motion.div
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-        style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}
-      >
-        <motion.div variants={fadeInUp}>
-          <KpiCard label="Total Revenue"    value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" />
-        </motion.div>
-        <motion.div variants={fadeInUp}>
-          <KpiCard label="Total Pesanan"    value={totalPesanan}               icon={<ShoppingBag size={15} />} color="var(--accent)"  sub={`${pesananPending} menunggu`} />
-        </motion.div>
-        <motion.div variants={fadeInUp}>
-          <KpiCard label="Pesanan Selesai"  value={pesananSelesai}             icon={<TrendingUp size={15} />}  color="var(--warning)" sub={`${conversionRate}% conversion`} />
-        </motion.div>
-        <motion.div variants={fadeInUp}>
-          <KpiCard label="Produk Aktif"     value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" />
-        </motion.div>
-      </motion.div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+        <KpiCard label="Total Revenue"    value={formatRupiah(totalRevenue)} icon={<DollarSign size={15} />} color="var(--success)" sub="dari pesanan selesai" delay={0.1} />
+        <KpiCard label="Total Pesanan"    value={totalPesanan}               icon={<ShoppingBag size={15} />} color="var(--accent)"  sub={`${pesananPending} menunggu`} delay={0.2} />
+        <KpiCard label="Pesanan Selesai"  value={pesananSelesai}             icon={<TrendingUp size={15} />}  color="var(--warning)" sub={`${conversionRate}% conversion`} delay={0.3} />
+        <KpiCard label="Produk Aktif"     value={`${produkAktif}/${totalProduk}`} icon={<Package size={15} />} color="var(--accent-3)" sub="ditampilkan" delay={0.4} />
+      </div>
 
-      {/* Visitor card with entrance animation */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
       >
         <KpiCard
           label="Total Pengunjung (30 hari)"
@@ -491,189 +443,116 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
       </motion.div>
 
       <style>{`
-        .analytics-3col {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr);
-          gap: 20px;
-        }
-        @media (min-width: 1024px) {
-          .analytics-3col {
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
-            align-items: start;
-          }
-        }
-        .analytics-right-col {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          min-width: 0;
-        }
+        .kpi-card-hover { transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease; }
+        .kpi-card-hover:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15); }
         
-        /* Hover effects for KPI cards */
-        .kpi-card-hover {
-          transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-        }
-        .kpi-card-hover:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-        }
+        .top-produk-row { transition: background 0.2s ease; padding: 8px; margin: -8px; border-radius: var(--radius-md); }
+        .top-produk-row:hover { background: var(--surface-hover); }
+        .top-produk-row:hover .progress-bar-glow { box-shadow: 0 0 8px currentColor; }
         
-        /* Hover effects for top produk list */
-        .top-produk-row {
-          transition: background 0.2s ease;
-          padding: 8px;
-          margin: -8px;
-          border-radius: var(--radius-md);
-        }
-        .top-produk-row:hover {
-          background: var(--surface-hover);
-        }
-        .top-produk-row:hover .progress-bar-glow {
-          box-shadow: 0 0 8px currentColor;
-        }
+        .status-card-hover { transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease; }
+        .status-card-hover:hover { transform: scale(1.05); }
         
-        /* Hover effects for status pesanan cards */
-        .status-card-hover {
-          transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
-        }
-        .status-card-hover:hover {
-          transform: scale(1.05);
-        }
-        
-        /* Bar chart entrance animation */
-        .bar-chart-bar {
-          animation: growFromBottom 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          transform-origin: bottom;
-        }
-        @keyframes growFromBottom {
-          from { transform: scaleY(0); }
-          to { transform: scaleY(1); }
-        }
-        
-        /* Typing indicator bounce */
-        .typing-dot {
-          animation: typingBounce 1.2s ease-in-out infinite;
-        }
+        .typing-dot { animation: typingBounce 1.2s ease-in-out infinite; }
         @keyframes typingBounce {
           0%, 60%, 100% { transform: translateY(0); }
           30% { transform: translateY(-6px); }
         }
         
-        /* Chat input focus glow */
-        .chat-input-glow:focus {
-          box-shadow: 0 0 0 3px rgba(91, 138, 245, 0.15);
-        }
+        .chat-input-glow:focus { box-shadow: 0 0 0 3px rgba(91, 138, 245, 0.15); }
         
-        /* Shimmer effect for AI insight loading */
-        .shimmer-effect {
-          position: relative;
-          overflow: hidden;
-        }
+        .shimmer-effect { position: relative; overflow: hidden; }
         .shimmer-effect::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 100%;
-          height: 100%;
+          content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
           background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
           animation: shimmer 1.5s infinite;
         }
-        @keyframes shimmer {
-          to { left: 100%; }
-        }
+        @keyframes shimmer { to { left: 100%; } }
         
-        /* Progress bar entrance */
-        .progress-bar-animate {
-          animation: growFromLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-          transform-origin: left;
-        }
-        @keyframes growFromLeft {
-          from { transform: scaleX(0); }
-          to { transform: scaleX(1); }
-        }
+        .progress-bar-animate { animation: growFromLeft 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; transform-origin: left; }
+        @keyframes growFromLeft { from { transform: scaleX(0); } to { transform: scaleX(1); } }
       `}</style>
 
       <div className="analytics-3col">
 
-        {/* Kolom 1: Revenue card with slide-in-left */}
+        {/* Kolom 1: Revenue card (STRUKTUR ASLI, CUMA GANTI DIV JADI MOTION.DIV) */}
         <motion.div
+          className="glass-card"
+          style={{ padding: '20px', minWidth: 0, overflow: 'hidden' }}
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="glass-card" style={{ padding: '20px', minWidth: 0, overflow: 'hidden' }}>
-
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
-              <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Revenue
-              </p>
-              <div style={{ display: 'flex', gap: 4, background: 'var(--surface)', borderRadius: 'var(--radius-full)', padding: 3 }}>
-                {[{ key: 'minggu', label: 'Min' }, { key: 'bulan', label: 'Bln' }].map(p => (
-                  <motion.button
-                    key={p.key}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setPeriod(p.key)}
-                    className="btn btn-sm"
-                    style={{
-                      borderRadius: 'var(--radius-full)', fontSize: '0.7rem', padding: '4px 12px',
-                      background: period === p.key ? 'var(--accent)' : 'transparent',
-                      color: period === p.key ? '#fff' : 'var(--text-tertiary)',
-                      border: 'none',
-                      boxShadow: period === p.key ? '0 2px 8px rgba(91,138,245,0.4)' : 'none',
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {p.label}
-                  </motion.button>
-                ))}
-              </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+            <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Revenue
+            </p>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--surface)', borderRadius: 'var(--radius-full)', padding: 3 }}>
+              {[{ key: 'minggu', label: 'Min' }, { key: 'bulan', label: 'Bln' }].map(p => (
+                <motion.button
+                  key={p.key}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setPeriod(p.key)}
+                  className="btn btn-sm"
+                  style={{
+                    borderRadius: 'var(--radius-full)', fontSize: '0.7rem', padding: '4px 12px',
+                    background: period === p.key ? 'var(--accent)' : 'transparent',
+                    color: period === p.key ? '#fff' : 'var(--text-tertiary)',
+                    border: 'none',
+                    boxShadow: period === p.key ? '0 2px 8px rgba(91,138,245,0.4)' : 'none',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {p.label}
+                </motion.button>
+              ))}
             </div>
+          </div>
 
-            <div style={{ marginBottom: 14 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.1 }}>
-                {formatRupiah(revenueUtama)}
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
-                {pctChange !== null && (
-                  <motion.span
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 15, delay: 0.6 }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 3,
-                      fontSize: '0.72rem', fontWeight: 700, padding: '2px 7px',
-                      borderRadius: 'var(--radius-full)',
-                      background: pctChange >= 0 ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)',
-                      color: pctChange >= 0 ? 'var(--success)' : 'var(--danger)',
-                    }}
-                  >
-                    {pctChange >= 0 ? '▲' : '▼'} {Math.abs(pctChange)}%
-                  </motion.span>
-                )}
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{periodLabel}</span>
-              </div>
+          <div style={{ marginBottom: 14 }}>
+            <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 'clamp(1.25rem, 4vw, 1.5rem)', color: 'var(--text-primary)', margin: 0, lineHeight: 1.1 }}>
+              {formatRupiah(revenueUtama)}
+            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+              {pctChange !== null && (
+                <motion.span
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15, delay: 0.6 }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    fontSize: '0.72rem', fontWeight: 700, padding: '2px 7px',
+                    borderRadius: 'var(--radius-full)',
+                    background: pctChange >= 0 ? 'rgba(52,211,153,0.12)' : 'rgba(248,113,113,0.12)',
+                    color: pctChange >= 0 ? 'var(--success)' : 'var(--danger)',
+                  }}
+                >
+                  {pctChange >= 0 ? '▲' : '▼'} {Math.abs(pctChange)}%
+                </motion.span>
+              )}
+              <span style={{ fontSize: '0.72rem', color: 'var(--text-tertiary)' }}>{periodLabel}</span>
             </div>
+          </div>
 
-            <BarChartRevenue data={chartData} maxVal={maxRevenue} period={period} />
+          <BarChartRevenue data={chartData} maxVal={maxRevenue} period={period} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
-              <SummaryChip label="Rata-rata"  value={shortRupiah(Math.round(rataRata))} />
-              <SummaryChip label="Tertinggi"  value={shortRupiah(maxRevenue)} color="#fbbf24" />
-              <SummaryChip label="Transaksi"  value={`${totalPesanan} pesanan`} />
-              <SummaryChip label="Conversion" value={`${conversionRate}%`} />
-            </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginTop: 14 }}>
+            <SummaryChip label="Rata-rata"  value={shortRupiah(Math.round(rataRata))} />
+            <SummaryChip label="Tertinggi"  value={shortRupiah(maxRevenue)} color="#fbbf24" />
+            <SummaryChip label="Transaksi"  value={`${totalPesanan} pesanan`} />
+            <SummaryChip label="Conversion" value={`${conversionRate}%`} />
           </div>
         </motion.div>
 
-        {/* Kolom 2: Top produk + Status pesanan with fade-up */}
-        <motion.div
-          className="analytics-right-col"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        >
-          <div className="glass-card" style={{ padding: '20px' }}>
+        {/* Kolom 2: Top produk + Status pesanan (STRUKTUR ASLI) */}
+        <div className="analytics-right-col">
+          <motion.div
+            className="glass-card"
+            style={{ padding: '20px' }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Award size={16} color="var(--warning)" />
               <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem' }}>Produk Terlaris</h3>
@@ -686,10 +565,10 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                   return (
                     <motion.div
                       key={i}
+                      className="top-produk-row"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.4, delay: 0.7 + i * 0.1, ease: [0.22, 1, 0.36, 1] }}
-                      className="top-produk-row"
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -726,9 +605,15 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                 <p style={{ fontSize: '0.82rem' }}>Belum ada data</p>
               </div>
             )}
-          </div>
+          </motion.div>
 
-          <div className="glass-card" style={{ padding: '20px' }}>
+          <motion.div
+            className="glass-card"
+            style={{ padding: '20px' }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          >
             <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 16 }}>Status Pesanan</h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               {STATUS_PESANAN.map((s, idx) => {
@@ -736,10 +621,6 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                 return (
                   <motion.div
                     key={s.key}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.4, delay: 0.8 + idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                    whileHover={{ scale: 1.05 }}
                     className="status-card-hover"
                     style={{
                       padding: '12px',
@@ -748,6 +629,10 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                       border: `1px solid ${s.border}`,
                       display: 'flex', flexDirection: 'column', gap: 2,
                     }}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.8 + idx * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                    whileHover={{ scale: 1.05 }}
                   >
                     <p style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                       {s.label}
@@ -764,14 +649,14 @@ function AnalyticsContent({ data, period, setPeriod, visitorStats }) {
                 )
               })}
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
 
-        {/* Kolom 3: AI Chat with slide-in-right */}
+        {/* Kolom 3: AI Chat (STRUKTUR ASLI) */}
         <motion.div
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.5, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
           <AIChatCard data={data} />
         </motion.div>
@@ -880,16 +765,11 @@ function BarChartRevenue({ data, maxVal, period }) {
             return (
               <motion.div
                 key={i}
-                initial={{ scaleY: 0 }}
-                animate={{ scaleY: 1 }}
-                transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                style={{ transformOrigin: 'bottom' }}
                 onClick={() => {
                   if (isDragging.current) return
                   setSelected(selected === i ? null : i)
                 }}
-              >
-                <div style={{
+                style={{
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -902,47 +782,50 @@ function BarChartRevenue({ data, maxVal, period }) {
                   opacity: dimmed ? 0.25 : 1,
                   transition: 'opacity 0.15s',
                   WebkitTapHighlightColor: 'transparent',
+                }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 0.6, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <div style={{
+                  width: isMonthly ? BAR_W : '100%',
+                  maxWidth: isMonthly ? BAR_W : 40,
+                  height: `${heightPct}%`,
+                  minHeight: 3,
+                  borderRadius: '4px 4px 2px 2px',
+                  background: barBg,
+                  transition: 'height 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.2s',
+                  boxShadow: isSelected && !isEmpty
+                    ? '0 0 10px rgba(125,164,255,0.5)'
+                    : isBarHighest
+                      ? '0 0 8px rgba(251,191,36,0.35)'
+                      : 'none',
+                  position: 'relative',
                 }}>
-                  <div style={{
-                    width: isMonthly ? BAR_W : '100%',
-                    maxWidth: isMonthly ? BAR_W : 40,
-                    height: `${heightPct}%`,
-                    minHeight: 3,
-                    borderRadius: '4px 4px 2px 2px',
-                    background: barBg,
-                    transition: 'height 0.35s cubic-bezier(0.34,1.56,0.64,1), background 0.2s',
-                    boxShadow: isSelected && !isEmpty
-                      ? '0 0 10px rgba(125,164,255,0.5)'
-                      : isBarHighest
-                        ? '0 0 8px rgba(251,191,36,0.35)'
-                        : 'none',
-                    position: 'relative',
-                  }}>
-                    {isSelected && !isEmpty && (
-                      <div style={{
-                        position: 'absolute', top: -5, left: '50%',
-                        transform: 'translateX(-50%)',
-                        width: 6, height: 6, borderRadius: '50%',
-                        background: '#7da4ff',
-                        boxShadow: '0 0 5px rgba(125,164,255,0.9)',
-                      }} />
-                    )}
-                  </div>
-                  <span style={{
-                    fontSize: isMonthly ? 8 : 10,
-                    lineHeight: 1,
-                    color: isSelected && !isEmpty
-                      ? 'var(--text-primary)'
-                      : isBarHighest
-                        ? '#fbbf24'
-                        : 'var(--text-tertiary)',
-                    fontWeight: (isSelected && !isEmpty) || isBarHighest ? 700 : 400,
-                    userSelect: 'none',
-                    letterSpacing: 0.2,
-                  }}>
-                    {d.label}
-                  </span>
+                  {isSelected && !isEmpty && (
+                    <div style={{
+                      position: 'absolute', top: -5, left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: '#7da4ff',
+                      boxShadow: '0 0 5px rgba(125,164,255,0.9)',
+                    }} />
+                  )}
                 </div>
+                <span style={{
+                  fontSize: isMonthly ? 8 : 10,
+                  lineHeight: 1,
+                  color: isSelected && !isEmpty
+                    ? 'var(--text-primary)'
+                    : isBarHighest
+                      ? '#fbbf24'
+                      : 'var(--text-tertiary)',
+                  fontWeight: (isSelected && !isEmpty) || isBarHighest ? 700 : 400,
+                  userSelect: 'none',
+                  letterSpacing: 0.2,
+                }}>
+                  {d.label}
+                </span>
               </motion.div>
             )
           })}
@@ -969,10 +852,7 @@ function BarChartRevenue({ data, maxVal, period }) {
             animate={{ opacity: 1, y: 0, maxHeight: 72 }}
             exit={{ opacity: 0, y: 10, maxHeight: 0 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            style={{
-              overflow: 'hidden',
-              marginTop: 10,
-            }}
+            style={{ overflow: 'hidden', marginTop: 10 }}
           >
             <div style={{
               padding: '10px 14px',
@@ -1289,12 +1169,15 @@ function SummaryChip({ label, value, color }) {
 }
 
 // ============ KPI CARD ============
-function KpiCard({ label, value, icon, color, sub }) {
+function KpiCard({ label, value, icon, color, sub, delay = 0 }) {
   return (
     <motion.div
-      whileHover={{ y: -3 }}
       className="glass-card kpi-card-hover"
       style={{ padding: '14px 16px' }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -3 }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
         <p style={{ fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</p>
