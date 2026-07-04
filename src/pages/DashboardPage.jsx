@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Package, ShoppingBag, Eye, TrendingUp, Plus, ExternalLink, Copy, CheckCircle, ArrowRight, Zap, AlertCircle, MessageCircle, Instagram } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
@@ -18,6 +18,34 @@ function parseFotos(foto) {
   } catch {
     return String(foto).split(',').map(s => s.trim()).filter(Boolean)
   }
+}
+
+function AnimatedNumber({ value, duration = 800, formatter }) {
+  const [display, setDisplay] = useState(0)
+  const prevValue = useRef(0)
+
+  useEffect(() => {
+    if (typeof value !== 'number' || isNaN(value)) {
+      setDisplay(value)
+      return
+    }
+    const start = prevValue.current
+    const end = value
+    const startTime = performance.now()
+
+    function tick(now) {
+      const progress = Math.min((now - startTime) / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const current = Math.round(start + (end - start) * eased)
+      setDisplay(current)
+      if (progress < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+    prevValue.current = end
+  }, [value, duration])
+
+  if (typeof display !== 'number' || isNaN(display)) return <span>{display}</span>
+  return <span>{formatter ? formatter(display) : display}</span>
 }
 
 export default function DashboardPage() {
@@ -93,7 +121,7 @@ export default function DashboardPage() {
 
   return (
     <DashboardLayout
-      title={'Halo, ' + (user?.name?.split(' ')[0]) + ' \uD83D\uDC4B'}
+      title={'Halo, ' + (user?.name?.split(' ')[0]) + ' 👋'}
       subtitle={new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
       actions={
         toko && (
@@ -114,7 +142,7 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
           {!pro && (
-            <div style={{
+            <div className="anim-fade-up" style={{
               background: 'linear-gradient(135deg, rgba(91,138,245,0.1) 0%, rgba(167,139,250,0.1) 100%)',
               border: '1px solid rgba(167,139,250,0.2)',
               borderRadius: 'var(--radius-xl)',
@@ -145,7 +173,7 @@ export default function DashboardPage() {
           )}
 
           {pro && sisaHari !== null && sisaHari <= 7 && (
-            <div style={{
+            <div className="anim-fade-up" style={{
               background: sisaHari <= 0 ? 'var(--danger-bg)' : 'var(--warning-bg)',
               border: '1px solid ' + (sisaHari <= 0 ? 'rgba(248,113,113,0.3)' : 'rgba(251,191,36,0.3)'),
               borderRadius: 'var(--radius-xl)',
@@ -186,10 +214,12 @@ export default function DashboardPage() {
           )}
 
           {limitReached && (
-            <Alert type="warning" title="Batas produk tercapai">
-              Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
-              <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link> untuk produk unlimited.
-            </Alert>
+            <div className="anim-fade-up">
+              <Alert type="warning" title="Batas produk tercapai">
+                Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
+                <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link> untuk produk unlimited.
+              </Alert>
+            </div>
           )}
 
           <div className="glass-card" style={{ padding: '20px 24px' }}>
@@ -241,26 +271,30 @@ export default function DashboardPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
             <StatCard
               label="Total Produk"
-              value={produk.length}
+              value={<AnimatedNumber value={produk.length} />}
               icon={<Package size={18} />}
               trend={produkAktif + ' aktif'}
             />
             <StatCard
               label="Produk Aktif"
-              value={produkAktif}
+              value={<AnimatedNumber value={produkAktif} />}
               icon={<Eye size={18} />}
               color="var(--success)"
             />
             <StatCard
               label="Pesanan Masuk"
-              value={pesananCount !== null ? pesananCount : '...'}
+              value={pesananCount !== null ? <AnimatedNumber value={pesananCount} /> : '...'}
               icon={<ShoppingBag size={18} />}
               trend="Lihat detail"
               color="var(--warning)"
             />
             <StatCard
               label="Total Penjualan"
-              value={pro ? (totalRevenue !== null ? formatRupiah(totalRevenue) : '...') : '\uD83D\uDD12'}
+              value={
+                pro
+                  ? (totalRevenue !== null ? <AnimatedNumber value={totalRevenue} formatter={formatRupiah} /> : '...')
+                  : '🔒'
+              }
               icon={<TrendingUp size={18} />}
               trend={pro ? '' : 'Upgrade untuk akses'}
               color="var(--accent-3)"
@@ -275,6 +309,7 @@ export default function DashboardPage() {
               <button
                 onClick={() => { if (!limitReached) setShowProdukForm(true) }}
                 disabled={limitReached}
+                className="hover-lift"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -283,13 +318,10 @@ export default function DashboardPage() {
                   borderRadius: 'var(--radius-lg)',
                   background: 'var(--surface)',
                   border: '1px solid var(--glass-border)',
-                  transition: 'all var(--transition-fast)',
                   opacity: limitReached ? 0.5 : 1,
                   cursor: limitReached ? 'not-allowed' : 'pointer',
                   textAlign: 'left',
                 }}
-                onMouseEnter={e => { if (!limitReached) e.currentTarget.style.background = 'var(--surface-hover)' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
               >
                 <div style={{
                   width: 36,
@@ -315,6 +347,7 @@ export default function DashboardPage() {
                 <Link
                   key={a.label}
                   to={a.to}
+                  className="hover-lift"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -323,11 +356,8 @@ export default function DashboardPage() {
                     borderRadius: 'var(--radius-lg)',
                     background: 'var(--surface)',
                     border: '1px solid var(--glass-border)',
-                    transition: 'all var(--transition-fast)',
                     cursor: 'pointer',
                   }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-hover)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
                 >
                   <div style={{
                     width: 36,
@@ -362,7 +392,7 @@ export default function DashboardPage() {
                   <ArrowRight size={13} />
                 </Link>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div className="anim-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {produk.slice(0, 5).map(p => {
                   const thumbUrl = parseFotos(p.foto)[0] || null
                   return (
