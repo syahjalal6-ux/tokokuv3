@@ -8,6 +8,104 @@ import { PLAN_FEATURES, CONFIG } from '../lib/config.js'
 import { useTheme } from '../lib/useTheme.js'
 import { motion, useInView, useAnimation, AnimatePresence } from 'framer-motion'
 
+// ==========================================
+// 1. SCROLL PROGRESS BAR COMPONENT
+// ==========================================
+function ScrollProgressBar({ progress }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        height: '3px',
+        background: ACCENT_GRADIENT,
+        width: `${progress}%`,
+        zIndex: 101,
+        transition: 'width 0.1s ease-out',
+        boxShadow: '0 0 10px rgba(55, 138, 221, 0.5)',
+      }}
+    />
+  )
+}
+
+// ==========================================
+// 2. MAGNETIC BUTTON COMPONENT
+// ==========================================
+function MagneticButton({ children, strength = 0.35, radius = 60, style, className, ...props }) {
+  const ref = useRef(null)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+
+  const handleMouse = (e) => {
+    if (!ref.current) return
+    const { clientX, clientY } = e
+    const { left, top, width, height } = ref.current.getBoundingClientRect()
+    const centerX = left + width / 2
+    const centerY = top + height / 2
+    const distanceX = clientX - centerX
+    const distanceY = clientY - centerY
+    const distance = Math.sqrt(distanceX ** 2 + distanceY ** 2)
+
+    if (distance < radius) {
+      setPosition({ x: distanceX * strength, y: distanceY * strength })
+    } else {
+      setPosition({ x: 0, y: 0 })
+    }
+  }
+
+  const handleMouseLeave = () => setPosition({ x: 0, y: 0 })
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouse}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: position.x, y: position.y }}
+      transition={{ type: "spring", stiffness: 150, damping: 15, mass: 0.1 }}
+      style={{ display: 'inline-block', ...style }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// ==========================================
+// 3. ANIMATED COUNTER COMPONENT
+// ==========================================
+function AnimatedCounter({ target, prefix = '', suffix = '', duration = 2000 }) {
+  const [count, setCount] = useState(0)
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: '-50px' })
+
+  useEffect(() => {
+    if (!isInView) return
+    let startTimestamp = null
+    const step = (timestamp) => {
+      if (!startTimestamp) startTimestamp = timestamp
+      const progress = Math.min((timestamp - startTimestamp) / duration, 1)
+      // easeOutQuart for smooth deceleration
+      const easeProgress = 1 - Math.pow(1 - progress, 4)
+      setCount(Math.floor(easeProgress * target))
+      if (progress < 1) {
+        window.requestAnimationFrame(step)
+      } else {
+        setCount(target)
+      }
+    }
+    window.requestAnimationFrame(step)
+  }, [isInView, target, duration])
+
+  return (
+    <span ref={ref}>
+      {prefix}{count.toLocaleString('id-ID')}{suffix}
+    </span>
+  )
+}
+
+// ==========================================
+// EXISTING CONSTANTS & CONFIG
+// ==========================================
 const FEATURES = [
   { icon: Store, title: 'Toko Online Instan', desc: 'Buat toko dalam hitungan menit, tanpa coding. Langsung online dan siap menerima pesanan.' },
   { icon: MessageCircle, title: 'Checkout via WhatsApp', desc: 'Buyer langsung chat WA kamu. Tidak perlu payment gateway rumit.' },
@@ -262,7 +360,12 @@ function PricingSection({ theme }) {
             >
               <div style={{ position: 'absolute', top: -20, right: -20, width: 120, height: 120, background: `radial-gradient(circle, ${c.accentGlow1} 0%, transparent 70%)`, borderRadius: '50%' }} />
               <span className="badge badge-pro" style={{ marginBottom: 10 }}>⭐ Pro</span>
-              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2, color: c.textPrimary }}>Rp 49.000</p>
+              
+              {/* ANIMATED COUNTER IMPLEMENTED HERE */}
+              <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '2.2rem', marginBottom: 2, color: c.textPrimary }}>
+                <AnimatedCounter target={49000} prefix="Rp " />
+              </p>
+              
               <p style={{ fontFamily: PJS, color: c.textMuted, fontSize: '0.82rem', marginBottom: 4 }}>per bulan</p>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -289,9 +392,14 @@ function PricingSection({ theme }) {
                   </div>
                 ))}
               </div>
-              <Link to="/login" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                Kunci Harga Founder Sekarang <ArrowRight size={14} />
-              </Link>
+              
+              {/* MAGNETIC BUTTON IMPLEMENTED HERE */}
+              <MagneticButton style={{ width: '100%' }}>
+                <Link to="/login" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                  Kunci Harga Founder Sekarang <ArrowRight size={14} />
+                </Link>
+              </MagneticButton>
+              
               <p style={{ fontFamily: PJS, fontSize: '0.72rem', color: c.textMuted, textAlign: 'center', marginTop: 10 }}>
                 Setelah {FOUNDER_SLOTS_TOTAL} user, harga naik ke Rp 79.000/bulan
               </p>
@@ -361,26 +469,29 @@ function CTASection({ theme }) {
           transition={{ delay: 0.3, duration: 0.5 }}
         >
           <Link to="/login">
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              className="anim-pulse-accent btn btn-primary btn-lg"
-              style={{
-                padding: '14px 40px',
-                borderRadius: 100,
-                background: ACCENT_GRADIENT,
-                color: '#fff',
-                border: 'none',
-                fontSize: '1rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              Buka Toko Gratis <ArrowRight size={16} />
-            </motion.button>
+            {/* MAGNETIC BUTTON IMPLEMENTED HERE */}
+            <MagneticButton>
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.97 }}
+                className="anim-pulse-accent btn btn-primary btn-lg"
+                style={{
+                  padding: '14px 40px',
+                  borderRadius: 100,
+                  background: ACCENT_GRADIENT,
+                  color: '#fff',
+                  border: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
+                Buka Toko Gratis <ArrowRight size={16} />
+              </motion.button>
+            </MagneticButton>
           </Link>
         </motion.div>
       </div>
@@ -391,12 +502,23 @@ function CTASection({ theme }) {
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null)
   const [scrolled, setScrolled] = useState(false)
+  // SCROLL PROGRESS STATE
+  const [scrollProgress, setScrollProgress] = useState(0)
+  
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
   const accent = theme === 'light' ? NAVY : BLUE
 
   useEffect(() => {
-    const fn = () => setScrolled(window.scrollY > 30)
+    const fn = () => {
+      const scrollY = window.scrollY
+      setScrolled(scrollY > 30)
+      
+      // Calculate scroll progress
+      const scrollTotal = document.documentElement.scrollHeight - window.innerHeight
+      const progress = scrollTotal > 0 ? (scrollY / scrollTotal) * 100 : 0
+      setScrollProgress(progress)
+    }
     window.addEventListener('scroll', fn)
     return () => window.removeEventListener('scroll', fn)
   }, [])
@@ -442,6 +564,9 @@ export default function LandingPage() {
             }
           `}</style>
 
+          {/* SCROLL PROGRESS BAR RENDERED HERE */}
+          <ScrollProgressBar progress={scrollProgress} />
+
           {/* Navbar */}
           <nav style={{
             position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
@@ -474,10 +599,14 @@ export default function LandingPage() {
                 </button>
                 <Link to="/showcase" className="btn btn-ghost btn-sm ">Lihat Produk</Link>
                 <Link to="/login" className="btn btn-ghost btn-sm hide-mobile">Masuk</Link>
-                <Link to="/login" className="btn btn-primary btn-sm nav-cta-primary">
-                  Buka Toko Gratis
-                  <ArrowRight size={14} />
-                </Link>
+                
+                {/* MAGNETIC BUTTON IMPLEMENTED HERE */}
+                <MagneticButton className="nav-cta-primary">
+                  <Link to="/login" className="btn btn-primary btn-sm">
+                    Buka Toko Gratis
+                    <ArrowRight size={14} />
+                  </Link>
+                </MagneticButton>
               </div>
             </div>
           </nav>
@@ -590,9 +719,13 @@ export default function LandingPage() {
                 transition={{ duration: 0.6, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}
               >
-                <Link to="/login" className="btn btn-primary btn-lg">
-                  Buka Toko Gratis <ArrowRight size={16} />
-                </Link>
+                {/* MAGNETIC BUTTON IMPLEMENTED HERE */}
+                <MagneticButton>
+                  <Link to="/login" className="btn btn-primary btn-lg">
+                    Buka Toko Gratis <ArrowRight size={16} />
+                  </Link>
+                </MagneticButton>
+                
                 <a href="#fitur" className="btn btn-secondary btn-lg">Lihat Fitur</a>
               </motion.div>
 
