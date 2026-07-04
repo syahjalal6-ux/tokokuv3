@@ -410,7 +410,7 @@ export default function LandingPage() {
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
       >
-        <div style={{ minHeight: '100vh', fontFamily: PJS, background: c.bgPage, transition: 'background 0.25s ease' }}>
+        <div style={{ minHeight: '100vh', fontFamily: PJS, background: c.bgPage, transition: 'background 0.25s ease', overflowX: 'hidden' }}>
           <style>{`
             .landing-body-text { text-align: left; }
             .landing-center { text-align: center; }
@@ -483,7 +483,7 @@ export default function LandingPage() {
           </nav>
 
           {/* Hero */}
-          <section className="hero-pad" style={{ paddingTop: 140, paddingBottom: 24, textAlign: 'center', position: 'relative' }}>
+          <section className="hero-pad" style={{ paddingTop: 140, paddingBottom: 24, textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
             {/* Blob 1 */}
             <motion.div
               className="anim-blob"
@@ -617,14 +617,16 @@ export default function LandingPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
               className="anim-float"
-              style={{ marginTop: 24, padding: '0 16px', position: 'relative', zIndex: 1 }}
+              style={{ marginTop: 24, padding: '0 16px', position: 'relative', zIndex: 1, maxWidth: '100%', boxSizing: 'border-box' }}
             >
               <div style={{
+                width: '100%',
                 maxWidth: 800, margin: '0 auto',
                 background: `linear-gradient(135deg, ${c.accentGlow1} 0%, ${c.accentGlow2} 100%)`,
                 border: `1px solid ${c.border}`,
                 borderRadius: 'var(--radius-2xl)', padding: '3px',
                 boxShadow: c.shadowColored,
+                boxSizing: 'border-box',
               }}>
                 <div style={{ background: c.bgCard, borderRadius: 'calc(var(--radius-2xl) - 3px)', overflow: 'hidden' }}>
                   <div style={{ background: c.chromeBg, borderBottom: `1px solid ${c.border}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
