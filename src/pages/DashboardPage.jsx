@@ -9,6 +9,7 @@ import { tokoApi, pesananApi } from '../lib/api/index.js'
 import { formatRupiah, getStorefrontUrl, isPro, copyToClipboard, generateShareTokoWA } from '../lib/utils.js'
 import { CONFIG } from '../lib/config.js'
 import toast from 'react-hot-toast'
+import { motion, AnimatePresence } from 'framer-motion'
 
 function parseFotos(foto) {
   if (!foto) return []
@@ -32,16 +33,24 @@ function AnimatedNumber({ value, duration = 800, formatter }) {
     const start = prevValue.current
     const end = value
     const startTime = performance.now()
+    let rafId
 
     function tick(now) {
       const progress = Math.min((now - startTime) / duration, 1)
       const eased = 1 - Math.pow(1 - progress, 3)
       const current = Math.round(start + (end - start) * eased)
       setDisplay(current)
-      if (progress < 1) requestAnimationFrame(tick)
+      if (progress < 1) {
+        rafId = requestAnimationFrame(tick)
+      }
     }
-    requestAnimationFrame(tick)
+    rafId = requestAnimationFrame(tick)
     prevValue.current = end
+    
+    // Cleanup to prevent memory leak on unmount
+    return () => {
+      if (rafId) cancelAnimationFrame(rafId)
+    }
   }, [value, duration])
 
   if (typeof display !== 'number' || isNaN(display)) return <span>{display}</span>
@@ -119,6 +128,22 @@ export default function DashboardPage() {
   const limitReached = !pro && produk.length >= CONFIG.FREE_PRODUCT_LIMIT
   const perpanjangBg = sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'
 
+  // Framer Motion variants for staggered Stat Cards
+  const statContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  }
+
+  const statItemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] } }
+  }
+
   return (
     <DashboardLayout
       title={'Halo, ' + (user?.name?.split(' ')[0]) + ' 👋'}
@@ -132,95 +157,174 @@ export default function DashboardPage() {
         )
       }
     >
+      {/* LOCAL STYLES FOR ANIMATIONS (Isolated to this file) */}
+      <style>{`
+        .produk-row { transition: background 0.2s ease; }
+        .produk-row:hover { background: var(--surface-hover) !important; }
+        .produk-thumb { transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+        .produk-row:hover .produk-thumb { transform: scale(1.05); }
+        
+        .quick-action-btn { position: relative; overflow: hidden; }
+        .quick-action-icon { transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1); }
+        .quick-action-btn:hover .quick-action-icon { transform: scale(1.1) rotate(4deg); }
+        
+        .badge-pulse-aktif { position: relative; z-index: 1; }
+        .badge-pulse-aktif::before {
+          content: '';
+          position: absolute;
+          inset: 0;
+          border-radius: 9999px;
+          background: var(--success);
+          opacity: 0.4;
+          animation: pulseBadge 2s infinite;
+          z-index: -1;
+        }
+        @keyframes pulseBadge {
+          0% { transform: scale(1); opacity: 0.4; }
+          100% { transform: scale(1.8); opacity: 0; }
+        }
+      `}</style>
+
       {tokoLoading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '80px' }}>
-          <div className="spinner" />
+        // AREA 6: Skeleton Loading State
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="glass-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div className="skeleton skeleton-text sm" style={{ width: '60%' }} />
+                <div className="skeleton skeleton-title" style={{ width: '80%' }} />
+                <div className="skeleton skeleton-text" style={{ width: '40%' }} />
+              </div>
+            ))}
+          </div>
+          <div className="glass-card" style={{ padding: '20px', height: '120px' }} />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} className="glass-card" style={{ padding: '16px', height: '68px' }} />
+            ))}
+          </div>
         </div>
       ) : !toko ? (
-        <SetupTokoCard tokenObj={tokenObj} setToko={setToko} />
+        // AREA 4: Entrance Animation for SetupTokoCard
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <SetupTokoCard tokenObj={tokenObj} setToko={setToko} />
+        </motion.div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
 
-          {!pro && (
-            <div className="anim-fade-up" style={{
-              background: 'linear-gradient(135deg, rgba(91,138,245,0.1) 0%, rgba(167,139,250,0.1) 100%)',
-              border: '1px solid rgba(167,139,250,0.2)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '18px 24px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              flexWrap: 'wrap',
-            }}>
-              <Zap size={20} color="var(--accent-3)" style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>
-                  Upgrade ke Pro
-                </p>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                  Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya {CONFIG.PRO_PRICE}.
-                </p>
-              </div>
-              <Link
-                to="/dashboard/upgrade"
-                className="btn btn-primary btn-sm"
-                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          {/* AREA 7: Exit Animation for Banners/Alerts */}
+          <AnimatePresence mode="popLayout">
+            {!pro && (
+              <motion.div
+                key="upgrade-banner"
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0, marginBottom: 0, padding: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="anim-fade-up"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(91,138,245,0.1) 0%, rgba(167,139,250,0.1) 100%)',
+                  border: '1px solid rgba(167,139,250,0.2)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: '18px 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                  overflow: 'hidden'
+                }}
               >
-                Upgrade Sekarang
-                <ArrowRight size={13} />
-              </Link>
-            </div>
-          )}
+                <Zap size={20} color="var(--accent-3)" style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', marginBottom: 2 }}>
+                    Upgrade ke Pro
+                  </p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                    Produk unlimited, custom domain, analytics, dan lebih banyak lagi. Hanya {CONFIG.PRO_PRICE}.
+                  </p>
+                </div>
+                <Link
+                  to="/dashboard/upgrade"
+                  className="btn btn-primary btn-sm"
+                  style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                >
+                  Upgrade Sekarang
+                  <ArrowRight size={13} />
+                </Link>
+              </motion.div>
+            )}
 
-          {pro && sisaHari !== null && sisaHari <= 7 && (
-            <div className="anim-fade-up" style={{
-              background: sisaHari <= 0 ? 'var(--danger-bg)' : 'var(--warning-bg)',
-              border: '1px solid ' + (sisaHari <= 0 ? 'rgba(248,113,113,0.3)' : 'rgba(251,191,36,0.3)'),
-              borderRadius: 'var(--radius-xl)',
-              padding: '18px 24px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
-              flexWrap: 'wrap',
-            }}>
-              <AlertCircle size={20} color={sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'} style={{ flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <p style={{
-                  fontFamily: 'var(--font-display)',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  marginBottom: 2,
-                  color: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
-                }}>
-                  {sisaHari <= 0 ? 'Paket Pro kamu sudah expired' : 'Paket Pro berakhir dalam ' + sisaHari + ' hari'}
-                </p>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
-                  {sisaHari <= 0
-                    ? 'Perpanjang sekarang agar toko dan fitur Pro tetap aktif.'
-                    : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
-                </p>
-              </div>
-              <a
-                href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-sm"
-                style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px', background: perpanjangBg, color: '#fff' }}
+            {pro && sisaHari !== null && sisaHari <= 7 && (
+              <motion.div
+                key="expiry-banner"
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0, marginBottom: 0, padding: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="anim-fade-up"
+                style={{
+                  background: sisaHari <= 0 ? 'var(--danger-bg)' : 'var(--warning-bg)',
+                  border: '1px solid ' + (sisaHari <= 0 ? 'rgba(248,113,113,0.3)' : 'rgba(251,191,36,0.3)'),
+                  borderRadius: 'var(--radius-xl)',
+                  padding: '18px 24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  flexWrap: 'wrap',
+                  overflow: 'hidden'
+                }}
               >
-                Perpanjang Sekarang
-                <ArrowRight size={13} />
-              </a>
-            </div>
-          )}
+                <AlertCircle size={20} color={sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)'} style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <p style={{
+                    fontFamily: 'var(--font-display)',
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    marginBottom: 2,
+                    color: sisaHari <= 0 ? 'var(--danger)' : 'var(--warning)',
+                  }}>
+                    {sisaHari <= 0 ? 'Paket Pro kamu sudah expired' : 'Paket Pro berakhir dalam ' + sisaHari + ' hari'}
+                  </p>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem' }}>
+                    {sisaHari <= 0
+                      ? 'Perpanjang sekarang agar toko dan fitur Pro tetap aktif.'
+                      : 'Segera perpanjang agar tidak kehilangan akses ke fitur Pro.'}
+                  </p>
+                </div>
+                <a
+                  href={'https://wa.me/' + CONFIG.ADMIN_WA + '?text=' + encodeURIComponent('Halo, saya mau perpanjang paket Pro Exora.')}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-sm"
+                  style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '4px', background: perpanjangBg, color: '#fff' }}
+                >
+                  Perpanjang Sekarang
+                  <ArrowRight size={13} />
+                </a>
+              </motion.div>
+            )}
 
-          {limitReached && (
-            <div className="anim-fade-up">
-              <Alert type="warning" title="Batas produk tercapai">
-                Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
-                <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link> untuk produk unlimited.
-              </Alert>
-            </div>
-          )}
+            {limitReached && (
+              <motion.div
+                key="limit-banner"
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0, marginBottom: 0, padding: 0 }}
+                transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                className="anim-fade-up"
+                style={{ overflow: 'hidden' }}
+              >
+                <Alert type="warning" title="Batas produk tercapai">
+                  Kamu sudah mencapai batas {CONFIG.FREE_PRODUCT_LIMIT} produk untuk paket gratis.{' '}
+                  <Link to="/dashboard/upgrade" style={{ color: 'var(--warning)', fontWeight: 700 }}>Upgrade ke Pro</Link> untuk produk unlimited.
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="glass-card" style={{ padding: '20px 24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
@@ -242,9 +346,19 @@ export default function DashboardPage() {
               </div>
               <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <button onClick={handleCopyLink} className="btn btn-secondary btn-sm">
-                  {linkCopied
-                    ? <><CheckCircle size={13} color="var(--success)" /> Disalin</>
-                    : <><Copy size={13} /> Salin</>}
+                  {linkCopied ? (
+                    // AREA 5: Success Feedback on Copy Link (Bounce-in animation)
+                    <motion.span 
+                      initial={{ scale: 0 }} 
+                      animate={{ scale: 1 }} 
+                      transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      <CheckCircle size={13} color="var(--success)" /> Disalin
+                    </motion.span>
+                  ) : (
+                    <><Copy size={13} /> Salin</>
+                  )}
                 </button>
                 <button onClick={() => window.location.href = getStorefrontUrl(toko.slug)} className="btn btn-secondary btn-sm">
                   <ExternalLink size={13} />
@@ -268,48 +382,63 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}>
-            <StatCard
-              label="Total Produk"
-              value={<AnimatedNumber value={produk.length} />}
-              icon={<Package size={18} />}
-              trend={produkAktif + ' aktif'}
-            />
-            <StatCard
-              label="Produk Aktif"
-              value={<AnimatedNumber value={produkAktif} />}
-              icon={<Eye size={18} />}
-              color="var(--success)"
-            />
-            <StatCard
-              label="Pesanan Masuk"
-              value={pesananCount !== null ? <AnimatedNumber value={pesananCount} /> : '...'}
-              icon={<ShoppingBag size={18} />}
-              trend="Lihat detail"
-              color="var(--warning)"
-            />
-            <StatCard
-              label="Total Penjualan"
-              value={
-                pro
-                  ? (totalRevenue !== null ? <AnimatedNumber value={totalRevenue} formatter={formatRupiah} /> : '...')
-                  : '🔒'
-              }
-              icon={<TrendingUp size={18} />}
-              trend={pro ? '' : 'Upgrade untuk akses'}
-              color="var(--accent-3)"
-            />
-          </div>
+          {/* AREA 1: Entrance Animation for Stat Cards (Staggered) */}
+          <motion.div 
+            variants={statContainerVariants}
+            initial="hidden"
+            animate="visible"
+            style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '16px' }}
+          >
+            <motion.div variants={statItemVariants}>
+              <StatCard
+                label="Total Produk"
+                value={<AnimatedNumber value={produk.length} />}
+                icon={<Package size={18} />}
+                trend={produkAktif + ' aktif'}
+              />
+            </motion.div>
+            <motion.div variants={statItemVariants}>
+              <StatCard
+                label="Produk Aktif"
+                value={<AnimatedNumber value={produkAktif} />}
+                icon={<Eye size={18} />}
+                color="var(--success)"
+              />
+            </motion.div>
+            <motion.div variants={statItemVariants}>
+              <StatCard
+                label="Pesanan Masuk"
+                value={pesananCount !== null ? <AnimatedNumber value={pesananCount} /> : '...'}
+                icon={<ShoppingBag size={18} />}
+                trend="Lihat detail"
+                color="var(--warning)"
+              />
+            </motion.div>
+            <motion.div variants={statItemVariants}>
+              <StatCard
+                label="Total Penjualan"
+                value={
+                  pro
+                    ? (totalRevenue !== null ? <AnimatedNumber value={totalRevenue} formatter={formatRupiah} /> : '...')
+                    : '🔒'
+                }
+                icon={<TrendingUp size={18} />}
+                trend={pro ? '' : 'Upgrade untuk akses'}
+                color="var(--accent-3)"
+              />
+            </motion.div>
+          </motion.div>
 
           <div>
             <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', marginBottom: '16px' }}>
               Aksi Cepat
             </h2>
+            {/* AREA 2: Interactions in Quick Actions (Ripple + Icon Hover) */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
               <button
                 onClick={() => { if (!limitReached) setShowProdukForm(true) }}
                 disabled={limitReached}
-                className="hover-lift"
+                className="hover-lift quick-action-btn ripple"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -323,7 +452,7 @@ export default function DashboardPage() {
                   textAlign: 'left',
                 }}
               >
-                <div style={{
+                <div className="quick-action-icon" style={{
                   width: 36,
                   height: 36,
                   borderRadius: 'var(--radius-md)',
@@ -347,7 +476,7 @@ export default function DashboardPage() {
                 <Link
                   key={a.label}
                   to={a.to}
-                  className="hover-lift"
+                  className="hover-lift quick-action-btn ripple"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -359,7 +488,7 @@ export default function DashboardPage() {
                     cursor: 'pointer',
                   }}
                 >
-                  <div style={{
+                  <div className="quick-action-icon" style={{
                     width: 36,
                     height: 36,
                     borderRadius: 'var(--radius-md)',
@@ -392,21 +521,24 @@ export default function DashboardPage() {
                   <ArrowRight size={13} />
                 </Link>
               </div>
+              {/* AREA 3 & 8: Hover Effect on List & Micro-interaction on Badges */}
               <div className="anim-stagger" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {produk.slice(0, 5).map(p => {
                   const thumbUrl = parseFotos(p.foto)[0] || null
                   return (
-                    <div key={p.id} className="glass-card" style={{
+                    <div key={p.id} className="glass-card produk-row" style={{
                       padding: '14px 16px',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '14px',
                       borderRadius: 'var(--radius-lg)',
+                      cursor: 'default'
                     }}>
                       {thumbUrl ? (
                         <img
                           src={thumbUrl}
                           alt={p.nama}
+                          className="produk-thumb"
                           style={{ width: 44, height: 44, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }}
                         />
                       ) : (
@@ -430,7 +562,7 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
                         <p style={{ fontWeight: 700, color: 'var(--accent)', fontSize: '0.875rem' }}>{formatRupiah(p.harga)}</p>
-                        <span className={'badge ' + (p.aktif ? 'badge-success' : 'badge-free')} style={{ fontSize: '0.65rem' }}>
+                        <span className={'badge ' + (p.aktif ? 'badge-success badge-pulse-aktif' : 'badge-free')} style={{ fontSize: '0.65rem' }}>
                           {p.aktif ? 'Aktif' : 'Nonaktif'}
                         </span>
                       </div>
@@ -565,7 +697,7 @@ function SetupTokoCard({ tokenObj, setToko }) {
 
           <button
             onClick={handleSubmit}
-            className="btn btn-primary btn-lg"
+            className="btn btn-primary btn-lg ripple"
             disabled={loading}
             style={{ width: '100%', marginTop: '8px' }}
           >
