@@ -1,5 +1,6 @@
 /* ============================================
    EXORA — Apple Style + Glassmorphism Design
+   Complete Design System with Enhancements
    ============================================ */
 
 :root {
@@ -84,39 +85,82 @@ body {
   min-height: 100vh;
 }
 
-/* Scrollbar */
+/* ============================================
+   ACCESSIBILITY — Reduced Motion
+   ============================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   PERFORMANCE OPTIMIZATIONS
+   ============================================ */
+
+/* GPU Acceleration */
+.gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Will-change utilities */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+.will-change-auto {
+  will-change: auto;
+}
+
+/* ============================================
+   SCROLLBAR & SELECTION
+   ============================================ */
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.25); }
 
-/* Selection */
 ::selection { background: rgba(91, 138, 245, 0.3); color: var(--text-primary); }
 
-/* Focus */
+/* ============================================
+   FOCUS & LINKS
+   ============================================ */
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
 
-/* Links */
 a { color: inherit; text-decoration: none; }
 
-/* Images */
-img { max-width: 100%; height: auto; display: block; }
+/* ============================================
+   MEDIA & BUTTONS RESET
+   ============================================ */
 
-/* Buttons reset */
+img { max-width: 100%; height: auto; display: block; }
 button { font-family: inherit; cursor: pointer; border: none; background: none; }
 
-/* Input reset */
 input, textarea, select {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
 }
 
-/* ============ GLASS UTILITIES ============ */
+/* ============================================
+   GLASS UTILITIES
+   ============================================ */
 
 .glass {
   background: var(--glass);
@@ -148,7 +192,9 @@ input, textarea, select {
   border: 1px solid rgba(255,255,255,0.06);
 }
 
-/* ============ BACKGROUND MESH ============ */
+/* ============================================
+   BACKGROUND MESH
+   ============================================ */
 
 .bg-mesh {
   position: fixed;
@@ -211,7 +257,9 @@ input, textarea, select {
   50% { transform: translate(-50%, -50%) scale(1.15); }
 }
 
-/* ============ TYPOGRAPHY ============ */
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
 
 .text-display {
   font-family: var(--font-display);
@@ -231,7 +279,9 @@ input, textarea, select {
   color: #ffffff;
 }
 
-/* ============ BUTTONS ============ */
+/* ============================================
+   BUTTONS
+   ============================================ */
 
 .btn {
   display: inline-flex;
@@ -313,7 +363,33 @@ input, textarea, select {
 .btn-icon { padding: 10px; aspect-ratio: 1; }
 .btn-icon.btn-sm { padding: 7px; }
 
-/* ============ FORM ELEMENTS ============ */
+/* Button Loading & Disabled States */
+.btn:disabled,
+.btn-loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-loading {
+  color: transparent !important;
+  position: relative;
+}
+
+.btn-loading::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ============================================
+   FORM ELEMENTS
+   ============================================ */
 
 .form-group {
   display: flex;
@@ -350,6 +426,12 @@ input, textarea, select {
 
 .form-input::placeholder { color: var(--text-tertiary); }
 
+.form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .form-textarea {
   resize: vertical;
   min-height: 100px;
@@ -368,7 +450,9 @@ input, textarea, select {
 .form-error { font-size: 0.78rem; color: var(--danger); margin-top: 2px; }
 .form-hint { font-size: 0.78rem; color: var(--text-tertiary); margin-top: 2px; }
 
-/* ============ BADGES ============ */
+/* ============================================
+   BADGES
+   ============================================ */
 
 .badge {
   display: inline-flex;
@@ -409,15 +493,15 @@ input, textarea, select {
   color: var(--danger);
 }
 
-/* ============ DIVIDER ============ */
+/* ============================================
+   DIVIDER & AVATAR
+   ============================================ */
 
 .divider {
   height: 1px;
   background: var(--glass-border);
   margin: 0;
 }
-
-/* ============ AVATAR ============ */
 
 .avatar {
   border-radius: var(--radius-full);
@@ -437,7 +521,9 @@ input, textarea, select {
 .avatar-lg { width: 56px; height: 56px; font-size: 1.2rem; }
 .avatar-xl { width: 80px; height: 80px; font-size: 1.6rem; }
 
-/* ============ LOADING ============ */
+/* ============================================
+   LOADING STATES
+   ============================================ */
 
 .spinner {
   width: 20px;
@@ -462,7 +548,9 @@ input, textarea, select {
   100% { background-position: -200% 0; }
 }
 
-/* ============ LAYOUT ============ */
+/* ============================================
+   LAYOUT & CONTAINER
+   ============================================ */
 
 .container {
   width: 100%;
@@ -478,6 +566,10 @@ input, textarea, select {
   padding: 0 24px;
 }
 
+/* ============================================
+   FLEX UTILITIES
+   ============================================ */
+
 .flex { display: flex; }
 .flex-col { flex-direction: column; }
 .items-center { align-items: center; }
@@ -491,7 +583,127 @@ input, textarea, select {
 .flex-1 { flex: 1; }
 .flex-wrap { flex-wrap: wrap; }
 
-/* ============ ANIMATIONS ============ */
+/* ============================================
+   GRID UTILITIES
+   ============================================ */
+
+.grid { display: grid; }
+
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.gap-1 { gap: 4px; }
+.gap-5 { gap: 20px; }
+.gap-8 { gap: 32px; }
+
+/* ============================================
+   SPACING UTILITIES — MARGIN
+   ============================================ */
+
+.m-0 { margin: 0; }
+.m-1 { margin: 4px; }
+.m-2 { margin: 8px; }
+.m-3 { margin: 12px; }
+.m-4 { margin: 16px; }
+.m-auto { margin: auto; }
+
+.mt-0 { margin-top: 0; }
+.mt-1 { margin-top: 4px; }
+.mt-2 { margin-top: 8px; }
+.mt-3 { margin-top: 12px; }
+.mt-4 { margin-top: 16px; }
+.mt-6 { margin-top: 24px; }
+.mt-8 { margin-top: 32px; }
+
+.mb-0 { margin-bottom: 0; }
+.mb-1 { margin-bottom: 4px; }
+.mb-2 { margin-bottom: 8px; }
+.mb-3 { margin-bottom: 12px; }
+.mb-4 { margin-bottom: 16px; }
+.mb-6 { margin-bottom: 24px; }
+.mb-8 { margin-bottom: 32px; }
+
+.ml-2 { margin-left: 8px; }
+.ml-4 { margin-left: 16px; }
+
+.mr-2 { margin-right: 8px; }
+.mr-4 { margin-right: 16px; }
+
+.mx-auto { margin-left: auto; margin-right: auto; }
+
+/* ============================================
+   SPACING UTILITIES — PADDING
+   ============================================ */
+
+.p-0 { padding: 0; }
+.p-1 { padding: 4px; }
+.p-2 { padding: 8px; }
+.p-3 { padding: 12px; }
+.p-4 { padding: 16px; }
+.p-6 { padding: 24px; }
+.p-8 { padding: 32px; }
+
+.pt-2 { padding-top: 8px; }
+.pt-4 { padding-top: 16px; }
+.pt-6 { padding-top: 24px; }
+.pt-8 { padding-top: 32px; }
+
+.pb-2 { padding-bottom: 8px; }
+.pb-4 { padding-bottom: 16px; }
+.pb-6 { padding-bottom: 24px; }
+.pb-8 { padding-bottom: 32px; }
+
+.pl-4 { padding-left: 16px; }
+.pr-4 { padding-right: 16px; }
+
+.px-4 { padding-left: 16px; padding-right: 16px; }
+.py-4 { padding-top: 16px; padding-bottom: 16px; }
+
+/* ============================================
+   POSITION & Z-INDEX
+   ============================================ */
+
+.relative { position: relative; }
+.absolute { position: absolute; }
+.fixed { position: fixed; }
+.sticky { position: sticky; top: 0; }
+
+.inset-0 { inset: 0; }
+.inset-x-0 { left: 0; right: 0; }
+.inset-y-0 { top: 0; bottom: 0; }
+
+.top-0 { top: 0; }
+.bottom-0 { bottom: 0; }
+.left-0 { left: 0; }
+.right-0 { right: 0; }
+
+.z-0 { z-index: 0; }
+.z-10 { z-index: 10; }
+.z-20 { z-index: 20; }
+.z-30 { z-index: 30; }
+.z-40 { z-index: 40; }
+.z-50 { z-index: 50; }
+.z-99 { z-index: 99; }
+.z-999 { z-index: 999; }
+
+/* ============================================
+   WIDTH & HEIGHT
+   ============================================ */
+
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+.min-h-screen { min-height: 100vh; }
+
+.max-w-sm { max-width: 384px; }
+.max-w-md { max-width: 448px; }
+.max-w-lg { max-width: 512px; }
+.max-w-xl { max-width: 576px; }
+.max-w-2xl { max-width: 672px; }
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(12px); }
@@ -525,7 +737,9 @@ input, textarea, select {
 .stagger > *:nth-child(5) { animation-delay: 240ms; }
 .stagger > *:nth-child(6) { animation-delay: 300ms; }
 
-/* ============ TOAST OVERRIDE ============ */
+/* ============================================
+   TOAST OVERRIDE
+   ============================================ */
 
 .hot-toast-custom {
   background: var(--bg-tertiary) !important;
@@ -536,18 +750,26 @@ input, textarea, select {
   box-shadow: var(--shadow-lg) !important;
 }
 
-/* ============ RESPONSIVE ============ */
+/* ============================================
+   RESPONSIVE
+   ============================================ */
 
 @media (max-width: 768px) {
   .container { padding: 0 16px; }
   .container-sm { padding: 0 16px; }
   .hide-mobile { display: none !important; }
   .show-mobile { display: flex !important; }
+  .md\:hidden { display: none !important; }
+  .md\:block { display: block !important; }
 }
 
 @media (max-width: 480px) {
   .hide-sm { display: none !important; }
 }
+
+/* ============================================
+   USER SELECT & TAP HIGHLIGHT
+   ============================================ */
 
 * {
   -webkit-user-select: none;
@@ -557,6 +779,10 @@ input, textarea, select {
 * {
   -webkit-tap-highlight-color: transparent;
 }
+
+/* ============================================
+   LIGHT THEME
+   ============================================ */
 
 [data-theme="light"] {
   --bg-primary: #f5f5f7;
@@ -611,11 +837,10 @@ input, textarea, select {
   color: var(--text-primary);
 }
 
-/* ================================================
-   ANIMATIONS — tambah di paling bawah globals.css
-   ================================================ */
+/* ============================================
+   ADVANCED ANIMATIONS
+   ============================================ */
 
-/* Fade up — untuk card scroll-triggered */
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -627,13 +852,6 @@ input, textarea, select {
   }
 }
 
-/* Fade in simple */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-/* Scale in — untuk modal/sheet */
 @keyframes scaleIn {
   from {
     opacity: 0;
@@ -645,7 +863,6 @@ input, textarea, select {
   }
 }
 
-/* Slide in dari bawah — untuk toast + bottom sheet */
 @keyframes slideInBottom {
   from {
     opacity: 0;
@@ -657,7 +874,6 @@ input, textarea, select {
   }
 }
 
-/* Slide in dari kiri — untuk sidebar */
 @keyframes slideInLeft {
   from {
     opacity: 0;
@@ -669,267 +885,89 @@ input, textarea, select {
   }
 }
 
-/* Slide in dari kanan */
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Blob gerak pelan — background landing */
 @keyframes blobMove {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(30px, -20px) scale(1.05);
-  }
-  66% {
-    transform: translate(-20px, 15px) scale(0.97);
-  }
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -20px) scale(1.05); }
+  66% { transform: translate(-20px, 15px) scale(0.97); }
 }
 
 @keyframes blobMove2 {
-  0%, 100% {
-    transform: translate(0, 0) scale(1);
-  }
-  33% {
-    transform: translate(-25px, 20px) scale(1.04);
-  }
-  66% {
-    transform: translate(20px, -15px) scale(0.98);
-  }
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-25px, 20px) scale(1.04); }
+  66% { transform: translate(20px, -15px) scale(0.98); }
 }
 
-/* Pulse glow — tombol WA di storefront */
 @keyframes pulseGlow {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
-  }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4); }
+  50% { box-shadow: 0 0 0 12px rgba(37, 211, 102, 0); }
 }
 
-@keyframes pulseAccent {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 91, 138, 245), 0.4);
-  }
-  50% {
-    box-shadow: 0 0 0 12px rgba(var(--accent-rgb, 91, 138, 245), 0);
-  }
-}
-
-/* Heart burst — like button */
 @keyframes heartBurst {
-  0% {
-    transform: scale(1);
-  }
-  25% {
-    transform: scale(1.4);
-  }
-  50% {
-    transform: scale(0.9);
-  }
-  75% {
-    transform: scale(1.15);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  25% { transform: scale(1.4); }
+  50% { transform: scale(0.9); }
+  75% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 
-/* Flip countdown — flash sale timer */
 @keyframes flipDown {
-  0% {
-    transform: rotateX(0deg);
-    opacity: 1;
-  }
-  50% {
-    transform: rotateX(-90deg);
-    opacity: 0;
-  }
-  51% {
-    transform: rotateX(90deg);
-    opacity: 0;
-  }
-  100% {
-    transform: rotateX(0deg);
-    opacity: 1;
-  }
+  0% { transform: rotateX(0deg); opacity: 1; }
+  50% { transform: rotateX(-90deg); opacity: 0; }
+  51% { transform: rotateX(90deg); opacity: 0; }
+  100% { transform: rotateX(0deg); opacity: 1; }
 }
 
-/* Typing indicator — AI chat */
 @keyframes typingBounce {
-  0%, 60%, 100% {
-    transform: translateY(0);
-    opacity: 0.4;
-  }
-  30% {
-    transform: translateY(-6px);
-    opacity: 1;
-  }
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
 }
 
-/* Shimmer — skeleton loading */
-@keyframes shimmer {
-  0% {
-    background-position: -200% center;
-  }
-  100% {
-    background-position: 200% center;
-  }
-}
-
-/* Draw line — chart animation */
-@keyframes drawLine {
-  from {
-    stroke-dashoffset: 1000;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-/* Bounce in — notifikasi badge */
 @keyframes bounceIn {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); }
 }
 
-/* Spin — loading spinner */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-/* Float — elemen melayang */
 @keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
 }
 
-/* Stagger helper — dipakai via nth-child delay */
 @keyframes staggerFadeUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-/* ================================================
+/* ============================================
    UTILITY ANIMATION CLASSES
-   ================================================ */
+   ============================================ */
 
-.anim-fade-up {
-  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
+.anim-fade-up { animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-in { animation: fadeIn 0.4s ease both; }
+.anim-scale-in { animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-bottom { animation: slideInBottom 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-left { animation: slideInLeft 0.3s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-slide-right { animation: slideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-float { animation: float 3s ease-in-out infinite; }
+.anim-bounce-in { animation: bounceIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-spin { animation: spin 1s linear infinite; }
+.anim-pulse-wa { animation: pulseGlow 2s ease-in-out infinite; }
+.anim-heart { animation: heartBurst 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-blob { animation: blobMove 8s ease-in-out infinite; }
+.anim-blob-2 { animation: blobMove2 10s ease-in-out infinite; }
 
-.anim-fade-in {
-  animation: fadeIn 0.4s ease both;
-}
-
-.anim-scale-in {
-  animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.anim-slide-bottom {
-  animation: slideInBottom 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.anim-slide-left {
-  animation: slideInLeft 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.anim-slide-right {
-  animation: slideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.anim-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.anim-bounce-in {
-  animation: bounceIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.anim-spin {
-  animation: spin 1s linear infinite;
-}
-
-.anim-pulse-wa {
-  animation: pulseGlow 2s ease-in-out infinite;
-}
-
-.anim-pulse-accent {
-  animation: pulseAccent 2s ease-in-out infinite;
-}
-
-.anim-heart {
-  animation: heartBurst 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.anim-blob {
-  animation: blobMove 8s ease-in-out infinite;
-}
-
-.anim-blob-2 {
-  animation: blobMove2 10s ease-in-out infinite;
-}
-
-/* Stagger delays untuk list item */
 .anim-stagger > *:nth-child(1) { animation: staggerFadeUp 0.5s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-stagger > *:nth-child(2) { animation: staggerFadeUp 0.5s 0.10s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-stagger > *:nth-child(3) { animation: staggerFadeUp 0.5s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-stagger > *:nth-child(4) { animation: staggerFadeUp 0.5s 0.20s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-stagger > *:nth-child(5) { animation: staggerFadeUp 0.5s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-stagger > *:nth-child(6) { animation: staggerFadeUp 0.5s 0.30s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-stagger > *:nth-child(7) { animation: staggerFadeUp 0.5s 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-stagger > *:nth-child(8) { animation: staggerFadeUp 0.5s 0.40s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
-/* ================================================
-   SKELETON LOADING
-   ================================================ */
+/* ============================================
+   SKELETON LOADING VARIANTS
+   ============================================ */
 
-.skeleton {
-  background: linear-gradient(
-    90deg,
-    var(--surface) 25%,
-    var(--surface-hover, rgba(255,255,255,0.08)) 50%,
-    var(--surface) 75%
-  );
-  background-size: 200% auto;
-  animation: shimmer 1.5s linear infinite;
-  border-radius: 8px;
-}
-
-.skeleton-text {
-  height: 14px;
-  border-radius: 4px;
-}
-
+.skeleton-text { height: 14px; border-radius: 4px; }
 .skeleton-text.sm { height: 11px; }
 .skeleton-text.lg { height: 20px; }
 .skeleton-title { height: 24px; border-radius: 6px; }
@@ -937,9 +975,9 @@ input, textarea, select {
 .skeleton-card { border-radius: 16px; }
 .skeleton-img { border-radius: 12px; }
 
-/* ================================================
+/* ============================================
    TYPING INDICATOR
-   ================================================ */
+   ============================================ */
 
 .typing-indicator {
   display: flex;
@@ -957,17 +995,12 @@ input, textarea, select {
   animation: typingBounce 1.2s ease-in-out infinite;
 }
 
-.typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
-}
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
-/* ================================================
+/* ============================================
    FLIP COUNTDOWN
-   ================================================ */
+   ============================================ */
 
 .flip-digit {
   display: inline-block;
@@ -980,9 +1013,9 @@ input, textarea, select {
   perspective: 200px;
 }
 
-/* ================================================
+/* ============================================
    HOVER EFFECTS
-   ================================================ */
+   ============================================ */
 
 .hover-lift {
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
@@ -998,26 +1031,14 @@ input, textarea, select {
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.hover-scale:hover {
-  transform: scale(1.02);
-}
+.hover-scale:hover { transform: scale(1.02); }
 
-.hover-glow {
-  transition: box-shadow 0.2s ease;
-}
+.hover-glow { transition: box-shadow 0.2s ease; }
+.hover-glow:hover { box-shadow: 0 0 0 2px var(--accent); }
 
-.hover-glow:hover {
-  box-shadow: 0 0 0 2px var(--accent);
-}
-
-/* ================================================
+/* ============================================
    PAGE TRANSITION
-   ================================================ */
+   ============================================ */
 
-.page-enter {
-  animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.page-exit {
-  animation: fadeIn 0.2s ease reverse both;
-}
+.page-enter { animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.page-exit { animation: fadeIn 0.2s ease reverse both; }
