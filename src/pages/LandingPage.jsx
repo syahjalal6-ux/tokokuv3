@@ -78,9 +78,9 @@ const THEMES = {
     bgCard: '#15151c',
     border: 'rgba(255,255,255,0.08)',
     textPrimary: '#f5f5f7',
-    textSecondary: '#c2c2c8',
-    textTertiary: '#9a9aa4',
-    textMuted: '#7a7a85',
+    textSecondary: '#d1d1d6',
+    textTertiary: '#a8a8b0',
+    textMuted: '#8a8a91',
     accentSoftBg: 'rgba(55,138,221,0.16)',
     accentSoftBorder: 'rgba(55,138,221,0.35)',
     accentGlow1: 'rgba(55,138,221,0.18)',
@@ -120,23 +120,6 @@ function useScrollAnimation() {
   return { ref, isInView }
 }
 
-function useCounter(target, duration = 1500, start = false) {
-  const [count, setCount] = React.useState(0)
-  useEffect(() => {
-    if (!start) return
-    let startTime = null
-    const step = (timestamp) => {
-      if (!startTime) startTime = timestamp
-      const progress = Math.min((timestamp - startTime) / duration, 1)
-      const eased = 1 - Math.pow(1 - progress, 3)
-      setCount(Math.floor(eased * target))
-      if (progress < 1) requestAnimationFrame(step)
-    }
-    requestAnimationFrame(step)
-  }, [target, duration, start])
-  return count
-}
-
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 30 },
   visible: {
@@ -173,37 +156,8 @@ const slideLeftVariant = {
   }
 }
 
-function StatCounter({ value, suffix = '', label }) {
+function FiturSection({ theme }) {
   const { ref, isInView } = useScrollAnimation()
-  const count = useCounter(value, 1500, isInView)
-  return (
-    <motion.div
-      ref={ref}
-      variants={scaleInVariant}
-      initial="hidden"
-      animate={isInView ? 'visible' : 'hidden'}
-      style={{ textAlign: 'center' }}
-    >
-      <div style={{
-        fontSize: 'clamp(2rem, 5vw, 3rem)',
-        fontWeight: 800,
-        background: 'var(--gradient-accent)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        letterSpacing: '-0.03em',
-      }}>
-        {count.toLocaleString('id-ID')}{suffix}
-      </div>
-      <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: 4 }}>
-        {label}
-      </div>
-    </motion.div>
-  )
-}
-
-function FiturSection() {
-  const { ref, isInView } = useScrollAnimation()
-  const { theme } = useTheme()
   const c = THEMES[theme]
   const accent = theme === 'light' ? NAVY : BLUE
 
@@ -251,9 +205,8 @@ function FiturSection() {
   )
 }
 
-function PricingSection() {
+function PricingSection({ theme }) {
   const { ref, isInView } = useScrollAnimation()
-  const { theme } = useTheme()
   const c = THEMES[theme]
   const accent = theme === 'light' ? NAVY : BLUE
 
@@ -350,121 +303,8 @@ function PricingSection() {
   )
 }
 
-function TestimonialSection() {
+function CTASection({ theme }) {
   const { ref, isInView } = useScrollAnimation()
-  const { theme } = useTheme()
-  const c = THEMES[theme]
-
-  const testimonials = [
-    {
-      nama: 'Rina Handmade',
-      toko: 'rina-handmade',
-      avatar: '/rina.png',
-      teks: 'Dulu repot banget kirim katalog satu-satu ke WA. Sekarang tinggal share link toko, buyer langsung order sendiri. AI-nya juga bantu jawab pertanyaan.',
-      bintang: 5,
-    },
-    {
-      nama: 'Mavara Wear',
-      toko: 'mavara-wear',
-      avatar: null,
-      teks: 'Toko saya keliatan lebih profesional sekarang. Buyer percaya lebih cepat karena ada halaman toko yang proper, bukan cuma chat WA doang.',
-      bintang: 5,
-    },
-    {
-      nama: 'Midori Matcha',
-      toko: 'midori-matcha',
-      avatar: '/matcha.png',
-      teks: 'Flash sale di Exora gampang banget setup-nya. Countdown timer-nya bikin buyer makin cepat checkout. Revenue naik signifikan.',
-      bintang: 5,
-    },
-  ]
-
-  return (
-    <section style={{ padding: '80px 0' }}>
-      <motion.div
-        ref={ref}
-        variants={fadeUpStagger}
-        initial="hidden"
-        animate={isInView ? 'visible' : 'hidden'}
-        style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px' }}
-      >
-        <motion.div variants={fadeUpVariant} style={{ textAlign: 'center', marginBottom: 48 }}>
-          <h2 style={{
-            fontSize: 'clamp(1.5rem, 4vw, 2.2rem)',
-            fontWeight: 800,
-            color: c.textPrimary,
-            letterSpacing: '-0.03em',
-          }}>
-            Kata seller yang udah pakai Exora
-          </h2>
-          <p style={{ color: c.textSecondary, marginTop: 8, fontSize: '0.95rem' }}>
-            Ribuan UMKM Indonesia sudah percaya Exora
-          </p>
-        </motion.div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-          gap: 20,
-        }}>
-          {testimonials.map((t, i) => (
-            <motion.div
-              key={i}
-              variants={fadeUpVariant}
-              whileHover={{ y: -4, boxShadow: '0 12px 32px rgba(0,0,0,0.12)' }}
-              transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-              style={{
-                background: c.bgCard,
-                border: `1px solid ${c.border}`,
-                borderRadius: 20,
-                padding: '24px 20px',
-              }}
-            >
-              <div style={{ display: 'flex', gap: 3, marginBottom: 12 }}>
-                {Array.from({ length: t.bintang }).map((_, j) => (
-                  <span key={j} style={{ fontSize: 14 }}>⭐</span>
-                ))}
-              </div>
-              <p style={{
-                color: c.textSecondary,
-                fontSize: '0.9rem',
-                lineHeight: 1.7,
-                marginBottom: 16,
-              }}>
-                "{t.teks}"
-              </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{
-                  width: 36, height: 36, borderRadius: '50%',
-                  background: c.accentSoftBg,
-                  overflow: 'hidden',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
-                }}>
-                  {t.avatar ? (
-                    <img src={t.avatar} alt={t.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <span style={{ fontSize: 14, fontWeight: 700, color: theme === 'light' ? NAVY : BLUE }}>
-                      {t.nama[0]}
-                    </span>
-                  )}
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: c.textPrimary }}>{t.nama}</div>
-                  <div style={{ fontSize: 11, color: c.textSecondary }}>exora.app/toko/{t.toko}</div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-    </section>
-  )
-}
-
-function CTASection() {
-  const { ref, isInView } = useScrollAnimation()
-  const { theme } = useTheme()
   const c = THEMES[theme]
 
   return (
@@ -832,18 +672,9 @@ export default function LandingPage() {
             </motion.div>
           </section>
 
-          {/* Stat Counter Section */}
-          <section className="section-pad" style={{ padding: '48px 0' }}>
-            <div className="container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24 }}>
-              <StatCounter value={1000} suffix="+" label="Seller Aktif" />
-              <StatCounter value={25000} suffix="+" label="Produk Terjual" />
-              <StatCounter value={99} suffix="%" label="Kepuasan" />
-            </div>
-          </section>
+          <FiturSection theme={theme} />
 
-          <FiturSection />
-
-          <PricingSection />
+          <PricingSection theme={theme} />
 
           {/* Why Exora */}
           <section className="section-pad" style={{ padding: '56px 0' }}>
@@ -903,9 +734,7 @@ export default function LandingPage() {
             </div>
           </section>
 
-          <TestimonialSection />
-
-          <CTASection />
+          <CTASection theme={theme} />
 
           {/* Footer */}
           <footer style={{ borderTop: `1px solid ${c.border}`, padding: '28px 24px', color: c.textMuted, fontSize: '0.82rem' }}>
