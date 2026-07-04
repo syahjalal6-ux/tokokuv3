@@ -610,3 +610,414 @@ input, textarea, select {
 [data-theme="light"] .gradient-text {
   color: var(--text-primary);
 }
+
+/* ================================================
+   ANIMATIONS — tambah di paling bawah globals.css
+   ================================================ */
+
+/* Fade up — untuk card scroll-triggered */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in simple */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scale in — untuk modal/sheet */
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Slide in dari bawah — untuk toast + bottom sheet */
+@keyframes slideInBottom {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide in dari kiri — untuk sidebar */
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Slide in dari kanan */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Blob gerak pelan — background landing */
+@keyframes blobMove {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -20px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 15px) scale(0.97);
+  }
+}
+
+@keyframes blobMove2 {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(-25px, 20px) scale(1.04);
+  }
+  66% {
+    transform: translate(20px, -15px) scale(0.98);
+  }
+}
+
+/* Pulse glow — tombol WA di storefront */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(37, 211, 102, 0);
+  }
+}
+
+@keyframes pulseAccent {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(var(--accent-rgb, 91, 138, 245), 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(var(--accent-rgb, 91, 138, 245), 0);
+  }
+}
+
+/* Heart burst — like button */
+@keyframes heartBurst {
+  0% {
+    transform: scale(1);
+  }
+  25% {
+    transform: scale(1.4);
+  }
+  50% {
+    transform: scale(0.9);
+  }
+  75% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Flip countdown — flash sale timer */
+@keyframes flipDown {
+  0% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+  50% {
+    transform: rotateX(-90deg);
+    opacity: 0;
+  }
+  51% {
+    transform: rotateX(90deg);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+/* Typing indicator — AI chat */
+@keyframes typingBounce {
+  0%, 60%, 100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translateY(-6px);
+    opacity: 1;
+  }
+}
+
+/* Shimmer — skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Draw line — chart animation */
+@keyframes drawLine {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Bounce in — notifikasi badge */
+@keyframes bounceIn {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Spin — loading spinner */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Float — elemen melayang */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+/* Stagger helper — dipakai via nth-child delay */
+@keyframes staggerFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ================================================
+   UTILITY ANIMATION CLASSES
+   ================================================ */
+
+.anim-fade-up {
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-fade-in {
+  animation: fadeIn 0.4s ease both;
+}
+
+.anim-scale-in {
+  animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-slide-bottom {
+  animation: slideInBottom 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-slide-left {
+  animation: slideInLeft 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-slide-right {
+  animation: slideInRight 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.anim-bounce-in {
+  animation: bounceIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-spin {
+  animation: spin 1s linear infinite;
+}
+
+.anim-pulse-wa {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.anim-pulse-accent {
+  animation: pulseAccent 2s ease-in-out infinite;
+}
+
+.anim-heart {
+  animation: heartBurst 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.anim-blob {
+  animation: blobMove 8s ease-in-out infinite;
+}
+
+.anim-blob-2 {
+  animation: blobMove2 10s ease-in-out infinite;
+}
+
+/* Stagger delays untuk list item */
+.anim-stagger > *:nth-child(1) { animation: staggerFadeUp 0.5s 0.05s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(2) { animation: staggerFadeUp 0.5s 0.10s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(3) { animation: staggerFadeUp 0.5s 0.15s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(4) { animation: staggerFadeUp 0.5s 0.20s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(5) { animation: staggerFadeUp 0.5s 0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(6) { animation: staggerFadeUp 0.5s 0.30s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(7) { animation: staggerFadeUp 0.5s 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-stagger > *:nth-child(8) { animation: staggerFadeUp 0.5s 0.40s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ================================================
+   SKELETON LOADING
+   ================================================ */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface) 25%,
+    var(--surface-hover, rgba(255,255,255,0.08)) 50%,
+    var(--surface) 75%
+  );
+  background-size: 200% auto;
+  animation: shimmer 1.5s linear infinite;
+  border-radius: 8px;
+}
+
+.skeleton-text {
+  height: 14px;
+  border-radius: 4px;
+}
+
+.skeleton-text.sm { height: 11px; }
+.skeleton-text.lg { height: 20px; }
+.skeleton-title { height: 24px; border-radius: 6px; }
+.skeleton-avatar { border-radius: 50%; }
+.skeleton-card { border-radius: 16px; }
+.skeleton-img { border-radius: 12px; }
+
+/* ================================================
+   TYPING INDICATOR
+   ================================================ */
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+}
+
+.typing-indicator span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  display: inline-block;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-indicator span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* ================================================
+   FLIP COUNTDOWN
+   ================================================ */
+
+.flip-digit {
+  display: inline-block;
+  min-width: 28px;
+  text-align: center;
+  font-family: monospace;
+  font-weight: 700;
+  animation: flipDown 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+  perspective: 200px;
+}
+
+/* ================================================
+   HOVER EFFECTS
+   ================================================ */
+
+.hover-lift {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.hover-scale {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+.hover-glow {
+  transition: box-shadow 0.2s ease;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ================================================
+   PAGE TRANSITION
+   ================================================ */
+
+.page-enter {
+  animation: fadeUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.page-exit {
+  animation: fadeIn 0.2s ease reverse both;
+}
