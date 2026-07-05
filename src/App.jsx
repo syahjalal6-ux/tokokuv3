@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './lib/store.js'
 import AdminGuard from './lib/AdminGuard.jsx'
@@ -71,8 +72,24 @@ function AppLoader() {
   )
 }
 
+// PageWrapper untuk animasi transisi halaman
+function PageWrapper({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 export default function App() {
   const init = useAuthStore(s => s.init)
+  const location = useLocation()
+  
   useEffect(() => {
     init()
   }, [init])
@@ -98,35 +115,37 @@ export default function App() {
           },
         }}
       />
-      <Routes>
-        {/* Public */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* Public */}
+          <Route path="/" element={<PageWrapper><LandingPage /></PageWrapper>} />
+          <Route path="/login" element={<PublicRoute><PageWrapper><LoginPage /></PageWrapper></PublicRoute>} />
 
-        {/* Redirect resi → toko */}
-        <Route path="/r/:resi" element={<RedirectResi />} />
+          {/* Redirect resi → toko */}
+          <Route path="/r/:resi" element={<PageWrapper><RedirectResi /></PageWrapper>} />
 
-        {/* Storefront publik */}
-        <Route path="/showcase" element={<ShowcasePage />} />
-        <Route path="/:slug" element={<StorefrontPage />} />
+          {/* Storefront publik */}
+          <Route path="/showcase" element={<PageWrapper><ShowcasePage /></PageWrapper>} />
+          <Route path="/:slug" element={<PageWrapper><StorefrontPage /></PageWrapper>} />
 
-        {/* Private (seller) */}
-        <Route path="/dashboard" element={<PrivateRoute><DashboardPage /></PrivateRoute>} />
-        <Route path="/dashboard/produk" element={<PrivateRoute><ProdukPage /></PrivateRoute>} />
-        <Route path="/dashboard/pesanan" element={<PrivateRoute><PesananPage /></PrivateRoute>} />
-        <Route path="/dashboard/stream" element={<PrivateRoute><StreamPage /></PrivateRoute>} />
-        <Route path="/dashboard/analytics" element={<PrivateRoute><AnalyticsPage /></PrivateRoute>} />
-        <Route path="/dashboard/settings" element={<PrivateRoute><SettingsPage /></PrivateRoute>} />
-        <Route path="/dashboard/live" element={<PrivateRoute><LivePage /></PrivateRoute>} />
-        <Route path="/:slug/live" element={<LiveViewerPage />} />
-        <Route path="/dashboard/upgrade" element={<PrivateRoute><UpgradePage /></PrivateRoute>} />
+          {/* Private (seller) */}
+          <Route path="/dashboard" element={<PrivateRoute><PageWrapper><DashboardPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard/produk" element={<PrivateRoute><PageWrapper><ProdukPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard/pesanan" element={<PrivateRoute><PageWrapper><PesananPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard/stream" element={<PrivateRoute><PageWrapper><StreamPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard/analytics" element={<PrivateRoute><PageWrapper><AnalyticsPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard/settings" element={<PrivateRoute><PageWrapper><SettingsPage /></PageWrapper></PrivateRoute>} />
+          <Route path="/dashboard/live" element={<PrivateRoute><PageWrapper><LivePage /></PageWrapper></PrivateRoute>} />
+          <Route path="/:slug/live" element={<PageWrapper><LiveViewerPage /></PageWrapper>} />
+          <Route path="/dashboard/upgrade" element={<PrivateRoute><PageWrapper><UpgradePage /></PageWrapper></PrivateRoute>} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<AdminGuard><AdminPage /></AdminGuard>} />
+          {/* Admin */}
+          <Route path="/admin" element={<AdminGuard><PageWrapper><AdminPage /></PageWrapper></AdminGuard>} />
 
-        {/* 404 */}
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
+          {/* 404 */}
+          <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
+        </Routes>
+      </AnimatePresence>
     </BrowserRouter>
   )
 }
