@@ -10,10 +10,17 @@ import { useRealtimeReplies } from '../../hooks/useRealtimeReplies'
 import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
 import { useAuthStore, useTokoStore, useStreamStore } from '../../lib/store.js'
 import { isPro, getStorefrontUrl, getInitials } from '../../lib/utils.js'
+import { useTheme } from '../../lib/useTheme.js'
 import toast from 'react-hot-toast'
 import { motion, useAnimation, useInView, AnimatePresence } from 'framer-motion'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
+
+// ================================================
+// COLOR CONSTANTS
+// ================================================
+const NAVY = '#0C447C'
+const BLUE = '#378ADD'
 
 // ================================================
 // CLOUDINARY HELPER
@@ -968,6 +975,7 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
   const [input, setInput] = useState('')
   const bottomRef = useRef()
   const messagesContainerRef = useRef()
+  const { theme } = useTheme()
 
   useEffect(() => {
     if (messagesContainerRef.current) {
@@ -990,7 +998,7 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
     <div style={{ maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
       <DetailHeader title={thread?.toko?.nama || 'Pesan'} onBack={onBack} avatar={thread?.toko} />
       
-      {/* ✅ MESSAGES CONTAINER - BORDER 4 SISI TEGAS */}
+      {/* ✅ MESSAGES CONTAINER - BORDER DYNAMIC BERDASARKAN TEMA */}
       <div
         ref={messagesContainerRef}
         style={{
@@ -1001,7 +1009,9 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
           flexDirection: 'column', 
           gap: 10,
           scrollBehavior: 'smooth',
-          border: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+          border: theme === 'dark' 
+            ? `4px solid ${THEME_TOKENS.dark.bubbleBorderMine}`
+            : `3px solid ${NAVY}`,
         }}
       >
         {messages.map((m, i) => (
