@@ -1019,36 +1019,37 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
         <div ref={bottomRef} />
       </div>
       <div style={{ padding: '10px 8px', borderTop: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`, display: 'flex', gap: 8 }}>
-  <input
-    value={input}
-    onChange={e => setInput(e.target.value)}
-    onKeyDown={e => e.key === 'Enter' && send()}
-    placeholder="Ketik pesan..."
-    style={{
-      flex: 1, background: 'var(--surface)', border: `2px solid ${THEME_TOKENS.light.bubbleBorderOther}`,
-      borderRadius: 'var(--radius-full)', padding: '10px 16px', color: 'var(--text-primary)',
-      fontSize: '0.855rem', outline: 'none', fontFamily: PJS,
-      transition: 'border-color 0.2s ease',
-    }}
-    onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-    onBlur={e => e.target.style.borderColor = THEME_TOKENS.light.bubbleBorderOther}
-  />
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={send}
-    disabled={!input.trim()}
-    style={{
-      width: 38, height: 38, borderRadius: 'var(--radius-full)',
-      background: input.trim() ? 'var(--accent-gradient)' : 'var(--surface)',
-      border: `2px solid ${THEME_TOKENS.light.bubbleBorderOther}`, cursor: input.trim() ? 'pointer' : 'default',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      transition: 'all 0.2s ease',
-    }}
-  >
-    <Send size={14} color={input.trim() ? '#fff' : 'var(--text-tertiary)'} />
-  </motion.button>
-</div>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && send()}
+          placeholder="Ketik pesan..."
+          style={{
+            flex: 1, background: 'var(--surface)', border: `2px solid ${THEME_TOKENS.light.bubbleBorderOther}`,
+            borderRadius: 'var(--radius-full)', padding: '10px 16px', color: 'var(--text-primary)',
+            fontSize: '0.855rem', outline: 'none', fontFamily: PJS,
+            transition: 'border-color 0.2s ease',
+          }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = THEME_TOKENS.light.bubbleBorderOther}
+        />
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={send}
+          disabled={!input.trim()}
+          style={{
+            width: 38, height: 38, borderRadius: 'var(--radius-full)',
+            background: input.trim() ? 'var(--accent-gradient)' : 'var(--surface)',
+            border: `2px solid ${THEME_TOKENS.light.bubbleBorderOther}`, cursor: input.trim() ? 'pointer' : 'default',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <Send size={14} color={input.trim() ? '#fff' : 'var(--text-tertiary)'} />
+        </motion.button>
+      </div>
+    </div>
   )
 }
 
