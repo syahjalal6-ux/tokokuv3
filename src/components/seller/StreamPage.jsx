@@ -989,12 +989,19 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
       <DetailHeader title={thread?.toko?.nama || 'Pesan'} onBack={onBack} avatar={thread?.toko} />
+      
+      {/* ✅ MESSAGES CONTAINER - BORDER 4 SISI TEGAS */}
       <div
         ref={messagesContainerRef}
         style={{
-          flex: 1, overflowY: 'auto', padding: '14px 8px',
-          display: 'flex', flexDirection: 'column', gap: 10,
+          flex: 1, 
+          overflowY: 'auto', 
+          padding: '14px 8px',
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 10,
           scrollBehavior: 'smooth',
+          border: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
         }}
       >
         {messages.map((m, i) => (
@@ -1005,6 +1012,7 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
             transition={{ duration: 0.3, delay: i * 0.05 }}
             style={{ display: 'flex', justifyContent: m.isMine ? 'flex-end' : 'flex-start', gap: 8 }}
           >
+            {/* ✅ BUBBLE CHAT - BORDER TIPIS */}
             <div style={{
               maxWidth: '72%', padding: '10px 13px',
               borderRadius: m.isMine ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)' : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
@@ -1018,13 +1026,11 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
         ))}
         <div ref={bottomRef} />
       </div>
+      
+      {/* ✅ INPUT CONTAINER - BORDER ATAS AJA */}
       <div style={{ 
         padding: '10px 8px', 
-        border: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
-        borderLeft: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
-        borderRight: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
-        borderTop: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
-        borderBottom: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+        borderTop: '3px solid var(--glass-border)',
         display: 'flex', 
         gap: 8 
       }}>
