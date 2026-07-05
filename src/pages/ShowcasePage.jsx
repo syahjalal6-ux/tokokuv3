@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, Repeat2, Store, ArrowRight, Bot, Sun, Moon, X, ZoomIn, Loader2 } from 'lucide-react'
 import { useStreamStore } from '../lib/store.js'
@@ -78,9 +78,9 @@ function SkeletonCard() {
           <div style={{ height: 10, width: 80, background: 'var(--bg-surface)', borderRadius: 4 }} />
         </div>
       </div>
+      <div style={{ height: 200, background: 'var(--bg-surface)', borderRadius: 8, marginBottom: 12 }} />
       <div style={{ height: 12, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 8 }} />
       <div style={{ height: 12, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 8, width: '80%' }} />
-      <div style={{ height: 200, background: 'var(--bg-surface)', borderRadius: 8, marginTop: 12 }} />
     </motion.div>
   )
 }
@@ -404,10 +404,10 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
   const accent = theme === 'light' ? NAVY : BLUE
   
   const controls = useAnimation()
-  const ref = React.useRef(null)
+  const ref = useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (isInView) {
       controls.start('visible')
     }
@@ -471,11 +471,13 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
             )}
           </div>
 
-          <p style={{ fontFamily: PJS, fontSize: '0.875rem', color: c.textSecondary, lineHeight: 1.7, margin: '0 0 10px', whiteSpace: 'pre-line' }}>
+          {/* FOTO/IMAGE DIATAS */}
+          <ShowcaseImages images={post.foto} c={c} onImageClick={onImageClick} theme={theme} />
+
+          {/* TEKS DIBAWAH FOTO */}
+          <p style={{ fontFamily: PJS, fontSize: '0.875rem', color: c.textSecondary, lineHeight: 1.7, margin: '10px 0 10px', whiteSpace: 'pre-line' }}>
             {post.teks}
           </p>
-
-          <ShowcaseImages images={post.foto} c={c} onImageClick={onImageClick} theme={theme} />
 
           {post.shopLink && (
             <motion.a
