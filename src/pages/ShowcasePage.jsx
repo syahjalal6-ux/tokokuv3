@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Heart, MessageCircle, Repeat2, Store, ArrowRight, Bot, Sun, Moon, X, ZoomIn, Loader2 } from 'lucide-react'
+import { Heart, MessageCircle, Repeat2, Store, ArrowRight, Bot, Sun, Moon, X, ZoomIn, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 import { useStreamStore } from '../lib/store.js'
 import { getStorefrontUrl, getInitials } from '../lib/utils.js'
 import { useTheme } from '../lib/useTheme.js'
@@ -10,164 +10,81 @@ import { motion, useAnimation, useInView, AnimatePresence } from 'framer-motion'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
-// ================================================
-// CLOUDINARY HELPER
-// ================================================
-function cloudinaryMedium(url) {
-  if (!url || !url.includes('cloudinary.com')) return url
-  return url.replace('/upload/', '/upload/q_60,w_800/')
-}
-
-function cloudinaryThumb(url) {
-  if (!url || !url.includes('cloudinary.com')) return url
-  return url.replace('/upload/', '/upload/q_60,w_120,h_120,c_fill/')
-}
-
-const POST_TYPES = [
-  { value: 'produk_baru', label: 'Produk baru', emoji: '🔥', hashtag: '#ProdukBaru', public: true },
-  { value: 'cari_reseller', label: 'Cari reseller', emoji: '🤝', hashtag: '#CariReseller', public: false },
-  { value: 'supplier_info', label: 'Supplier info', emoji: '', hashtag: '#SupplierInfo', public: false },
-  { value: 'penjualan', label: 'Penjualan', emoji: '📈', hashtag: '#Penjualan', public: true },
-  { value: 'cari_partner_live', label: 'Partner live', emoji: '🎥', hashtag: '#PartnerLive', public: false },
-  { value: 'tips_jualan', label: 'Tips jualan', emoji: '💡', hashtag: '#TipsJualan', public: true },
-]
-
-// ================================================
-// THEME TOKENS ENHANCED
-// ================================================
-const THEME_TOKENS = {
+// Theme tokens with enhanced borders
+const THEMES = {
   light: {
-    borderCard: '#111111',
-    borderCardSoft: '#d1d5db',
-    cardShadow: '0 2px 8px rgba(0,0,0,0.08)',
-    hoverShadow: '0 12px 32px rgba(0,0,0,0.12)',
-    bubbleBorderMine: '#111111',
-    bubbleBorderOther: '#d1d5db',
+    bgPage: '#ffffff',
+    bgHeader: 'rgba(255,255,255,0.85)',
+    bgSurface: '#f7f7f7',
+    bgCard: '#ffffff',
+    border: '#d1d5db',
+    borderStrong: '#9ca3af',
+    textPrimary: '#1a1a1a',
+    textSecondary: '#4a4a4a',
+    textTertiary: '#8a8a8a',
+    accentSoftBg: 'rgba(55,138,221,0.1)',
+    accentSoftBorder: 'rgba(55,138,221,0.3)',
+    proBg: 'rgba(251,191,36,0.15)',
+    proBorder: 'rgba(251,191,36,0.35)',
+    proText: '#92400e',
+    ctaShadow: '0 4px 14px rgba(12,68,124,0.18)',
+    hoverShadow: '0 8px 24px rgba(12,68,124,0.08)',
+    cardShadow: '0 2px 8px rgba(0,0,0,0.06)',
   },
   dark: {
-    borderCard: '#ffffff',
-    borderCardSoft: 'rgba(255,255,255,0.25)',
-    cardShadow: '0 2px 8px rgba(0,0,0,0.4)',
-    hoverShadow: '0 12px 32px rgba(0,0,0,0.6)',
-    bubbleBorderMine: '#ffffff',
-    bubbleBorderOther: 'rgba(255,255,255,0.25)',
+    bgPage: '#0b0b10',
+    bgHeader: 'rgba(11,11,16,0.85)',
+    bgSurface: '#15151c',
+    bgCard: '#15151c',
+    border: 'rgba(255,255,255,0.15)',
+    borderStrong: 'rgba(255,255,255,0.25)',
+    textPrimary: '#f5f5f7',
+    textSecondary: '#c2c2c8',
+    textTertiary: '#7a7a85',
+    accentSoftBg: 'rgba(55,138,221,0.16)',
+    accentSoftBorder: 'rgba(55,138,221,0.35)',
+    proBg: 'rgba(251,191,36,0.18)',
+    proBorder: 'rgba(251,191,36,0.4)',
+    proText: '#fbbf24',
+    ctaShadow: '0 4px 18px rgba(55,138,221,0.3)',
+    hoverShadow: '0 8px 28px rgba(55,138,221,0.16)',
+    cardShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
 }
 
-// ================================================
-// DELETE CONFIRM MODAL
-// ================================================
-function DeleteConfirmModal({ onConfirm, onCancel }) {
+const NAVY = '#0C447C'
+const BLUE = '#378ADD'
+const ACCENT_GRADIENT = `linear-gradient(90deg, ${NAVY}, ${BLUE})`
+
+// Skeleton Loading Component
+function SkeletonCard() {
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={onCancel}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       style={{
-        position: 'fixed', inset: 0, zIndex: 900,
-        background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 20px',
+        border: '2px solid var(--border)',
+        borderRadius: '16px',
+        padding: '16px',
+        marginBottom: '16px',
+        background: 'var(--bg-card)',
+        overflow: 'hidden',
       }}
     >
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.92, opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        onClick={e => e.stopPropagation()}
-        style={{
-          width: '100%', maxWidth: 360,
-          background: 'var(--bg-secondary)',
-          border: '3px solid var(--glass-border)',
-          borderRadius: 'var(--radius-2xl)',
-          padding: '28px 24px 24px',
-        }}
-      >
-        <div style={{
-          width: 48, height: 48, borderRadius: 'var(--radius-full)',
-          background: 'rgba(239,68,68,0.12)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginBottom: 16,
-        }}>
-          <Trash2 size={22} color="var(--danger, #ef4444)" />
+      <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-surface)', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 14, width: 120, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 6 }} />
+          <div style={{ height: 10, width: 80, background: 'var(--bg-surface)', borderRadius: 4 }} />
         </div>
-
-        <h3 style={{ fontFamily: PJS, fontSize: '1rem', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>
-          Hapus post ini?
-        </h3>
-        <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-tertiary)', margin: '0 0 24px', lineHeight: 1.6 }}>
-          Post beserta semua komentar, like, dan repost-nya akan dihapus permanen.
-        </p>
-
-        <div style={{ display: 'flex', gap: 10 }}>
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onCancel}
-            style={{
-              flex: 1, padding: '10px 0', borderRadius: 'var(--radius-lg)',
-              background: 'var(--surface)', border: '1px solid var(--glass-border)',
-              fontFamily: PJS, fontSize: '0.84rem', fontWeight: 700,
-              color: 'var(--text-secondary)', cursor: 'pointer',
-            }}
-          >
-            Batal
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onConfirm}
-            style={{
-              flex: 1, padding: '10px 0', borderRadius: 'var(--radius-lg)',
-              background: 'var(--danger, #ef4444)', border: 'none',
-              fontFamily: PJS, fontSize: '0.84rem', fontWeight: 700,
-              color: '#fff', cursor: 'pointer',
-            }}
-          >
-            Hapus
-          </motion.button>
-        </div>
-      </motion.div>
+      </div>
+      <div style={{ height: 200, background: 'var(--bg-surface)', borderRadius: 8, marginBottom: 12 }} />
+      <div style={{ height: 12, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 8 }} />
+      <div style={{ height: 12, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 8, width: '80%' }} />
     </motion.div>
   )
 }
 
-// ================================================
-// SKELETON LOADING
-// ================================================
-function SkeletonCard() {
-  return (
-    <div style={{
-      border: '3px solid var(--glass-border)',
-      borderRadius: '16px',
-      padding: '14px 8px',
-      marginBottom: '8px',
-      background: 'var(--bg-secondary)',
-    }}>
-      <div style={{ display: 'flex', gap: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--surface)', flexShrink: 0 }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ height: 14, width: 120, background: 'var(--surface)', borderRadius: 4, marginBottom: 8 }} />
-          <div style={{ height: 12, width: 80, background: 'var(--surface)', borderRadius: 4, marginBottom: 10 }} />
-          <div style={{ height: 12, background: 'var(--surface)', borderRadius: 4, marginBottom: 8 }} />
-          <div style={{ height: 12, background: 'var(--surface)', borderRadius: 4, marginBottom: 8, width: '80%' }} />
-          <div style={{ height: 200, background: 'var(--surface)', borderRadius: 8, marginTop: 10 }} />
-          <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
-            {[60, 60, 60, 60].map((w, i) => (
-              <div key={i} style={{ height: 14, width: w, background: 'var(--surface)', borderRadius: 4 }} />
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ================================================
-// ROOT
-// ================================================
 export default function ShowcasePage() {
   const navigate = useNavigate()
   const { showcase, showcaseLoading, loadShowcase } = useStreamStore()
@@ -489,9 +406,6 @@ export default function ShowcasePage() {
   )
 }
 
-// ================================================
-// POST CARD
-// ================================================
 function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onTagClick, activeTag, isExpanded, onToggleExpand }) {
   const t = post.toko
   const accent = theme === 'light' ? NAVY : BLUE
@@ -501,7 +415,9 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
   const isInView = useInView(ref, { once: true, margin: '-50px' })
 
   useEffect(() => {
-    if (isInView) controls.start('visible')
+    if (isInView) {
+      controls.start('visible')
+    }
   }, [controls, isInView])
 
   const cardVariants = {
@@ -532,20 +448,28 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
       whileHover={{ y: -2, boxShadow: c.hoverShadow }}
       className="showcase-card theme-transition"
       style={{
-        border: '3px solid var(--glass-border)',
+        border: `2px solid ${c.borderStrong}`,
         borderRadius: '16px',
-        padding: '14px 8px 0',
-        marginBottom: '8px',
-        background: 'var(--bg-secondary)',
-        boxShadow: 'var(--shadow-sm)',
-        transition: 'box-shadow 0.2s ease',
+        padding: '16px',
+        marginBottom: '16px',
+        background: c.bgCard,
+        boxShadow: c.cardShadow,
+        transition: 'all 0.2s ease',
       }}
     >
       <div style={{ display: 'flex', gap: 12 }}>
         <Avatar toko={t} size={40} theme={theme} c={c} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            <TokoNameLink toko={t} fontSize="0.875rem" />
+            <a
+              href={t?.slug ? getStorefrontUrl(t.slug) : '#'}
+              target="_blank" rel="noreferrer"
+              style={{ fontFamily: PJS, fontSize: '0.875rem', fontWeight: 800, color: c.textPrimary, textDecoration: 'none', transition: 'color 0.15s ease' }}
+              onMouseEnter={(e) => e.target.style.color = accent}
+              onMouseLeave={(e) => e.target.style.color = c.textPrimary}
+            >
+              {t?.nama || 'Toko'}
+            </a>
             {t?.pro && (
               <motion.span
                 whileHover={{ scale: 1.05 }}
@@ -558,9 +482,6 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
                 }}
               >⭐ Pro</motion.span>
             )}
-            <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-              {timeAgo(post.createdAt)}
-            </span>
           </div>
 
           {/* FOTO/IMAGE DIATAS */}
@@ -795,7 +716,8 @@ function Avatar({ toko, size = 40, theme, c }) {
         style={{
           width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
           border: `2px solid ${isHovered ? (theme === 'light' ? NAVY : BLUE) : c.border}`,
-          transition: 'border-color 0.2s ease',
+          transition: 'all 0.2s ease',
+          boxShadow: isHovered ? `0 0 0 3px ${theme === 'light' ? 'rgba(55,138,221,0.3)' : 'rgba(55,138,221,0.5)'}` : 'none',
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -820,13 +742,4 @@ function Avatar({ toko, size = 40, theme, c }) {
       {getInitials(toko?.nama)}
     </motion.div>
   )
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return ''
-  const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000)
-  if (diff < 60) return `${diff}dtk`
-  if (diff < 3600) return `${Math.floor(diff / 60)}m`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}j`
-  return `${Math.floor(diff / 86400)}h`
 }
