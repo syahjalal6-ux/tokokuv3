@@ -836,50 +836,43 @@ export default function LandingPage() {
           </section>
 
           {/* FAQ */}
-          <section className="section-pad" style={{ padding: '56px 0' }}>
-            <div className="container-sm">
-              <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36, color: c.textPrimary }}>
-                Pertanyaan umum
-              </h2>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {FAQ.map((f, i) => (
-                  <div key={i} className="glass-card" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', padding: 0 }}>
-                    <button
-                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                      style={{
-                        width: '100%', padding: '16px 18px',
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        background: 'transparent', border: 'none', cursor: 'pointer', color: c.textPrimary,
-                        fontFamily: PJS, fontWeight: 600, fontSize: '0.92rem', textAlign: 'left', gap: '12px',
-                      }}
-                    >
-                      {f.q}
-                      <ChevronDown size={16} color={c.textMuted} style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-                    </button>
-                    <AnimatePresence>
-                      {openFaq === i && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                          style={{ overflow: 'hidden' }}
-                        >
-                          <div style={{ padding: '12px 18px 16px', borderTop: `1px solid ${c.border}` }}>
-                            <p className="landing-body-text" style={{ fontFamily: PJS, color: c.textTertiary, fontSize: '0.875rem', lineHeight: 1.65, margin: 0 }}>
-                              {f.a}
-                            </p>
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          <CTASection theme={theme} />
+<section className="section-pad" style={{ padding: '56px 0' }}>
+  <div className="container-sm">
+    <h2 className="text-heading heading-sm" style={{ fontFamily: PJS, textAlign: 'center', fontSize: 'clamp(1.5rem, 3vw, 2.2rem)', marginBottom: 36, color: c.textPrimary }}>
+      Pertanyaan umum
+    </h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {FAQ.map((f, i) => (
+        <div key={i} className="glass-card" style={{ borderRadius: 'var(--radius-lg)', overflow: 'hidden', padding: 0 }}>
+          <button
+            onClick={() => setOpenFaq(openFaq === i ? null : i)}
+            style={{
+              width: '100%', padding: '16px 18px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'transparent', border: 'none', cursor: 'pointer', color: c.textPrimary,
+              fontFamily: PJS, fontWeight: 600, fontSize: '0.92rem', textAlign: 'left', gap: '12px',
+            }}
+          >
+            {f.q}
+            <ChevronDown size={16} color={c.textMuted} style={{ transform: openFaq === i ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+          </button>
+          {openFaq === i && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+              style={{ padding: '12px 18px 16px', borderTop: `1px solid ${c.border}` }}
+            >
+              <p className="landing-body-text" style={{ fontFamily: PJS, color: c.textTertiary, fontSize: '0.875rem', lineHeight: 1.65, margin: 0 }}>
+                {f.a}
+              </p>
+            </motion.div>
+          )}
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
 
           {/* Footer */}
           <footer style={{ borderTop: `1px solid ${c.border}`, padding: '28px 24px', color: c.textMuted, fontSize: '0.82rem' }}>
