@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import {
   Search, Heart, MessageCircle, Image as ImageIcon, X, Send, Bookmark,
   Repeat2, Bell, ChevronLeft, ChevronRight, Hash, Maximize2, Mail, Store, Lock, Loader, ChevronDown, ChevronUp,
-  Trash2,
+  Trash2, ZoomIn,
 } from 'lucide-react'
 import DashboardLayout from './DashboardLayout.jsx'
 import StreamImageUpload from './StreamImageUpload.jsx'
@@ -11,6 +11,7 @@ import { useRealtimeNotifications } from '../../hooks/useRealtimeNotifications'
 import { useAuthStore, useTokoStore, useStreamStore } from '../../lib/store.js'
 import { isPro, getStorefrontUrl, getInitials } from '../../lib/utils.js'
 import toast from 'react-hot-toast'
+import { motion, useAnimation, useInView, AnimatePresence } from 'framer-motion'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
@@ -37,35 +38,58 @@ const POST_TYPES = [
 ]
 
 // ================================================
+// THEME TOKENS ENHANCED
+// ================================================
+const THEME_TOKENS = {
+  light: {
+    borderCard: '#111111',
+    borderCardSoft: '#d1d5db',
+    cardShadow: '0 2px 8px rgba(0,0,0,0.08)',
+    hoverShadow: '0 12px 32px rgba(0,0,0,0.12)',
+    bubbleBorderMine: '#111111',
+    bubbleBorderOther: '#d1d5db',
+  },
+  dark: {
+    borderCard: '#ffffff',
+    borderCardSoft: 'rgba(255,255,255,0.25)',
+    cardShadow: '0 2px 8px rgba(0,0,0,0.4)',
+    hoverShadow: '0 12px 32px rgba(0,0,0,0.6)',
+    bubbleBorderMine: '#ffffff',
+    bubbleBorderOther: 'rgba(255,255,255,0.25)',
+  },
+}
+
+// ================================================
 // DELETE CONFIRM MODAL
 // ================================================
 function DeleteConfirmModal({ onConfirm, onCancel }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onCancel}
       style={{
         position: 'fixed', inset: 0, zIndex: 900,
         background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        animation: 'fadeIn 0.15s ease',
         padding: '0 20px',
       }}
     >
-      <div
+      <motion.div
+        initial={{ scale: 0.92, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.92, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 360,
           background: 'var(--bg-secondary)',
-          border: '1px solid var(--glass-border)',
+          border: '3px solid var(--glass-border)',
           borderRadius: 'var(--radius-2xl)',
           padding: '28px 24px 24px',
-          animation: 'scaleIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
-        <style>{`
-          @keyframes scaleIn { from { transform: scale(0.92); opacity: 0 } to { transform: scale(1); opacity: 1 } }
-          @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        `}</style>
         <div style={{
           width: 48, height: 48, borderRadius: 'var(--radius-full)',
           background: 'rgba(239,68,68,0.12)',
@@ -83,7 +107,9 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
         </p>
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={onCancel}
             style={{
               flex: 1, padding: '10px 0', borderRadius: 'var(--radius-lg)',
@@ -93,8 +119,10 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
             }}
           >
             Batal
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
             onClick={onConfirm}
             style={{
               flex: 1, padding: '10px 0', borderRadius: 'var(--radius-lg)',
@@ -104,7 +132,38 @@ function DeleteConfirmModal({ onConfirm, onCancel }) {
             }}
           >
             Hapus
-          </button>
+          </motion.button>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
+// ================================================
+// SKELETON LOADING
+// ================================================
+function SkeletonPost() {
+  return (
+    <div style={{
+      border: '3px solid var(--glass-border)',
+      borderRadius: '16px',
+      padding: '14px 8px',
+      marginBottom: '8px',
+      background: 'var(--bg-secondary)',
+    }}>
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--surface)', flexShrink: 0 }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ height: 14, width: 120, background: 'var(--surface)', borderRadius: 4, marginBottom: 8 }} />
+          <div style={{ height: 12, width: 80, background: 'var(--surface)', borderRadius: 4, marginBottom: 10 }} />
+          <div style={{ height: 12, background: 'var(--surface)', borderRadius: 4, marginBottom: 8 }} />
+          <div style={{ height: 12, background: 'var(--surface)', borderRadius: 4, marginBottom: 8, width: '80%' }} />
+          <div style={{ height: 200, background: 'var(--surface)', borderRadius: 8, marginTop: 10 }} />
+          <div style={{ display: 'flex', gap: 16, marginTop: 12 }}>
+            {[60, 60, 60, 60].map((w, i) => (
+              <div key={i} style={{ height: 14, width: w, background: 'var(--surface)', borderRadius: 4 }} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -142,11 +201,24 @@ export default function StreamPage() {
   const [replyTarget, setReplyTarget] = useState(null)
   const [notifOpen, setNotifOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [scrollProgress, setScrollProgress] = useState(0)
 
   useEffect(() => {
     loadFeed(tokenObj, {})
     loadNotifs(tokenObj)
     if (!toko) loadToko(tokenObj)
+  }, [])
+
+  // Scroll progress
+  useEffect(() => {
+    const fn = () => {
+      const scrollY = window.scrollY
+      const scrollTotal = document.documentElement.scrollHeight - window.innerHeight
+      const progress = scrollTotal > 0 ? (scrollY / scrollTotal) * 100 : 0
+      setScrollProgress(progress)
+    }
+    window.addEventListener('scroll', fn)
+    return () => window.removeEventListener('scroll', fn)
   }, [])
 
   const requirePro = () => toast.error('Fitur ini khusus seller Pro')
@@ -272,7 +344,7 @@ export default function StreamPage() {
     )
   }
 
-  // ── DM list view ──
+  // ─ DM list view ──
   if (view === 'dm-list') {
     return (
       <DashboardLayout>
@@ -320,11 +392,24 @@ export default function StreamPage() {
   return (
     <DashboardLayout>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
+        {/* Scroll Progress Bar */}
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          height: '3px',
+          background: 'var(--accent-gradient)',
+          width: `${scrollProgress}%`,
+          zIndex: 101,
+          transition: 'width 0.1s ease-out',
+          boxShadow: '0 0 10px var(--accent-glow, rgba(91,138,245,0.5))',
+        }} />
+
         <div style={{
           position: 'sticky', top: 0, zIndex: 20,
           background: 'var(--bg-secondary)',
           backdropFilter: 'blur(16px)',
-          borderBottom: '1px solid var(--glass-border)',
+          borderBottom: '3px solid var(--glass-border)',
           marginBottom: 4,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', height: 52, gap: 10, padding: '0 4px' }}>
@@ -340,7 +425,7 @@ export default function StreamPage() {
                     onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
                     placeholder="Cari post, seller, #hashtag..."
                     style={{
-                      width: '100%', background: 'var(--surface)', border: '1px solid var(--glass-border)',
+                      width: '100%', background: 'var(--surface)', border: '2px solid var(--glass-border)',
                       borderRadius: 'var(--radius-lg)', padding: '8px 12px 8px 32px',
                       color: 'var(--text-primary)', fontSize: '0.83rem', outline: 'none',
                       fontFamily: PJS, boxSizing: 'border-box',
@@ -372,7 +457,7 @@ export default function StreamPage() {
         {!pro && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: 'var(--accent-gradient-soft)', border: '1px solid var(--glass-border)',
+            background: 'var(--accent-gradient-soft)', border: '2px solid var(--glass-border)',
             borderRadius: 'var(--radius-lg)', padding: '10px 14px', margin: '8px 4px 4px',
             fontFamily: PJS, fontSize: '0.78rem', color: 'var(--text-secondary)',
           }}>
@@ -382,28 +467,53 @@ export default function StreamPage() {
         )}
 
         {activeTag && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 8px 4px' }}>
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 8px 4px' }}
+          >
             <Hash size={13} color="var(--accent)" />
             <span style={{ fontFamily: PJS, fontSize: '0.8rem', fontWeight: 700, color: 'var(--accent)' }}>{activeTag.replace('#', '')}</span>
             <button onClick={() => handleTag(activeTag)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer' }}><X size={13} /></button>
-          </div>
+          </motion.div>
         )}
 
         <div style={{ paddingBottom: 100 }}>
           {feedLoading && (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: 40 }}>
-              <Loader size={20} color="var(--accent)" style={{ animation: 'spin 0.7s linear infinite' }} />
+            <div>
+              {Array(3).fill(0).map((_, i) => <SkeletonPost key={i} />)}
             </div>
           )}
           {!feedLoading && feed.length === 0 && (
-            <p style={{ textAlign: 'center', color: 'var(--text-tertiary)', fontFamily: PJS, fontSize: '0.85rem', padding: 40 }}>
-              Belum ada post di Stream.
-            </p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              style={{ textAlign: 'center', padding: 40 }}
+            >
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                style={{
+                  width: 56, height: 56, borderRadius: '14px',
+                  background: 'var(--accent-gradient-soft)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 16px', color: 'var(--accent)',
+                  border: '2px solid var(--glass-border)',
+                }}
+              >
+                <Store size={24} />
+              </motion.div>
+              <p style={{ color: 'var(--text-tertiary)', fontFamily: PJS, fontSize: '0.85rem', margin: 0 }}>
+                Belum ada post di Stream.
+              </p>
+            </motion.div>
           )}
-          {feed.map(post => (
+          {feed.map((post, index) => (
             <PostCard
               key={post.id}
               post={post}
+              index={index}
               myTokoId={toko?.id}
               pro={pro}
               onExpand={() => openPostDetail(post.id)}
@@ -419,19 +529,21 @@ export default function StreamPage() {
           ))}
         </div>
 
-        <button
+        <motion.button
           onClick={handleCompose}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
           style={{
             position: 'fixed', bottom: 28, right: 28, width: 52, height: 52, borderRadius: 'var(--radius-full)',
             background: pro ? 'var(--accent-gradient)' : 'var(--surface)',
-            border: pro ? 'none' : '1px solid var(--glass-border)',
+            border: pro ? 'none' : '2px solid var(--glass-border)',
             cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: pro ? '0 4px 24px var(--accent-glow, rgba(91,138,245,0.4))' : 'none',
             zIndex: 30,
           }}
         >
           {pro ? <span style={{ color: '#fff', fontSize: 24, lineHeight: 1, marginTop: -2 }}>+</span> : <Lock size={18} color="var(--text-tertiary)" />}
-        </button>
+        </motion.button>
 
         {composing && (
           <ComposeSheet
@@ -462,7 +574,6 @@ export default function StreamPage() {
           />
         )}
       </div>
-      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </DashboardLayout>
   )
 }
@@ -470,16 +581,53 @@ export default function StreamPage() {
 // ================================================
 // POST CARD
 // ================================================
-function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
+function PostCard({ post, index, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
   const t = post.toko
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   const previewReplies = post.previewReplies?.length
     ? post.previewReplies
     : (post.replies || []).slice(0, 2)
   const [commentsOpen, setCommentsOpen] = useState(false)
+  
+  const controls = useAnimation()
+  const ref = useRef(null)
+  const isInView = useInView(ref, { once: true, margin: '-50px' })
+
+  useEffect(() => {
+    if (isInView) controls.start('visible')
+  }, [controls, isInView])
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.4,
+        delay: index * 0.08,
+        ease: [0.22, 1, 0.36, 1]
+      }
+    }
+  }
 
   return (
-    <div style={{ borderBottom: '1px solid var(--glass-border)', padding: '14px 8px 0' }}>
+    <motion.div
+      ref={ref}
+      variants={cardVariants}
+      initial="hidden"
+      animate={controls}
+      whileHover={{ y: -4 }}
+      className="showcase-card"
+      style={{
+        border: '3px solid var(--glass-border)',
+        borderRadius: '16px',
+        padding: '14px 8px 0',
+        marginBottom: '8px',
+        background: 'var(--bg-secondary)',
+        boxShadow: 'var(--shadow-sm)',
+        transition: 'box-shadow 0.2s ease',
+      }}
+    >
       <div style={{ display: 'flex', gap: 12 }}>
         <SellerAvatar toko={t} size={40} />
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -490,19 +638,21 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
               {timeAgo(post.createdAt)}
             </span>
             {isMine && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={(e) => { e.stopPropagation(); onDelete() }}
                 title="Hapus post"
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
                   color: 'var(--text-tertiary)', display: 'flex', padding: 4,
-                  borderRadius: 'var(--radius-md)', transition: 'color 0.15s', flexShrink: 0,
+                  borderRadius: 'var(--radius-md)', flexShrink: 0,
                 }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--danger, #ef4444)'}
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
               >
                 <Trash2 size={14} />
-              </button>
+              </motion.button>
             )}
           </div>
           <PostTypeBadge type={post.postType} />
@@ -522,13 +672,20 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
       </div>
 
       {commentsOpen && (
-        <div style={{ paddingLeft: 52, paddingBottom: 4 }}>
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          style={{ paddingLeft: 52, paddingBottom: 4, overflow: 'hidden' }}
+        >
           {previewReplies.length === 0 && (
             <p style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)', padding: '8px 0' }}>
               Belum ada komentar.
             </p>
           )}
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={onReply}
             style={{
               display: 'block', background: 'none', border: 'none', cursor: 'pointer',
@@ -537,7 +694,7 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
             }}
           >
             Tulis komentar
-          </button>
+          </motion.button>
           {previewReplies.map(r => (
             <FeedReplyItem
               key={r.id}
@@ -549,20 +706,25 @@ function PostCard({ post, myTokoId, pro, onExpand, onLike, onRepost, onBookmark,
             />
           ))}
           {post.repliesCount > countReplies(previewReplies) && (
-            <button onClick={onExpand} style={{
-              display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
-              padding: '6px 0 10px', cursor: 'pointer',
-              fontFamily: PJS, fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600,
-            }}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onExpand}
+              style={{
+                display: 'block', width: '100%', textAlign: 'left', background: 'none', border: 'none',
+                padding: '6px 0 10px', cursor: 'pointer',
+                fontFamily: PJS, fontSize: '0.78rem', color: 'var(--accent)', fontWeight: 600,
+              }}
+            >
               Lihat {post.repliesCount - countReplies(previewReplies)} balasan lainnya →
-            </button>
+            </motion.button>
           )}
           {post.repliesCount === 0 && <div style={{ height: 6 }} />}
-        </div>
+        </motion.div>
       )}
 
       {!commentsOpen && <div style={{ height: 6 }} />}
-    </div>
+    </motion.div>
   )
 }
 
@@ -572,7 +734,12 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 10, paddingTop: 8, paddingBottom: 4, marginLeft: depth > 0 ? 28 : 0 }}>
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: 'flex', gap: 10, paddingTop: 8, paddingBottom: 4, marginLeft: depth > 0 ? 28 : 0 }}
+      >
         <SellerAvatar toko={t} size={depth === 0 ? 28 : 24} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
@@ -581,7 +748,9 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
             <span style={{ fontFamily: PJS, fontSize: '0.65rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(reply.createdAt)}</span>
           </div>
           <p style={{ fontFamily: PJS, fontSize: '0.82rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{reply.teks}</p>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => onReplyToComment(reply.id, t?.nama)}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
@@ -590,9 +759,9 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
             }}
           >
             Balas
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
       {hasChildren && reply.replies.map(child => (
         <FeedReplyItem
           key={child.id}
@@ -640,7 +809,9 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
             {t?.pro && <ProBadge />}
             <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: 'var(--text-tertiary)', marginLeft: 'auto' }}>{timeAgo(post.createdAt)}</span>
             {isMine && (
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={() => onDelete(post.id)}
                 title="Hapus post"
                 style={{
@@ -652,7 +823,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
                 onMouseLeave={e => e.currentTarget.style.color = 'var(--text-tertiary)'}
               >
                 <Trash2 size={14} />
-              </button>
+              </motion.button>
             )}
           </div>
           <PostTypeBadge type={post.postType} />
@@ -660,7 +831,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
           <PostImages images={post.foto} />
           {post.shopLink && <ShopLinkCard link={post.shopLink} />}
           <HashtagPills tags={post.hashtags} onTag={onTag} />
-          <div style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '10px 0', paddingBottom: 10, borderBottom: '1px solid var(--glass-border)' }}>
+          <div style={{ fontFamily: PJS, fontSize: '0.75rem', color: 'var(--text-tertiary)', margin: '10px 0', paddingBottom: 10, borderBottom: '2px solid var(--glass-border)' }}>
             <strong style={{ color: 'var(--text-secondary)' }}>{post.likesCount}</strong> suka · <strong style={{ color: 'var(--text-secondary)' }}>{post.repostsCount}</strong> repost
           </div>
           <PostActions
@@ -702,7 +873,12 @@ function ReplyThread({ reply, postId, depth, myTokoId, onLike, onReply, onDm }) 
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 12, padding: `${depth === 0 ? 12 : 6}px 8px 0`, marginLeft: depth > 0 ? 32 : 0 }}>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        style={{ display: 'flex', gap: 12, padding: `${depth === 0 ? 12 : 6}px 8px 0`, marginLeft: depth > 0 ? 32 : 0 }}
+      >
         <SellerAvatar toko={t} size={depth === 0 ? 34 : 28} />
         <div style={{ flex: 1, minWidth: 0, paddingBottom: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 4 }}>
@@ -717,7 +893,7 @@ function ReplyThread({ reply, postId, depth, myTokoId, onLike, onReply, onDm }) 
             {!isMine && <ActionBtn icon={<Mail size={13} />} onClick={() => onDm(t?.id)} />}
           </div>
         </div>
-      </div>
+      </motion.div>
       {hasChildren && reply.replies.map(child => (
         <ReplyThread key={child.id} reply={child} postId={postId} depth={depth + 1} myTokoId={myTokoId} onLike={onLike} onReply={onReply} onDm={onDm} />
       ))}
@@ -738,13 +914,17 @@ function DmListView({ threads, onBack, onOpen }) {
         </p>
       )}
       {threads.map(t => (
-        <div
+        <motion.div
           key={t.id}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          whileHover={{ scale: 1.01 }}
           onClick={() => onOpen(t.id)}
           style={{
             display: 'flex', alignItems: 'center', gap: 12, padding: '14px 8px',
-            borderBottom: '1px solid var(--glass-border)', cursor: 'pointer',
+            borderBottom: '2px solid var(--glass-border)', cursor: 'pointer',
             background: t.unread > 0 ? 'var(--accent-gradient-soft)' : 'transparent',
+            transition: 'background 0.15s ease',
           }}
         >
           <SellerAvatar toko={t.toko} size={46} />
@@ -769,7 +949,7 @@ function DmListView({ threads, onBack, onOpen }) {
               fontSize: '0.6rem', fontWeight: 800, color: '#fff', flexShrink: 0,
             }}>{t.unread}</div>
           )}
-        </div>
+        </motion.div>
       ))}
     </div>
   )
@@ -778,9 +958,16 @@ function DmListView({ threads, onBack, onOpen }) {
 function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
   const [input, setInput] = useState('')
   const bottomRef = useRef()
+  const messagesContainerRef = useRef()
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   }, [messages])
 
   const send = () => {
@@ -793,45 +980,65 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
   return (
     <div style={{ maxWidth: 560, margin: '0 auto', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 100px)' }}>
       <DetailHeader title={thread?.toko?.nama || 'Pesan'} onBack={onBack} avatar={thread?.toko} />
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 8px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div
+        ref={messagesContainerRef}
+        style={{
+          flex: 1, overflowY: 'auto', padding: '14px 8px',
+          display: 'flex', flexDirection: 'column', gap: 10,
+          scrollBehavior: 'smooth',
+        }}
+      >
         {messages.map((m, i) => (
-          <div key={m.id || i} style={{ display: 'flex', justifyContent: m.isMine ? 'flex-end' : 'flex-start', gap: 8 }}>
+          <motion.div
+            key={m.id || i}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.05 }}
+            style={{ display: 'flex', justifyContent: m.isMine ? 'flex-end' : 'flex-start', gap: 8 }}
+          >
             <div style={{
               maxWidth: '72%', padding: '10px 13px',
               borderRadius: m.isMine ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)' : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
               background: m.isMine ? 'var(--accent-gradient)' : 'var(--surface)',
-              border: m.isMine ? 'none' : '1px solid var(--glass-border)',
+              border: `3px solid ${m.isMine ? 'var(--glass-border)' : 'var(--glass-border)'}`,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             }}>
               <p style={{ fontFamily: PJS, fontSize: '0.855rem', color: m.isMine ? '#fff' : 'var(--text-primary)', margin: 0, lineHeight: 1.55 }}>{m.teks}</p>
             </div>
-          </div>
+          </motion.div>
         ))}
         <div ref={bottomRef} />
       </div>
-      <div style={{ padding: '10px 8px', borderTop: '1px solid var(--glass-border)', display: 'flex', gap: 8 }}>
+      <div style={{ padding: '10px 8px', borderTop: '3px solid var(--glass-border)', display: 'flex', gap: 8 }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}
           placeholder="Ketik pesan..."
           style={{
-            flex: 1, background: 'var(--surface)', border: '1px solid var(--glass-border)',
+            flex: 1, background: 'var(--surface)', border: '2px solid var(--glass-border)',
             borderRadius: 'var(--radius-full)', padding: '10px 16px', color: 'var(--text-primary)',
             fontSize: '0.855rem', outline: 'none', fontFamily: PJS,
+            transition: 'border-color 0.2s ease',
           }}
+          onFocus={e => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={e => e.target.style.borderColor = 'var(--glass-border)'}
         />
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={send}
           disabled={!input.trim()}
           style={{
             width: 38, height: 38, borderRadius: 'var(--radius-full)',
             background: input.trim() ? 'var(--accent-gradient)' : 'var(--surface)',
-            border: '1px solid var(--glass-border)', cursor: input.trim() ? 'pointer' : 'default',
+            border: '2px solid var(--glass-border)', cursor: input.trim() ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.2s ease',
           }}
         >
           <Send size={14} color={input.trim() ? '#fff' : 'var(--text-tertiary)'} />
-        </button>
+        </motion.button>
       </div>
     </div>
   )
@@ -873,21 +1080,23 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
     <Sheet onClose={onClose} title="Buat Post">
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
         {POST_TYPES.map(pt => (
-          <button
+          <motion.button
             key={pt.value}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => handlePostType(pt)}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               padding: '6px 11px', borderRadius: 'var(--radius-full)',
               background: postType === pt.value ? 'var(--accent-gradient)' : 'var(--surface)',
-              border: '1px solid var(--glass-border)',
+              border: '2px solid var(--glass-border)',
               color: postType === pt.value ? '#fff' : 'var(--text-secondary)',
               fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600,
               cursor: 'pointer',
             }}
           >
             <span>{pt.emoji}</span>{pt.label}
-          </button>
+          </motion.button>
         ))}
       </div>
       {postType && (() => {
@@ -897,7 +1106,7 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
             background: isPublic ? 'rgba(52,211,153,0.1)' : 'var(--surface)',
-            border: `1px solid ${isPublic ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
+            border: `2px solid ${isPublic ? 'rgba(52,211,153,0.3)' : 'var(--glass-border)'}`,
             borderRadius: 'var(--radius-md)', padding: '7px 11px', marginBottom: 12,
             fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600,
             color: isPublic ? 'var(--success, #34d399)' : 'var(--text-tertiary)',
@@ -921,9 +1130,11 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
         }}
       />
       <StreamImageUpload value={foto} onChange={setFoto} tokenObj={tokenObj} disabled={submitting} />
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--glass-border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, paddingTop: 14, borderTop: '2px solid var(--glass-border)' }}>
         <span style={{ fontFamily: PJS, fontSize: '0.7rem', color: teks.length > 450 ? 'var(--danger)' : 'var(--text-tertiary)' }}>{teks.length}/500</span>
-        <button
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={handleSubmit}
           disabled={!teks.trim() || submitting}
           style={{
@@ -935,7 +1146,7 @@ function ComposeSheet({ tokenObj, onClose, onSubmit }) {
           }}
         >
           {submitting ? 'Mengirim...' : 'Post'}
-        </button>
+        </motion.button>
       </div>
     </Sheet>
   )
@@ -975,8 +1186,10 @@ function ReplySheet({ target, onClose, onSubmit }) {
           boxSizing: 'border-box',
         }}
       />
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--glass-border)' }}>
-        <button
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16, paddingTop: 14, borderTop: '2px solid var(--glass-border)' }}>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
           onClick={handleSubmit}
           disabled={!teks.trim() || submitting}
           style={{
@@ -988,7 +1201,7 @@ function ReplySheet({ target, onClose, onSubmit }) {
           }}
         >
           {submitting ? 'Mengirim...' : 'Balas'}
-        </button>
+        </motion.button>
       </div>
     </Sheet>
   )
@@ -998,7 +1211,7 @@ function ReplySheet({ target, onClose, onSubmit }) {
 // NOTIF DROPDOWN
 // ================================================
 function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
-  const ICON = { like: '❤️', reply: '💬', repost: '🔁', dm: '✉️' }
+  const ICON = { like: '❤️', reply: '💬', repost: '', dm: '✉️' }
   const ref = useRef(null)
 
   useEffect(() => {
@@ -1029,18 +1242,21 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
   }
 
   return (
-    <div
+    <motion.div
       ref={ref}
+      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       style={{
         position: 'absolute', top: 'calc(100% + 8px)', right: 0, zIndex: 50,
         width: 320, maxWidth: '90vw', maxHeight: 420, overflowY: 'auto',
-        background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
+        background: 'var(--bg-secondary)', border: '2px solid var(--glass-border)',
         borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-lg, 0 8px 32px rgba(0,0,0,0.35))',
-        padding: '10px', animation: 'notifDropIn 0.15s ease',
+        padding: '10px',
       }}
     >
-      <style>{`@keyframes notifDropIn { from { opacity: 0; transform: translateY(-6px) } to { opacity: 1; transform: translateY(0) } }`}</style>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 10px', borderBottom: '1px solid var(--glass-border)', marginBottom: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 6px 10px', borderBottom: '2px solid var(--glass-border)', marginBottom: 6 }}>
         <span style={{ fontFamily: PJS, fontSize: '0.85rem', fontWeight: 800 }}>Notifikasi</span>
         <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', display: 'flex', padding: 2 }}>
           <X size={14} />
@@ -1055,13 +1271,15 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
         {notifs.map(n => (
-          <div
+          <motion.div
             key={n.id}
+            whileHover={{ scale: 1.02 }}
             onClick={() => handleClick(n)}
             style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '9px 8px',
               borderRadius: 'var(--radius-md)', cursor: 'pointer',
               background: n.isRead ? 'transparent' : 'var(--accent-gradient-soft)',
+              transition: 'background 0.15s ease',
             }}
           >
             <span style={{ fontSize: 16, flexShrink: 0 }}>{ICON[n.type] || '🔔'}</span>
@@ -1070,10 +1288,10 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
               <span style={{ fontFamily: PJS, fontSize: '0.62rem', color: 'var(--text-tertiary)' }}>{timeAgo(n.createdAt)}</span>
             </div>
             {!n.isRead && <div style={{ width: 6, height: 6, borderRadius: 'var(--radius-full)', background: 'var(--accent)', flexShrink: 0 }} />}
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   )
 }
 
@@ -1082,45 +1300,49 @@ function NotifDropdown({ notifs, onClose, onOpenDm, onOpenPost }) {
 // ================================================
 function Sheet({ children, onClose, title }) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       onClick={onClose}
       style={{
         position: 'fixed', inset: 0, zIndex: 700,
         background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
-        display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease',
+        display: 'flex', alignItems: 'flex-end',
       }}
     >
-      <div
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 560, margin: '0 auto',
-          background: 'var(--bg-secondary)', border: '1px solid var(--glass-border)',
+          background: 'var(--bg-secondary)', border: '2px solid var(--glass-border)',
           borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
           padding: '18px 18px 28px', maxHeight: '85vh', overflowY: 'auto',
-          animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
         }}
       >
-        <style>{`
-          @keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-          @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-        `}</style>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
           <span style={{ fontFamily: PJS, fontSize: '0.95rem', fontWeight: 800 }}>{title}</span>
-          <button
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
             onClick={onClose}
             style={{
-              background: 'var(--surface)', border: '1px solid var(--glass-border)',
+              background: 'var(--surface)', border: '2px solid var(--glass-border)',
               borderRadius: 'var(--radius-md)', width: 30, height: 30,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: 'pointer', color: 'var(--text-tertiary)',
             }}
           >
             <X size={14} />
-          </button>
+          </motion.button>
         </div>
         {children}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -1129,12 +1351,17 @@ function DetailHeader({ title, onBack, avatar }) {
     <div style={{
       position: 'sticky', top: 0, zIndex: 10,
       background: 'var(--bg-secondary)', backdropFilter: 'blur(16px)',
-      borderBottom: '1px solid var(--glass-border)',
+      borderBottom: '3px solid var(--glass-border)',
       display: 'flex', alignItems: 'center', height: 52, gap: 10, padding: '0 4px',
     }}>
-      <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex' }}>
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onBack}
+        style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex' }}
+      >
         <ChevronLeft size={20} />
-      </button>
+      </motion.button>
       {avatar && <SellerAvatar toko={avatar} size={28} />}
       <span style={{ fontFamily: PJS, fontSize: '1rem', fontWeight: 800 }}>{title}</span>
     </div>
@@ -1142,29 +1369,42 @@ function DetailHeader({ title, onBack, avatar }) {
 }
 
 function SellerAvatar({ toko, size = 40 }) {
+  const [isHovered, setIsHovered] = useState(false)
+  
   if (toko?.logo) {
     return (
-      <img
+      <motion.img
         src={cloudinaryThumb(toko.logo)}
         alt={toko.nama}
-        style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }}
+        whileHover={{ scale: 1.1 }}
+        style={{
+          width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0,
+          border: `2px solid ${isHovered ? 'var(--accent)' : 'var(--glass-border)'}`,
+          transition: 'border-color 0.2s ease',
+        }}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       />
     )
   }
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', background: 'var(--accent-gradient)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: PJS, fontSize: size * 0.32, fontWeight: 800, color: '#fff', flexShrink: 0,
-    }}>
+    <motion.div
+      whileHover={{ scale: 1.1 }}
+      style={{
+        width: size, height: size, borderRadius: '50%', background: 'var(--accent-gradient)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: PJS, fontSize: size * 0.32, fontWeight: 800, color: '#fff', flexShrink: 0,
+        border: '2px solid var(--glass-border)',
+      }}
+    >
       {getInitials(toko?.nama)}
-    </div>
+    </motion.div>
   )
 }
 
 function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
   const url = toko?.slug ? getStorefrontUrl(toko.slug) : null
-  const style = { fontFamily: PJS, fontSize, fontWeight, color: 'var(--text-primary)', textDecoration: 'none', cursor: url ? 'pointer' : 'default' }
+  const style = { fontFamily: PJS, fontSize, fontWeight, color: 'var(--text-primary)', textDecoration: 'none', cursor: url ? 'pointer' : 'default', transition: 'color 0.15s ease' }
   if (url) {
     return (
       <a href={url} target="_blank" rel="noreferrer" style={style}
@@ -1186,23 +1426,28 @@ function PostTypeBadge({ type }) {
   const meta = POST_TYPES.find(pt => pt.value === type)
   if (!meta) return null
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      background: 'var(--accent-gradient-soft)', border: '1px solid var(--glass-border)',
-      borderRadius: 'var(--radius-md)', padding: '3px 9px', marginBottom: 8,
-      fontFamily: PJS, fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent)',
-    }}>
+    <motion.span
+      whileHover={{ scale: 1.05 }}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 4,
+        background: 'var(--accent-gradient-soft)', border: '2px solid var(--glass-border)',
+        borderRadius: 'var(--radius-md)', padding: '3px 9px', marginBottom: 8,
+        fontFamily: PJS, fontSize: '0.7rem', fontWeight: 700, color: 'var(--accent)',
+      }}
+    >
       <span>{meta.emoji}</span>{meta.label}
-    </span>
+    </motion.span>
   )
 }
 
 function IconBtn({ children, onClick, badge }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
       style={{
-        position: 'relative', background: 'var(--surface)', border: '1px solid var(--glass-border)',
+        position: 'relative', background: 'var(--surface)', border: '2px solid var(--glass-border)',
         borderRadius: 'var(--radius-md)', width: 36, height: 36,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         cursor: 'pointer', color: 'var(--text-tertiary)',
@@ -1217,22 +1462,25 @@ function IconBtn({ children, onClick, badge }) {
           fontSize: 9, fontWeight: 800, color: '#fff',
         }}>{badge}</div>
       )}
-    </button>
+    </motion.button>
   )
 }
 
 function ActionBtn({ icon, label, active, activeColor, onClick }) {
   return (
-    <button
+    <motion.button
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.95 }}
       onClick={onClick}
       style={{
         display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
         cursor: 'pointer', color: active ? activeColor : 'var(--text-tertiary)',
         fontFamily: PJS, fontSize: '0.72rem', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--radius-md)',
+        transition: 'color 0.15s ease',
       }}
     >
       {icon}{label !== undefined && label}
-    </button>
+    </motion.button>
   )
 }
 
@@ -1241,7 +1489,9 @@ function PostActions({ likesCount, repostsCount, repliesCount, liked, reposted, 
     <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginTop: 4, marginBottom: 12 }}>
       <ActionBtn icon={<Heart size={15} fill={liked ? 'var(--danger)' : 'none'} />} label={likesCount} active={liked} activeColor="var(--danger)" onClick={onLike} />
       {onToggleComments ? (
-        <button
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
           onClick={onToggleComments}
           style={{
             display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none',
@@ -1251,7 +1501,7 @@ function PostActions({ likesCount, repostsCount, repliesCount, liked, reposted, 
         >
           <MessageCircle size={15} />{repliesCount}
           {commentsOpen ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-        </button>
+        </motion.button>
       ) : (
         <ActionBtn icon={<MessageCircle size={15} />} label={repliesCount} onClick={onReply} />
       )}
@@ -1269,7 +1519,14 @@ function PostText({ text, onTag }) {
     <p style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 10px', whiteSpace: 'pre-line' }}>
       {String(text || '').split(/(\s+)/).map((w, i) =>
         w.startsWith('#')
-          ? <span key={i} onClick={() => onTag(w)} style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer' }}>{w}</span>
+          ? <motion.span
+              key={i}
+              whileHover={{ scale: 1.05 }}
+              onClick={() => onTag(w)}
+              style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', display: 'inline-block' }}
+            >
+              {w}
+            </motion.span>
           : w
       )}
     </p>
@@ -1285,17 +1542,26 @@ function PostImages({ images }) {
   return (
     <>
       {images.length === 1 ? (
-        <div onClick={() => setLightboxIdx(0)} style={{ position: 'relative', marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)', cursor: 'pointer' }}>
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          onClick={() => setLightboxIdx(0)}
+          style={{ position: 'relative', marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '2px solid var(--glass-border)', background: 'var(--surface)', cursor: 'pointer' }}
+        >
           <img src={cloudinaryMedium(images[0])} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 480 }} />
           <ZoomBadge />
-        </div>
+        </motion.div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '1px solid var(--glass-border)', background: 'var(--surface)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 3, marginBottom: 10, borderRadius: 'var(--radius-lg)', overflow: 'hidden', border: '2px solid var(--glass-border)', background: 'var(--surface)' }}>
           {images.map((img, i) => (
-            <div key={i} onClick={() => setLightboxIdx(i)} style={{ position: 'relative', cursor: 'pointer' }}>
+            <motion.div
+              key={i}
+              whileHover={{ scale: 1.02 }}
+              onClick={() => setLightboxIdx(i)}
+              style={{ position: 'relative', cursor: 'pointer', overflow: 'hidden' }}
+            >
               <img src={cloudinaryMedium(img)} alt="" style={{ width: '100%', display: 'block', objectFit: 'contain', maxHeight: 320, background: 'var(--surface)' }} />
               <ZoomBadge />
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -1327,32 +1593,74 @@ function ImageLightbox({ images, index, onClose }) {
   }, [images.length, onClose])
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'fadeIn 0.15s ease' }}>
-      <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      <motion.button
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={onClose}
+        style={{ position: 'absolute', top: 16, right: 16, width: 38, height: 38, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2 }}
+      >
         <X size={18} color="#fff" />
-      </button>
+      </motion.button>
       {/* Lightbox URL original — full resolution */}
-      <img src={images[current]} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }} />
+      <motion.img
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        src={images[current]}
+        alt=""
+        onClick={e => e.stopPropagation()}
+        style={{ maxWidth: '92vw', maxHeight: '88vh', objectFit: 'contain', borderRadius: 8 }}
+      />
       {images.length > 1 && (
         <>
-          <button onClick={e => { e.stopPropagation(); setCurrent(c => (c - 1 + images.length) % images.length) }} style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={e => { e.stopPropagation(); setCurrent(c => (c - 1 + images.length) % images.length) }}
+            style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <ChevronLeft size={20} color="#fff" />
-          </button>
-          <button onClick={e => { e.stopPropagation(); setCurrent(c => (c + 1) % images.length) }} style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={e => { e.stopPropagation(); setCurrent(c => (c + 1) % images.length) }}
+            style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: 'var(--radius-full)', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+          >
             <ChevronRight size={20} color="#fff" />
-          </button>
+          </motion.button>
           <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', color: '#fff', fontFamily: PJS, fontSize: '0.75rem', background: 'rgba(0,0,0,0.4)', padding: '4px 12px', borderRadius: 'var(--radius-full)' }}>
             {current + 1} / {images.length}
           </div>
         </>
       )}
-    </div>
+    </motion.div>
   )
 }
 
 function ShopLinkCard({ link }) {
   return (
-    <a href={getStorefrontUrl(link.slug)} target="_blank" rel="noreferrer" style={{ width: '100%', marginBottom: 10, background: 'var(--surface)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radius-lg)', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', boxSizing: 'border-box' }}>
+    <motion.a
+      href={getStorefrontUrl(link.slug)}
+      target="_blank"
+      rel="noreferrer"
+      whileHover={{ y: -2, scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
+      style={{
+        width: '100%', marginBottom: 10, background: 'var(--surface)', border: '2px solid var(--glass-border)',
+        borderRadius: 'var(--radius-lg)', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 10,
+        textDecoration: 'none', boxSizing: 'border-box',
+      }}
+    >
       <div style={{ width: 36, height: 36, borderRadius: 'var(--radius-md)', background: 'var(--accent-gradient)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Store size={16} color="#fff" />
       </div>
@@ -1360,10 +1668,14 @@ function ShopLinkCard({ link }) {
         <p style={{ fontFamily: PJS, fontSize: '0.78rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{link.nama}</p>
         <p style={{ fontFamily: PJS, fontSize: '0.68rem', color: 'var(--text-tertiary)', margin: 0 }}>{getStorefrontUrl(link.slug)}</p>
       </div>
-      <span style={{ fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-gradient-soft)', padding: '4px 10px', borderRadius: 'var(--radius-md)', flexShrink: 0 }}>
+      <motion.span
+        animate={{ x: [0, 3, 0] }}
+        transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+        style={{ fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: 'var(--accent)', background: 'var(--accent-gradient-soft)', padding: '4px 10px', borderRadius: 'var(--radius-md)', flexShrink: 0 }}
+      >
         Kunjungi →
-      </span>
-    </a>
+      </motion.span>
+    </motion.a>
   )
 }
 
@@ -1372,7 +1684,15 @@ function HashtagPills({ tags, onTag }) {
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
       {tags.map(tag => (
-        <span key={tag} onClick={() => onTag(tag)} style={{ fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer', background: 'var(--accent-gradient-soft)', border: '1px solid var(--glass-border)', padding: '3px 9px', borderRadius: 'var(--radius-md)' }}>{tag}</span>
+        <motion.span
+          key={tag}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => onTag(tag)}
+          style={{ fontFamily: PJS, fontSize: '0.68rem', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer', background: 'var(--accent-gradient-soft)', border: '2px solid var(--glass-border)', padding: '3px 9px', borderRadius: 'var(--radius-md)', display: 'inline-block' }}
+        >
+          {tag}
+        </motion.span>
       ))}
     </div>
   )
