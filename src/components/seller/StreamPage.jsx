@@ -1009,7 +1009,7 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
               maxWidth: '72%', padding: '10px 13px',
               borderRadius: m.isMine ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)' : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
               background: m.isMine ? 'var(--accent-gradient)' : 'var(--surface)',
-              border: `3px solid ${m.isMine ? THEME_TOKENS.light.bubbleBorderMine : THEME_TOKENS.light.bubbleBorderOther}`,
+              border: '1px solid var(--glass-border)',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             }}>
               <p style={{ fontFamily: PJS, fontSize: '0.855rem', color: m.isMine ? '#fff' : 'var(--text-primary)', margin: 0, lineHeight: 1.55 }}>{m.teks}</p>
@@ -1018,20 +1018,29 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
         ))}
         <div ref={bottomRef} />
       </div>
-      <div style={{ padding: '10px 8px', borderTop: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`, display: 'flex', gap: 8 }}>
+      <div style={{ 
+        padding: '10px 8px', 
+        border: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+        borderLeft: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+        borderRight: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+        borderTop: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+        borderBottom: `3px solid ${THEME_TOKENS.light.bubbleBorderMine}`,
+        display: 'flex', 
+        gap: 8 
+      }}>
         <input
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && send()}
           placeholder="Ketik pesan..."
           style={{
-            flex: 1, background: 'var(--surface)', border: `2px solid ${THEME_TOKENS.light.bubbleBorderOther}`,
+            flex: 1, background: 'var(--surface)', border: '2px solid var(--glass-border)',
             borderRadius: 'var(--radius-full)', padding: '10px 16px', color: 'var(--text-primary)',
             fontSize: '0.855rem', outline: 'none', fontFamily: PJS,
             transition: 'border-color 0.2s ease',
           }}
           onFocus={e => e.target.style.borderColor = 'var(--accent)'}
-          onBlur={e => e.target.style.borderColor = THEME_TOKENS.light.bubbleBorderOther}
+          onBlur={e => e.target.style.borderColor = 'var(--glass-border)'}
         />
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -1041,7 +1050,7 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
           style={{
             width: 38, height: 38, borderRadius: 'var(--radius-full)',
             background: input.trim() ? 'var(--accent-gradient)' : 'var(--surface)',
-            border: `2px solid ${THEME_TOKENS.light.bubbleBorderOther}`, cursor: input.trim() ? 'pointer' : 'default',
+            border: '2px solid var(--glass-border)', cursor: input.trim() ? 'pointer' : 'default',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             transition: 'all 0.2s ease',
           }}
