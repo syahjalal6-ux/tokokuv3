@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart, MessageCircle, Repeat2, Store, ArrowRight, Bot, Sun, Moon, X, ZoomIn, Loader2 } from 'lucide-react'
 import { useStreamStore } from '../lib/store.js'
@@ -10,47 +10,45 @@ import { motion, useAnimation, useInView, AnimatePresence } from 'framer-motion'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
 
-// Theme tokens with HIGH CONTRAST borders
+// Theme tokens with enhanced borders
 const THEMES = {
   light: {
-    bgPage: '#f9fafb', // Sedikit off-white biar card putihnya keliatan
-    bgHeader: 'rgba(255,255,255,0.9)',
-    bgSurface: '#f3f4f6',
+    bgPage: '#ffffff',
+    bgHeader: 'rgba(255,255,255,0.85)',
+    bgSurface: '#f7f7f7',
     bgCard: '#ffffff',
     border: '#d1d5db',
-    // GARIS TEGAS: Hitam pekat
-    borderCard: '#111111', 
-    textPrimary: '#111827',
-    textSecondary: '#4b5563',
-    textTertiary: '#6b7280',
+    borderStrong: '#9ca3af',
+    textPrimary: '#1a1a1a',
+    textSecondary: '#4a4a4a',
+    textTertiary: '#8a8a8a',
     accentSoftBg: 'rgba(55,138,221,0.1)',
     accentSoftBorder: 'rgba(55,138,221,0.3)',
     proBg: 'rgba(251,191,36,0.15)',
     proBorder: 'rgba(251,191,36,0.35)',
     proText: '#92400e',
     ctaShadow: '0 4px 14px rgba(12,68,124,0.18)',
-    hoverShadow: '0 12px 32px rgba(0,0,0,0.12)',
-    cardShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+    hoverShadow: '0 8px 24px rgba(12,68,124,0.08)',
+    cardShadow: '0 2px 8px rgba(0,0,0,0.06)',
   },
   dark: {
-    bgPage: '#09090b',
-    bgHeader: 'rgba(9,9,11,0.9)',
-    bgSurface: '#18181b',
-    bgCard: '#18181b',
-    border: 'rgba(255,255,255,0.1)',
-    // GARIS TEGAS: Putih terang
-    borderCard: '#ffffff', 
-    textPrimary: '#f9fafb',
-    textSecondary: '#d1d5db',
-    textTertiary: '#9ca3af',
+    bgPage: '#0b0b10',
+    bgHeader: 'rgba(11,11,16,0.85)',
+    bgSurface: '#15151c',
+    bgCard: '#15151c',
+    border: 'rgba(255,255,255,0.15)',
+    borderStrong: 'rgba(255,255,255,0.25)',
+    textPrimary: '#f5f5f7',
+    textSecondary: '#c2c2c8',
+    textTertiary: '#7a7a85',
     accentSoftBg: 'rgba(55,138,221,0.16)',
     accentSoftBorder: 'rgba(55,138,221,0.35)',
     proBg: 'rgba(251,191,36,0.18)',
     proBorder: 'rgba(251,191,36,0.4)',
     proText: '#fbbf24',
     ctaShadow: '0 4px 18px rgba(55,138,221,0.3)',
-    hoverShadow: '0 12px 32px rgba(0,0,0,0.5)',
-    cardShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
+    hoverShadow: '0 8px 28px rgba(55,138,221,0.16)',
+    cardShadow: '0 2px 8px rgba(0,0,0,0.3)',
   },
 }
 
@@ -59,29 +57,31 @@ const BLUE = '#378ADD'
 const ACCENT_GRADIENT = `linear-gradient(90deg, ${NAVY}, ${BLUE})`
 
 // Skeleton Loading Component
-function SkeletonCard({ theme, c }) {
+function SkeletonCard() {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       style={{
-        border: `3px solid ${c.borderCard}`,
+        border: '2px solid var(--border)',
         borderRadius: '16px',
         padding: '16px',
         marginBottom: '16px',
-        background: c.bgCard,
+        background: 'var(--bg-card)',
         overflow: 'hidden',
       }}
     >
       <div style={{ display: 'flex', gap: 12, marginBottom: 12 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', background: c.bgSurface, flexShrink: 0 }} />
+        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--bg-surface)', flexShrink: 0 }} />
         <div style={{ flex: 1 }}>
-          <div style={{ height: 14, width: 120, background: c.bgSurface, borderRadius: 4, marginBottom: 6 }} />
-          <div style={{ height: 10, width: 80, background: c.bgSurface, borderRadius: 4 }} />
+          <div style={{ height: 14, width: 120, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 6 }} />
+          <div style={{ height: 10, width: 80, background: 'var(--bg-surface)', borderRadius: 4 }} />
         </div>
       </div>
-      <div style={{ height: 12, background: c.bgSurface, borderRadius: 4, marginBottom: 8 }} />
-      <div style={{ height: 12, background: c.bgSurface, borderRadius: 4, marginBottom: 8, width: '80%' }} />
-      <div style={{ height: 200, background: c.bgSurface, borderRadius: 8, marginTop: 12 }} />
-    </div>
+      <div style={{ height: 12, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 8 }} />
+      <div style={{ height: 12, background: 'var(--bg-surface)', borderRadius: 4, marginBottom: 8, width: '80%' }} />
+      <div style={{ height: 200, background: 'var(--bg-surface)', borderRadius: 8, marginTop: 12 }} />
+    </motion.div>
   )
 }
 
@@ -270,7 +270,7 @@ export default function ShowcasePage() {
         {showcaseLoading && (
           <div>
             {Array(skeletonCount).fill(0).map((_, i) => (
-              <SkeletonCard key={i} theme={theme} c={c} />
+              <SkeletonCard key={i} />
             ))}
           </div>
         )}
@@ -288,7 +288,6 @@ export default function ShowcasePage() {
                 width: 56, height: 56, borderRadius: '14px',
                 background: c.accentSoftBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 margin: '0 auto 16px', color: theme === 'light' ? NAVY : BLUE,
-                border: `2px solid ${c.borderCard}`,
               }}
             >
               <Store size={24} />
@@ -405,10 +404,10 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
   const accent = theme === 'light' ? NAVY : BLUE
   
   const controls = useAnimation()
-  const ref = useRef(null)
+  const ref = React.useRef(null)
   const isInView = useInView(ref, { once: true, margin: '-50px' })
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (isInView) {
       controls.start('visible')
     }
@@ -433,11 +432,10 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
       variants={cardVariants}
       initial="hidden"
       animate={controls}
-      whileHover={{ y: -4, boxShadow: c.hoverShadow }}
+      whileHover={{ y: -2, boxShadow: c.hoverShadow }}
       className="showcase-card theme-transition"
       style={{
-        // INI YANG DIBIKIN TEGAS: 3px solid warna high contrast
-        border: `3px solid ${c.borderCard}`,
+        border: `2px solid ${c.borderStrong}`,
         borderRadius: '16px',
         padding: '16px',
         marginBottom: '16px',
