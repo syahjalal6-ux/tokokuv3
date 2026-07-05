@@ -1,5 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
+import { motion, AnimatePresence, useAnimation, useInView } from 'framer-motion'
 import { MessageCircle, Search, ShoppingBag, Store, ChevronLeft, ChevronRight, X, Plus, Minus, Package, Music, Star, Send, Truck, MapPin, Weight, Sun, Moon, Share2, Copy, Check } from 'lucide-react'
 import { tokoApi, produkApi, ratingApi, pesananApi, trafficApi, bundleApi, flashSaleApi, voucherApi } from '../lib/api/index.js'
 import { liveApi } from '../lib/api/adminClient.js'
@@ -23,6 +24,7 @@ const THEMES = {
     surfaceHover: '#22222b',
     glass: 'rgba(255,255,255,0.03)',
     glassBorder: 'rgba(255,255,255,0.08)',
+    borderCard: '#ffffff',
     textPrimary: '#f5f5f7',
     textSecondary: '#c2c2c8',
     textTertiary: '#7a7a85',
@@ -36,6 +38,7 @@ const THEMES = {
     surfaceHover: '#ececee',
     glass: 'rgba(0,0,0,0.015)',
     glassBorder: '#e7e7ea',
+    borderCard: '#111111',
     textPrimary: '#1a1a1f',
     textSecondary: '#4a4a52',
     textTertiary: '#8a8a92',
@@ -70,6 +73,17 @@ function getYouTubeId(url) {
     if (m) return m[1]
   }
   return null
+}
+
+// Cloudinary helper untuk optimasi gambar
+function cloudinaryThumb(url, width = 300, height = 400) {
+  if (!url || !url.includes('cloudinary.com')) return url
+  return url.replace('/upload/', `/upload/w_${width},h_${height},c_fill/`)
+}
+
+function cloudinaryMedium(url, width = 800) {
+  if (!url || !url.includes('cloudinary.com')) return url
+  return url.replace('/upload/', `/upload/w_${width}/`)
 }
 
 const TRACKING_CACHE = {}
@@ -122,6 +136,16 @@ async function searchArea(query) {
   return data.areas || []
 }
 
+// Debounce hook
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedValue(value), delay)
+    return () => clearTimeout(handler)
+  }, [value, delay])
+  return debouncedValue
+}
+
 function AreaSearchInput({ label, icon, placeholder, value, onInputChange, options, searching, onSelect, c }) {
   return (
     <div style={{ position: 'relative' }}>
@@ -129,22 +153,31 @@ function AreaSearchInput({ label, icon, placeholder, value, onInputChange, optio
         {icon}{label}
       </label>
       <div style={{ position: 'relative' }}>
-        <input className="form-input" placeholder={placeholder} value={value} onChange={e => onInputChange(e.target.value)} style={{ fontSize: '0.875rem', paddingRight: searching ? 36 : 12 }} />
+        <input className="form-input" placeholder={placeholder} value={value} onChange={e => onInputChange(e.target.value)} style={{ fontSize: '0.875rem', paddingRight: searching ? 36 : 12, border: '2px solid var(--glass-border)' }} />
         {searching && <span className="spinner" style={{ width: 14, height: 14, position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)' }} />}
       </div>
-      {options.length > 0 && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: 200, overflowY: 'auto', marginTop: 4 }}>
-          {options.map(area => (
-            <div key={area.id} onClick={() => onSelect(area)} style={{ padding: '9px 12px', fontSize: '0.82rem', cursor: 'pointer', borderBottom: `1px solid ${c.glassBorder}`, transition: 'background 0.1s', color: c.textPrimary }}
-              onMouseEnter={e => e.currentTarget.style.background = c.surfaceHover}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <span style={{ fontWeight: 600 }}>{area.name}</span>
-              {area.administrative_division_level_1_name && <span style={{ color: c.textTertiary, marginLeft: 6, fontSize: '0.75rem' }}>{area.administrative_division_level_1_name}</span>}
-            </div>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {options.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10, background: c.bgSecondary, border: `2px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', boxShadow: '0 8px 32px rgba(0,0,0,0.4)', maxHeight: 200, overflowY: 'auto', marginTop: 4 }}
+          >
+            {options.map(area => (
+              <motion.div
+                key={area.id}
+                whileHover={{ scale: 1.02, backgroundColor: c.surfaceHover }}
+                onClick={() => onSelect(area)}
+                style={{ padding: '9px 12px', fontSize: '0.82rem', cursor: 'pointer', borderBottom: `1px solid ${c.glassBorder}`, color: c.textPrimary }}
+              >
+                <span style={{ fontWeight: 600 }}>{area.name}</span>
+                {area.administrative_division_level_1_name && <span style={{ color: c.textTertiary, marginLeft: 6, fontSize: '0.75rem' }}>{area.administrative_division_level_1_name}</span>}
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -204,14 +237,27 @@ function OngkirModal({ onClose, c }) {
   const pricings = result?.pricing || []
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease', padding: isMobile ? 0 : 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: isMobile ? '100%' : 480, background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', maxHeight: isMobile ? '92vh' : '80vh', overflow: 'auto', animation: isMobile ? 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'fadeIn 0.25s ease' }}>
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }}
+    >
+      <motion.div
+        initial={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+        exit={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: isMobile ? '100%' : 480, background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', maxHeight: isMobile ? '92vh' : '80vh', overflow: 'auto' }}
+      >
+        <div style={{ padding: '16px 20px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <MapPin size={18} color="var(--accent)" />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: c.textPrimary }}>Estimasi Ongkir</span>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></motion.button>
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <AreaSearchInput c={c} label="Dikirim dari" icon={<Truck size={12} />} placeholder="Contoh: Jakarta, Surabaya, Medan..." value={origin} onInputChange={handleOriginInput} options={originAreaOptions} searching={searchingOriginArea} onSelect={a => { setOriginAreaId(a.id); setOrigin(a.name); setOriginAreaOptions([]) }} />
@@ -220,36 +266,57 @@ function OngkirModal({ onClose, c }) {
             <label className="form-label" style={{ fontSize: '0.75rem', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5, color: c.textSecondary }}><Weight size={12} /> Berat Paket (gram)</label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[500, 1000, 2000, 5000].map(w => (
-                <button key={w} onClick={() => setWeight(w)} className="btn btn-sm" style={{ background: weight === w ? 'var(--accent)' : c.surface, color: weight === w ? '#fff' : c.textSecondary, border: `1px solid ${weight === w ? 'var(--accent)' : c.glassBorder}`, borderRadius: 'var(--radius-full)', fontSize: '0.75rem' }}>
+                <motion.button
+                  key={w}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setWeight(w)}
+                  className="btn btn-sm"
+                  style={{ background: weight === w ? 'var(--accent)' : c.surface, color: weight === w ? '#fff' : c.textSecondary, border: `2px solid ${weight === w ? 'var(--accent)' : c.glassBorder}`, borderRadius: 'var(--radius-full)', fontSize: '0.75rem' }}
+                >
                   {w >= 1000 ? `${w / 1000}kg` : `${w}g`}
-                </button>
+                </motion.button>
               ))}
-              <input type="number" className="form-input" placeholder="Custom (g)" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 90, fontSize: '0.8rem', padding: '5px 10px' }} />
+              <input type="number" className="form-input" placeholder="Custom (g)" value={weight} onChange={e => setWeight(e.target.value === '' ? '' : Number(e.target.value))} style={{ width: 90, fontSize: '0.8rem', padding: '5px 10px', border: '2px solid var(--glass-border)' }} />
             </div>
           </div>
-          <button onClick={handleCek} disabled={loading || !destinationAreaId || !originAreaId} className="btn btn-primary" style={{ width: '100%', height: 42, fontSize: '0.875rem', fontWeight: 700 }}>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCek}
+            disabled={loading || !destinationAreaId || !originAreaId}
+            className="btn btn-primary"
+            style={{ width: '100%', height: 42, fontSize: '0.875rem', fontWeight: 700, border: '2px solid var(--accent)' }}
+          >
             {loading ? <span className="spinner" style={{ width: 16, height: 16 }} /> : 'Cek Ongkir'}
-          </button>
-          {error && <div style={{ padding: '10px 14px', background: 'var(--danger-bg)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--danger)' }}>{error}</div>}
+          </motion.button>
+          {error && <div style={{ padding: '10px 14px', background: 'var(--danger-bg)', border: '2px solid rgba(248,113,113,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--danger)' }}>{error}</div>}
           {pricings.length > 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               <p style={{ fontSize: '0.75rem', color: c.textTertiary, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{pricings.length} layanan tersedia</p>
               {pricings.map((item, i) => (
-                <div key={i} style={{ padding: '11px 14px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  whileHover={{ scale: 1.02 }}
+                  style={{ padding: '11px 14px', background: c.surface, border: `2px solid ${c.borderCard}`, borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
                   <div>
                     <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 2, color: c.textPrimary }}>{item.courier_name} — <span style={{ fontWeight: 500 }}>{item.courier_service_name}</span></p>
                     {item.duration && <p style={{ fontSize: '0.72rem', color: c.textTertiary }}>Estimasi {item.duration}</p>}
                   </div>
                   <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--accent)', whiteSpace: 'nowrap' }}>{formatRupiah(item.price)}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           )}
           {result && pricings.length === 0 && !error && <p style={{ textAlign: 'center', color: c.textTertiary, fontSize: '0.82rem', padding: '12px 0' }}>Tidak ada layanan kurir tersedia untuk rute ini</p>}
           {!result && !loading && !error && <p style={{ textAlign: 'center', color: c.textTertiary, fontSize: '0.82rem', padding: '12px 0' }}>Pilih asal, tujuan, dan berat untuk melihat estimasi ongkir</p>}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -272,26 +339,50 @@ function TrackingModal({ onClose, initialResi = '', c }) {
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease', padding: isMobile ? 0 : 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: isMobile ? '100%' : 480, background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', maxHeight: isMobile ? '92vh' : '80vh', overflow: 'auto', animation: isMobile ? 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'fadeIn 0.25s ease' }}>
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 700, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }}
+    >
+      <motion.div
+        initial={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+        exit={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: isMobile ? '100%' : 480, background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', maxHeight: isMobile ? '92vh' : '80vh', overflow: 'auto' }}
+      >
+        <div style={{ padding: '16px 20px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Truck size={18} color="var(--accent)" />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: c.textPrimary }}>Lacak Pesanan</span>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></motion.button>
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input className="form-input" placeholder="Masukkan nomor resi..." value={resi} onChange={e => setResi(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleTrack()} style={{ flex: 1, fontSize: '0.875rem' }} />
-            <button onClick={() => handleTrack()} disabled={loading || !resi.trim()} className="btn btn-primary btn-sm" style={{ flexShrink: 0 }}>
+            <input className="form-input" placeholder="Masukkan nomor resi..." value={resi} onChange={e => setResi(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleTrack()} style={{ flex: 1, fontSize: '0.875rem', border: '2px solid var(--glass-border)' }} />
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleTrack()}
+              disabled={loading || !resi.trim()}
+              className="btn btn-primary btn-sm"
+              style={{ flexShrink: 0, border: '2px solid var(--accent)' }}
+            >
               {loading ? <span className="spinner" style={{ width: 14, height: 14 }} /> : 'Lacak'}
-            </button>
+            </motion.button>
           </div>
-          {error && <div style={{ padding: '10px 14px', background: 'var(--danger-bg)', border: '1px solid rgba(248,113,113,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--danger)' }}>{error}</div>}
+          {error && <div style={{ padding: '10px 14px', background: 'var(--danger-bg)', border: '2px solid rgba(248,113,113,0.2)', borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: 'var(--danger)' }}>{error}</div>}
           {result && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ padding: '12px 14px', background: c.surface, borderRadius: 'var(--radius-lg)', border: `1px solid ${c.glassBorder}` }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
+            >
+              <div style={{ padding: '12px 14px', background: c.surface, borderRadius: 'var(--radius-lg)', border: `2px solid ${c.borderCard}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <span style={{ fontSize: '0.78rem', color: c.textTertiary }}>Kurir</span>
                   <span style={{ fontSize: '0.82rem', fontWeight: 700, color: c.textPrimary }}>{result.courier?.name || '-'}</span>
@@ -308,14 +399,24 @@ function TrackingModal({ onClose, initialResi = '', c }) {
                 )}
               </div>
               {result.status && (
-                <div style={{ padding: '8px 14px', background: result.status === 'delivered' ? 'var(--success-bg)' : 'rgba(91,138,245,0.1)', border: `1px solid ${result.status === 'delivered' ? 'rgba(52,211,153,0.2)' : 'rgba(91,138,245,0.2)'}`, borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: result.status === 'delivered' ? 'var(--success)' : 'var(--accent)', fontWeight: 700, textAlign: 'center' }}>
+                <motion.div
+                  initial={{ scale: 0.95 }}
+                  animate={{ scale: 1 }}
+                  style={{ padding: '8px 14px', background: result.status === 'delivered' ? 'var(--success-bg)' : 'rgba(91,138,245,0.1)', border: `2px solid ${result.status === 'delivered' ? 'rgba(52,211,153,0.2)' : 'rgba(91,138,245,0.2)'}`, borderRadius: 'var(--radius-md)', fontSize: '0.82rem', color: result.status === 'delivered' ? 'var(--success)' : 'var(--accent)', fontWeight: 700, textAlign: 'center' }}
+                >
                   {result.status === 'delivered' ? '✓ Paket telah diterima' : result.status === 'in_transit' ? '🚚 Dalam perjalanan' : result.status === 'on_delivery' ? '🛵 Sedang diantar' : result.status === 'picked_up' ? '📦 Sudah dipickup' : result.status}
-                </div>
+                </motion.div>
               )}
               {result.history && result.history.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {result.history.map((h, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingBottom: i < result.history.length - 1 ? 12 : 0 }}>
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.05 }}
+                      style={{ display: 'flex', gap: 12, alignItems: 'flex-start', paddingBottom: i < result.history.length - 1 ? 12 : 0 }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
                         <div style={{ width: 10, height: 10, borderRadius: '50%', marginTop: 3, flexShrink: 0, background: i === 0 ? 'var(--success)' : c.surfaceHover, border: `2px solid ${i === 0 ? 'var(--success)' : c.glassBorder}` }} />
                         {i < result.history.length - 1 && <div style={{ width: 2, flex: 1, minHeight: 20, background: c.glassBorder, margin: '4px 0' }} />}
@@ -325,16 +426,16 @@ function TrackingModal({ onClose, initialResi = '', c }) {
                         {h.service_area && <p style={{ fontSize: '0.72rem', color: c.textTertiary, margin: '2px 0 0' }}>{h.service_area}</p>}
                         <p style={{ fontSize: '0.72rem', color: c.textTertiary, margin: '2px 0 0' }}>{h.updated_at ? new Date(h.updated_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</p>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
           {!result && !loading && !error && <p style={{ textAlign: 'center', color: c.textTertiary, fontSize: '0.82rem', padding: '20px 0' }}>Masukkan nomor resi untuk melacak status pengiriman</p>}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -343,7 +444,13 @@ function StarRating({ value, onChange, size = 20 }) {
   return (
     <div style={{ display: 'flex', gap: 4 }}>
       {[1,2,3,4,5].map(i => (
-        <Star key={i} size={size} fill={(hover || value) >= i ? '#fbbf24' : 'transparent'} color={(hover || value) >= i ? '#fbbf24' : 'rgba(255,255,255,0.3)'} style={{ cursor: onChange ? 'pointer' : 'default', transition: 'all 0.1s' }} onClick={() => onChange && onChange(i)} onMouseEnter={() => onChange && setHover(i)} onMouseLeave={() => onChange && setHover(0)} />
+        <motion.div
+          key={i}
+          whileHover={{ scale: 1.2 }}
+          whileTap={{ scale: 0.9 }}
+        >
+          <Star size={size} fill={(hover || value) >= i ? '#fbbf24' : 'transparent'} color={(hover || value) >= i ? '#fbbf24' : 'rgba(255,255,255,0.3)'} style={{ cursor: onChange ? 'pointer' : 'default' }} onClick={() => onChange && onChange(i)} onMouseEnter={() => onChange && setHover(i)} onMouseLeave={() => onChange && setHover(0)} />
+        </motion.div>
       ))}
     </div>
   )
@@ -360,9 +467,15 @@ function MusicPlayer({ musikUrl, tema, c }) {
           <iframe src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`} title="Musik Toko" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" style={{ width: 1, height: 1, border: 'none' }} />
         </div>
       )}
-      <button onClick={() => setPlaying(p => !p)} title={playing ? 'Pause musik' : 'Play musik'} style={{ position: 'fixed', bottom: 48, left: 16, zIndex: 200, width: 40, height: 40, borderRadius: 'var(--radius-full)', background: playing ? tema.gradient : c.bgSecondary, backdropFilter: 'blur(16px)', border: `1px solid ${playing ? tema.accent + '66' : c.glassBorder}`, boxShadow: playing ? `0 4px 24px ${tema.accent}66` : '0 4px 16px rgba(0,0,0,0.25)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: playing ? '#fff' : c.textSecondary, transition: 'all 0.3s ease' }}>
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setPlaying(p => !p)}
+        title={playing ? 'Pause musik' : 'Play musik'}
+        style={{ position: 'fixed', bottom: 48, left: 16, zIndex: 200, width: 40, height: 40, borderRadius: 'var(--radius-full)', background: playing ? tema.gradient : c.bgSecondary, backdropFilter: 'blur(16px)', border: `2px solid ${playing ? tema.accent + '66' : c.glassBorder}`, boxShadow: playing ? `0 4px 24px ${tema.accent}66` : '0 4px 16px rgba(0,0,0,0.25)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: playing ? '#fff' : c.textSecondary }}
+      >
         <Music size={15} />
-      </button>
+      </motion.button>
     </>
   )
 }
@@ -371,8 +484,8 @@ function VideoToko({ videoUrl, c }) {
   const videoId = getYouTubeId(videoUrl)
   if (!videoId) return null
   return (
-    <div style={{ border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: c.surface }}>
-      <div style={{ padding: '7px 12px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{ border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-lg)', overflow: 'hidden', background: c.surface }}>
+      <div style={{ padding: '7px 12px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', gap: 6 }}>
         <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', flexShrink: 0 }} />
         <span style={{ fontSize: '0.7rem', fontWeight: 700, color: c.textSecondary, letterSpacing: '0.04em' }}>VIDEO TOKO</span>
       </div>
@@ -393,19 +506,52 @@ function PhotoCarousel({ fotos, nama, c }) {
   const onTouchEnd = (e) => {
     if (touchStartX.current === null) return
     const diff = touchStartX.current - e.changedTouches[0].clientX
-    if (diff > 40) setIdx(i => (i + 1) % fotos.length)
-    else if (diff < -40) setIdx(i => (i - 1 + fotos.length) % fotos.length)
+    if (diff > 20) setIdx(i => (i + 1) % fotos.length)
+    else if (diff < -20) setIdx(i => (i - 1 + fotos.length) % fotos.length)
     touchStartX.current = null
   }
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }} onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
-      <img key={idx} src={fotos[idx]} alt={`${nama} ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', padding: '8px', background: c.surface, animation: 'fadeIn 0.2s ease' }} />
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={idx}
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -20 }}
+          transition={{ duration: 0.2 }}
+          src={fotos[idx]}
+          alt={`${nama} ${idx + 1}`}
+          loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'contain', objectPosition: 'center', padding: '8px', background: c.surface }}
+        />
+      </AnimatePresence>
       {fotos.length > 1 && (
         <>
-          <button onClick={prev} style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><ChevronLeft size={16} /></button>
-          <button onClick={next} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><ChevronRight size={16} /></button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={prev}
+            style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: '2px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
+          >
+            <ChevronLeft size={16} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={next}
+            style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', border: '2px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
+          >
+            <ChevronRight size={16} />
+          </motion.button>
           <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 5 }}>
-            {fotos.map((_, i) => <div key={i} onClick={(e) => { e.stopPropagation(); setIdx(i) }} style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 'var(--radius-full)', background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)', transition: 'all 0.2s ease', cursor: 'pointer' }} />)}
+            {fotos.map((_, i) => (
+              <motion.div
+                key={i}
+                whileHover={{ scale: 1.2 }}
+                onClick={(e) => { e.stopPropagation(); setIdx(i) }}
+                style={{ width: i === idx ? 18 : 6, height: 6, borderRadius: 'var(--radius-full)', background: i === idx ? '#fff' : 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+              />
+            ))}
           </div>
         </>
       )}
@@ -454,34 +600,73 @@ function RatingSection({ produkId, tokoId, tema, c }) {
             </div>
           )}
         </div>
-        {!submitted && <button onClick={() => setShowForm(s => !s)} className="btn btn-sm btn-secondary" style={{ fontSize: '0.75rem' }}>+ Tulis Ulasan</button>}
+        {!submitted && (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowForm(s => !s)}
+            className="btn btn-sm btn-secondary"
+            style={{ fontSize: '0.75rem', border: '2px solid var(--glass-border)' }}
+          >
+            + Tulis Ulasan
+          </motion.button>
+        )}
       </div>
-      {showForm && (
-        <div style={{ background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 16 }}>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label className="form-label">Nama</label>
-            <input className="form-input" placeholder="Nama kamu" value={form.buyerNama} onChange={e => setForm(f => ({ ...f, buyerNama: e.target.value }))} />
-          </div>
-          <div style={{ marginBottom: 12 }}>
-            <label className="form-label" style={{ display: 'block', marginBottom: 8 }}>Rating</label>
-            <StarRating value={form.rating} onChange={v => setForm(f => ({ ...f, rating: v }))} />
-          </div>
-          <div className="form-group" style={{ marginBottom: 12 }}>
-            <label className="form-label">Komentar</label>
-            <textarea className="form-input form-textarea" rows={3} placeholder="Bagaimana pengalaman kamu dengan produk ini?" value={form.komentar} onChange={e => setForm(f => ({ ...f, komentar: e.target.value }))} maxLength={500} />
-          </div>
-          <button onClick={handleSubmit} disabled={submitting || !form.rating || !form.buyerNama.trim() || !form.komentar.trim()} className="btn btn-sm btn-primary" style={{ background: tema.gradient, border: 'none' }}>
-            {submitting ? 'Mengirim...' : <><Send size={13} /> Kirim Ulasan</>}
-          </button>
-        </div>
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            style={{ background: c.surface, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-lg)', padding: 16, marginBottom: 16, overflow: 'hidden' }}
+          >
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Nama</label>
+              <input className="form-input" placeholder="Nama kamu" value={form.buyerNama} onChange={e => setForm(f => ({ ...f, buyerNama: e.target.value }))} style={{ border: '2px solid var(--glass-border)' }} />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label className="form-label" style={{ display: 'block', marginBottom: 8 }}>Rating</label>
+              <StarRating value={form.rating} onChange={v => setForm(f => ({ ...f, rating: v }))} />
+            </div>
+            <div className="form-group" style={{ marginBottom: 12 }}>
+              <label className="form-label">Komentar</label>
+              <textarea className="form-input form-textarea" rows={3} placeholder="Bagaimana pengalaman kamu dengan produk ini?" value={form.komentar} onChange={e => setForm(f => ({ ...f, komentar: e.target.value }))} maxLength={500} style={{ border: '2px solid var(--glass-border)' }} />
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSubmit}
+              disabled={submitting || !form.rating || !form.buyerNama.trim() || !form.komentar.trim()}
+              className="btn btn-sm btn-primary"
+              style={{ background: tema.gradient, border: '2px solid var(--accent)' }}
+            >
+              {submitting ? 'Mengirim...' : <><Send size={13} /> Kirim Ulasan</>}
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {submitted && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          style={{ background: 'rgba(52,211,153,0.1)', border: '2px solid rgba(52,211,153,0.2)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 16, fontSize: '0.82rem', color: 'var(--success)' }}
+        >
+          ✓ Ulasan kamu berhasil dikirim!
+        </motion.div>
       )}
-      {submitted && <div style={{ background: 'rgba(52,211,153,0.1)', border: '1px solid rgba(52,211,153,0.2)', borderRadius: 'var(--radius-md)', padding: '10px 14px', marginBottom: 16, fontSize: '0.82rem', color: 'var(--success)' }}>✓ Ulasan kamu berhasil dikirim!</div>}
       {ratings.length === 0 ? (
         <p style={{ color: c.textTertiary, fontSize: '0.82rem', textAlign: 'center', padding: '20px 0' }}>Belum ada ulasan</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {ratings.slice(0, 5).map(r => (
-            <div key={r.id} style={{ padding: '12px 14px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-lg)' }}>
+          {ratings.slice(0, 5).map((r, i) => (
+            <motion.div
+              key={r.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              whileHover={{ scale: 1.02 }}
+              style={{ padding: '12px 14px', background: c.surface, border: `2px solid ${c.borderCard}`, borderRadius: 'var(--radius-lg)' }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ width: 28, height: 28, borderRadius: '50%', background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem', color: '#fff', flexShrink: 0 }}>{r.buyer_nama?.[0]?.toUpperCase()}</div>
@@ -490,7 +675,7 @@ function RatingSection({ produkId, tokoId, tema, c }) {
                 <StarRating value={Number(r.rating)} size={13} />
               </div>
               {r.komentar && <p style={{ fontSize: '0.82rem', color: c.textSecondary, lineHeight: 1.6, margin: 0 }}>{r.komentar}</p>}
-            </div>
+            </motion.div>
           ))}
         </div>
       )}
@@ -498,17 +683,12 @@ function RatingSection({ produkId, tokoId, tema, c }) {
   )
 }
 
-// ─── ShareModal ────────────────────────────────────────────────────────────────
 function ShareModal({ produk, toko, onClose, c }) {
   const [copied, setCopied] = useState(false)
   const isMobile = window.innerWidth < 640
 
-  // URL untuk copy link & navigasi user biasa
   const produkUrl = `${window.location.origin}/${toko.slug}?produk=${produk.id}`
-
-  // URL untuk share ke sosmed — diarahkan ke /api/og agar crawler bisa baca OG meta tag
   const ogUrl = `${window.location.origin}/api/og?slug=${toko.slug}&produk=${produk.id}`
-
   const shareText = `${produk.nama} — ${formatRupiah(produk.harga)}\n${produkUrl}`
 
   const handleCopyLink = async () => {
@@ -537,13 +717,11 @@ function ShareModal({ produk, toko, onClose, c }) {
           url: produkUrl,
         })
       } catch (err) {
-        // user cancel atau tidak support, fallback copy link
         if (err.name !== 'AbortError') {
           navigator.clipboard.writeText(produkUrl).catch(() => {})
         }
       }
     } else {
-      // Desktop fallback: copy link
       navigator.clipboard.writeText(produkUrl).catch(() => {})
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
@@ -571,7 +749,6 @@ function ShareModal({ produk, toko, onClose, c }) {
         </svg>
       ),
       color: '#000000',
-      // Pakai ogUrl supaya crawler Threads bisa baca OG image
       action: () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(shareText.replace(produkUrl, ogUrl))}`, '_blank'),
     },
     {
@@ -583,7 +760,6 @@ function ShareModal({ produk, toko, onClose, c }) {
         </svg>
       ),
       color: '#1877f2',
-      // Pakai ogUrl supaya crawler Facebook bisa baca OG image
       action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ogUrl)}`, '_blank'),
     },
     {
@@ -595,7 +771,6 @@ function ShareModal({ produk, toko, onClose, c }) {
         </svg>
       ),
       color: '#e1306c',
-      // Pakai navigator.share (Web Share API) — buka native share sheet OS
       action: handleShareIG,
     },
     {
@@ -608,20 +783,30 @@ function ShareModal({ produk, toko, onClose, c }) {
   ]
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', animation: 'fadeIn 0.2s ease', padding: isMobile ? 0 : 24 }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: isMobile ? '100%' : 400, background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', animation: isMobile ? 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' : 'fadeIn 0.25s ease', overflow: 'hidden' }}>
-
-        {/* Header */}
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 800, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', padding: isMobile ? 0 : 24 }}
+    >
+      <motion.div
+        initial={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+        exit={isMobile ? { y: '100%' } : { scale: 0.95, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: isMobile ? '100%' : 400, background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: isMobile ? 'var(--radius-2xl) var(--radius-2xl) 0 0' : 'var(--radius-2xl)', overflow: 'hidden' }}
+      >
+        <div style={{ padding: '16px 20px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <Share2 size={17} color="var(--accent)" />
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', color: c.textPrimary }}>Bagikan Produk</span>
           </div>
-          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></motion.button>
         </div>
 
-        {/* Product preview */}
-        <div style={{ padding: '12px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ padding: '12px 20px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', gap: 10 }}>
           {parseFotos(produk.foto)[0]
             ? <img src={parseFotos(produk.foto)[0]} alt={produk.nama} style={{ width: 42, height: 42, borderRadius: 'var(--radius-md)', objectFit: 'cover', flexShrink: 0 }} />
             : <div style={{ width: 42, height: 42, borderRadius: 'var(--radius-md)', background: c.surface, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Package size={18} color={c.textTertiary} /></div>
@@ -632,40 +817,41 @@ function ShareModal({ produk, toko, onClose, c }) {
           </div>
         </div>
 
-        {/* Channel buttons */}
         <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12 }}>
           {channels.map(ch => (
-            <button
+            <motion.button
               key={ch.key}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
               onClick={ch.action}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-lg)', cursor: 'pointer', transition: 'all 0.15s ease', color: ch.color }}
-              onMouseEnter={e => { e.currentTarget.style.background = c.surfaceHover; e.currentTarget.style.borderColor = ch.color + '44' }}
-              onMouseLeave={e => { e.currentTarget.style.background = c.surface; e.currentTarget.style.borderColor = c.glassBorder }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '14px 8px', background: c.surface, border: `2px solid ${c.borderCard}`, borderRadius: 'var(--radius-lg)', cursor: 'pointer', color: ch.color }}
             >
               <div style={{ width: 42, height: 42, borderRadius: 'var(--radius-full)', background: ch.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', color: ch.color, flexShrink: 0 }}>
                 {ch.icon}
               </div>
               <span style={{ fontSize: '0.65rem', fontWeight: 700, color: c.textSecondary, textAlign: 'center', lineHeight: 1.2 }}>{ch.label}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
 
-        {/* URL bar */}
         <div style={{ padding: '0 20px 20px', display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, padding: '8px 12px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', fontSize: '0.72rem', color: c.textTertiary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ flex: 1, padding: '8px 12px', background: c.surface, border: `2px solid ${c.borderCard}`, borderRadius: 'var(--radius-md)', fontSize: '0.72rem', color: c.textTertiary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {produkUrl}
           </div>
-          <button onClick={handleCopyLink} style={{ flexShrink: 0, padding: '8px 14px', background: copied ? 'rgba(52,211,153,0.15)' : c.surface, border: `1px solid ${copied ? 'rgba(52,211,153,0.3)' : c.glassBorder}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', color: copied ? '#34d399' : c.textSecondary, fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 5 }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleCopyLink}
+            style={{ flexShrink: 0, padding: '8px 14px', background: copied ? 'rgba(52,211,153,0.15)' : c.surface, border: `2px solid ${copied ? 'rgba(52,211,153,0.3)' : c.borderCard}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', color: copied ? '#34d399' : c.textSecondary, fontSize: '0.75rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 5 }}
+          >
             {copied ? <Check size={13} /> : <Copy size={13} />}
             {copied ? 'Tersalin' : 'Salin'}
-          </button>
+          </motion.button>
         </div>
-
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
-// ──────────────────────────────────────────────────────────────────────────────
 
 export default function StorefrontPage() {
   const { slug } = useParams()
@@ -685,13 +871,14 @@ export default function StorefrontPage() {
   const [initialResi, setInitialResi] = useState('')
   const [shareTarget, setShareTarget] = useState(null)
 
-  // ── State bundle & flash sale (voucher dipindah ke dalam CheckoutModal)
   const [bundles, setBundles] = useState([])
   const [flashProduk, setFlashProduk] = useState([])
   const [countdown, setCountdown] = useState({})
 
   const { theme, toggleTheme } = useTheme()
   const c = THEMES[theme]
+
+  const debouncedSearch = useDebounce(search, 300)
 
   useEffect(() => {
     if (toko?.id) {
@@ -700,12 +887,12 @@ export default function StorefrontPage() {
   }, [toko?.id])
 
   useEffect(() => {
-  const produkParam = searchParams.get('produk')
-  if (produkParam && produk.length > 0) {
-    const found = produk.find(p => String(p.id) === String(produkParam))
-    if (found) setSelectedProduk(found)
-  }
-}, [produk])
+    const produkParam = searchParams.get('produk')
+    if (produkParam && produk.length > 0) {
+      const found = produk.find(p => String(p.id) === String(produkParam))
+      if (found) setSelectedProduk(found)
+    }
+  }, [produk])
   
   useEffect(() => {
     const resiParam = searchParams.get('resi')
@@ -746,7 +933,6 @@ export default function StorefrontPage() {
     return () => clearInterval(interval)
   }, [toko])
 
-  // ── Countdown timer flash sale
   useEffect(() => {
     if (!flashProduk.length) return
     const interval = setInterval(() => {
@@ -769,7 +955,6 @@ export default function StorefrontPage() {
     return () => clearInterval(interval)
   }, [flashProduk])
 
-  // ── HELPER: cek apakah produk sedang flash sale aktif
   const getFlashInfo = (produkId) => {
     return flashProduk.find(fp => fp.id === produkId) || null
   }
@@ -785,7 +970,6 @@ export default function StorefrontPage() {
       setToko(tokoData)
       setProduk((produkRes.data || []).filter(p => p.aktif === true || p.aktif === 'TRUE'))
 
-      // ── Load bundle & flash sale setelah toko & produk berhasil dimuat
       if (tokoData?.id) {
         const [bundleRes, flashRes] = await Promise.all([
           bundleApi.getByToko(tokoData.id),
@@ -810,14 +994,17 @@ export default function StorefrontPage() {
   const tema = TEMA[toko?.tema] || TEMA.default
   const accentColor = (tema.accent === '#f59e0b' && theme === 'light') ? '#b45309' : tema.accent
 
-  const kategoriList = [...new Set(produk.map(p => p.kategori).filter(Boolean))]
-  const filtered = produk.filter(p => {
-    const matchSearch = !search || p.nama.toLowerCase().includes(search.toLowerCase()) || p.deskripsi?.toLowerCase().includes(search.toLowerCase())
-    const matchKat = filterKat === 'all' || p.kategori === filterKat
-    return matchSearch && matchKat
-  })
+  const kategoriList = useMemo(() => [...new Set(produk.map(p => p.kategori).filter(Boolean))], [produk])
+  
+  const filtered = useMemo(() => {
+    return produk.filter(p => {
+      const matchSearch = !debouncedSearch || p.nama.toLowerCase().includes(debouncedSearch.toLowerCase()) || p.deskripsi?.toLowerCase().includes(debouncedSearch.toLowerCase())
+      const matchKat = filterKat === 'all' || p.kategori === filterKat
+      return matchSearch && matchKat
+    })
+  }, [produk, debouncedSearch, filterKat])
 
-  if (loading) return <StorefrontSkeleton />
+  if (loading) return <StorefrontSkeleton c={c} />
 
   if (error || !toko) {
     return (
@@ -853,7 +1040,7 @@ export default function StorefrontPage() {
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
 
-      <div style={{ background: `linear-gradient(180deg, ${accentColor}22 0%, transparent 100%)`, borderBottom: `1px solid ${c.glassBorder}`, padding: '20px 16px 16px' }}>
+      <div style={{ background: `linear-gradient(180deg, ${accentColor}22 0%, transparent 100%)`, borderBottom: `3px solid ${c.borderCard}`, padding: '20px 16px 16px' }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <TokoAvatar toko={toko} tema={tema} c={c} size={52} radius={14} fontSize={22} />
@@ -866,51 +1053,71 @@ export default function StorefrontPage() {
               <p style={{ color: c.textTertiary, fontSize: '0.72rem' }}>{produk.length} produk tersedia</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.1, rotate: 15 }}
+                whileTap={{ scale: 0.95 }}
                 onClick={toggleTheme}
                 title={theme === 'light' ? 'Tema gelap' : 'Tema terang'}
-                style={{ width: 36, height: 36, borderRadius: '50%', background: c.surface, border: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: c.textSecondary, flexShrink: 0, transition: 'all 0.2s ease' }}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: c.surface, border: `2px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: c.textSecondary, flexShrink: 0 }}
               >
                 {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
-              </button>
-              <button onClick={() => setChatOpen(null)} className="btn btn-sm" style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${accentColor}44`, flexShrink: 0, padding: '7px 12px' }}>
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setChatOpen(null)}
+                className="btn btn-sm"
+                style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${accentColor}44`, flexShrink: 0, padding: '7px 12px' }}
+              >
                 <MessageCircle size={13} />
-              </button>
+              </motion.button>
             </div>
           </div>
 
           {toko.pengumuman && (
-            <div style={{ marginTop: 12, padding: '8px 12px', background: `${accentColor}15`, border: `1px solid ${accentColor}33`, borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: c.textSecondary, lineHeight: 1.5 }}>
+            <div style={{ marginTop: 12, padding: '8px 12px', background: `${accentColor}15`, border: `2px solid ${accentColor}33`, borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: c.textSecondary, lineHeight: 1.5 }}>
               📢 {toko.pengumuman}
             </div>
           )}
 
           {liveSession && (
-            <a href={`/${toko.slug}/live`} style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none', cursor: 'pointer' }}>
+            <motion.a
+              whileHover={{ scale: 1.02 }}
+              href={`/${toko.slug}/live`}
+              style={{ marginTop: 10, padding: '10px 14px', background: 'rgba(239,68,68,0.1)', border: '2px solid rgba(239,68,68,0.3)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', textDecoration: 'none', cursor: 'pointer' }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1s infinite' }} />
                 <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#ef4444' }}>LIVE SEKARANG</span>
                 <span style={{ fontSize: '0.78rem', color: c.textSecondary }}>{liveSession.title}</span>
               </div>
               <span style={{ fontSize: '0.75rem', color: '#ef4444', fontWeight: 700 }}>Tonton →</span>
-            </a>
+            </motion.a>
           )}
 
-          <div onClick={() => setTrackingOpen(true)} style={{ marginTop: 10, padding: '8px 12px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.background = c.surfaceHover} onMouseLeave={e => e.currentTarget.style.background = c.surface}>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            onClick={() => setTrackingOpen(true)}
+            style={{ marginTop: 10, padding: '8px 12px', background: c.surface, border: `2px solid ${c.borderCard}`, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <Truck size={14} color={accentColor} />
               <span style={{ fontSize: '0.78rem', color: c.textSecondary }}>Lacak pesananmu</span>
             </div>
             <span style={{ fontSize: '0.75rem', color: accentColor, fontWeight: 700 }}>→</span>
-          </div>
+          </motion.div>
 
-          <div onClick={() => setOngkirOpen(true)} style={{ marginTop: 6, padding: '8px 12px', background: c.surface, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', transition: 'all 0.15s ease' }} onMouseEnter={e => e.currentTarget.style.background = c.surfaceHover} onMouseLeave={e => e.currentTarget.style.background = c.surface}>
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            onClick={() => setOngkirOpen(true)}
+            style={{ marginTop: 6, padding: '8px 12px', background: c.surface, border: `2px solid ${c.borderCard}`, borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
               <MapPin size={14} color={accentColor} />
               <span style={{ fontSize: '0.78rem', color: c.textSecondary }}>Estimasi ongkir</span>
             </div>
             <span style={{ fontSize: '0.75rem', color: accentColor, fontWeight: 700 }}>→</span>
-          </div>
+          </motion.div>
         </div>
       </div>
 
@@ -918,18 +1125,22 @@ export default function StorefrontPage() {
         <div style={{ marginBottom: '16px' }}>
           <div style={{ position: 'relative' }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: c.textTertiary, pointerEvents: 'none' }} />
-            <input className="form-input" style={{ paddingLeft: 36 }} placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)} />
+            <input className="form-input" style={{ paddingLeft: 36, border: '2px solid var(--glass-border)' }} placeholder="Cari produk..." value={search} onChange={e => setSearch(e.target.value)} />
           </div>
         </div>
 
-        {/* ── UI FLASH SALE BANNER */}
         {flashProduk.length > 0 && (
-          <div style={{
-            margin: '0 0 16px',
-            background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
-            borderRadius: 12, padding: '12px 16px',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{
+              margin: '0 0 16px',
+              background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
+              borderRadius: 12, padding: '12px 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              border: '3px solid rgba(255,255,255,0.2)',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 18 }}>⚡</span>
               <div>
@@ -950,14 +1161,31 @@ export default function StorefrontPage() {
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {kategoriList.length > 1 && (
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'nowrap', overflowX: 'auto', marginBottom: '16px', paddingBottom: 4, scrollbarWidth: 'none' }}>
-            <button onClick={() => setFilterKat('all')} className="btn btn-sm" style={{ background: filterKat === 'all' ? accentColor + '22' : c.surface, color: filterKat === 'all' ? accentColor : c.textSecondary, border: `1px solid ${filterKat === 'all' ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>Semua</button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setFilterKat('all')}
+              className="btn btn-sm"
+              style={{ background: filterKat === 'all' ? accentColor + '22' : c.surface, color: filterKat === 'all' ? accentColor : c.textSecondary, border: `2px solid ${filterKat === 'all' ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
+            >
+              Semua
+            </motion.button>
             {kategoriList.map(k => (
-              <button key={k} onClick={() => setFilterKat(k)} className="btn btn-sm" style={{ background: filterKat === k ? accentColor + '22' : c.surface, color: filterKat === k ? accentColor : c.textSecondary, border: `1px solid ${filterKat === k ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}>{k}</button>
+              <motion.button
+                key={k}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setFilterKat(k)}
+                className="btn btn-sm"
+                style={{ background: filterKat === k ? accentColor + '22' : c.surface, color: filterKat === k ? accentColor : c.textSecondary, border: `2px solid ${filterKat === k ? accentColor + '44' : c.glassBorder}`, borderRadius: 'var(--radius-full)', whiteSpace: 'nowrap' }}
+              >
+                {k}
+              </motion.button>
             ))}
           </div>
         )}
@@ -969,7 +1197,7 @@ export default function StorefrontPage() {
           </div>
         ) : (
           <div className="produk-grid">
-            {filtered.map(p => (
+            {filtered.map((p, index) => (
               <ProdukCard
                 key={p.id}
                 produk={p}
@@ -977,6 +1205,7 @@ export default function StorefrontPage() {
                 tema={tema}
                 accentColor={accentColor}
                 c={c}
+                index={index}
                 onClick={() => setSelectedProduk(p)}
                 onShare={() => setShareTarget(p)}
                 flashProduk={flashProduk}
@@ -987,22 +1216,28 @@ export default function StorefrontPage() {
           </div>
         )}
 
-        {/* ── UI SECTION BUNDLE */}
         {bundles.length > 0 && (
           <div style={{ margin: '24px 0' }}>
             <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--text)', marginBottom: 12 }}>
               🎁 Paket Bundle
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {bundles.map(bundle => {
+              {bundles.map((bundle, i) => {
                 const produkDiBundle = produk.filter(p => bundle.produkIds.includes(p.id))
                 const totalNormal = produkDiBundle.reduce((s, p) => s + Number(p.harga), 0)
                 const hemat = totalNormal - bundle.hargaBundle
                 return (
-                  <div key={bundle.id} style={{
-                    background: 'var(--surface)', border: '1px solid var(--border)',
-                    borderRadius: 12, padding: '14px 16px',
-                  }}>
+                  <motion.div
+                    key={bundle.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    style={{
+                      background: 'var(--surface)', border: `3px solid ${c.borderCard}`,
+                      borderRadius: 12, padding: '14px 16px',
+                    }}
+                  >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text)' }}>
@@ -1040,18 +1275,17 @@ export default function StorefrontPage() {
                       </div>
                     </div>
 
-                    {/* Foto mini produk di bundle */}
                     <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
                       {produkDiBundle.slice(0, 4).map(p => {
                         const fotoUrl = parseFotos(p.foto)[0]
                         return (
                           <div key={p.id} style={{
                             width: 44, height: 44, borderRadius: 8, overflow: 'hidden',
-                            border: '1px solid var(--border)', flexShrink: 0,
+                            border: `2px solid ${c.borderCard}`, flexShrink: 0,
                             background: 'var(--surface)',
                           }}>
                             {fotoUrl ? (
-                              <img src={fotoUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              <img src={fotoUrl} alt={p.nama} loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
                               <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>📦</div>
                             )}
@@ -1060,7 +1294,9 @@ export default function StorefrontPage() {
                       })}
                     </div>
 
-                    <button
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         const msg = `Halo ${toko.nama}, saya mau pesan bundle *${bundle.nama}*\n\nIsi bundle:\n${produkDiBundle.map(p => `- ${p.nama}`).join('\n')}\n\nTotal: Rp ${Number(bundle.hargaBundle).toLocaleString('id-ID')}\n\nMohon konfirmasi ya! 🙏`
                         const waClean = toko.wa.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')
@@ -1069,13 +1305,13 @@ export default function StorefrontPage() {
                       style={{
                         width: '100%', marginTop: 12, padding: '10px',
                         borderRadius: 100, background: '#25D366', color: '#fff',
-                        border: 'none', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        border: '2px solid rgba(255,255,255,0.2)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                       }}
                     >
                       <span>💬</span> Pesan Bundle via WhatsApp
-                    </button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
                 )
               })}
             </div>
@@ -1085,15 +1321,25 @@ export default function StorefrontPage() {
         {toko.video && getYouTubeId(toko.video) && <div style={{ marginTop: 16 }}><VideoToko videoUrl={toko.video} c={c} /></div>}
       </div>
 
-      {selectedProduk && <ProdukModal produk={selectedProduk} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setSelectedProduk(null)} onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }} onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} />}
-      {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} getFlashInfo={getFlashInfo} />}
+      <AnimatePresence>
+        {selectedProduk && <ProdukModal produk={selectedProduk} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setSelectedProduk(null)} onCheckout={(p) => { setSelectedProduk(null); setCheckoutOpen(p) }} onChat={(p) => { setSelectedProduk(null); setChatOpen(p) }} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {checkoutOpen && <CheckoutModal produk={checkoutOpen} toko={toko} tema={tema} accentColor={accentColor} c={c} onClose={() => setCheckoutOpen(false)} getFlashInfo={getFlashInfo} />}
+      </AnimatePresence>
       {chatOpen !== false && <ChatModal produk={chatOpen || null} toko={toko} tema={tema} onClose={() => setChatOpen(false)} onCheckout={(p) => { setChatOpen(false); setCheckoutOpen(p) }} semuaProduk={produk} />}
-      {trackingOpen && <TrackingModal onClose={() => { setTrackingOpen(false); setInitialResi('') }} initialResi={initialResi} c={c} />}
-      {ongkirOpen && <OngkirModal onClose={() => setOngkirOpen(false)} c={c} />}
-      {shareTarget && <ShareModal produk={shareTarget} toko={toko} onClose={() => setShareTarget(null)} c={c} />}
+      <AnimatePresence>
+        {trackingOpen && <TrackingModal onClose={() => { setTrackingOpen(false); setInitialResi('') }} initialResi={initialResi} c={c} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {ongkirOpen && <OngkirModal onClose={() => setOngkirOpen(false)} c={c} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {shareTarget && <ShareModal produk={shareTarget} toko={toko} onClose={() => setShareTarget(null)} c={c} />}
+      </AnimatePresence>
       {toko.musik && <MusicPlayer musikUrl={toko.musik} tema={tema} c={c} />}
 
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: c.footerBg, backdropFilter: 'blur(16px)', borderTop: `1px solid ${c.footerBorder}`, padding: '8px 16px', textAlign: 'center', fontSize: '0.72rem', color: c.textPrimary }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100, background: c.footerBg, backdropFilter: 'blur(16px)', borderTop: `3px solid ${c.footerBorder}`, padding: '8px 16px', textAlign: 'center', fontSize: '0.72rem', color: c.textPrimary }}>
         Powered by <a href="/" style={{ color: '#3B82F6', fontWeight: 700 }}>Exora</a>
       </div>
     </div>
@@ -1101,40 +1347,88 @@ export default function StorefrontPage() {
 }
 
 function TokoAvatar({ toko, tema, c, size = 52, radius = 14, fontSize = 22 }) {
-  if (toko.logo) return <img src={toko.logo} alt={toko.nama} style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', flexShrink: 0, border: `1px solid ${c.glassBorder}`, boxShadow: `0 0 20px ${tema.accent}44` }} />
-  return <div style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44` }}>{toko.nama?.[0]?.toUpperCase()}</div>
+  if (toko.logo) return (
+    <motion.img
+      whileHover={{ scale: 1.1 }}
+      src={toko.logo}
+      alt={toko.nama}
+      loading="lazy"
+      style={{ width: size, height: size, borderRadius: radius, objectFit: 'cover', flexShrink: 0, border: `3px solid ${c.borderCard}`, boxShadow: `0 0 20px ${tema.accent}44` }}
+    />
+  )
+  return (
+    <motion.div
+      whileHover={{ scale: 1.1 }}
+      style={{ width: size, height: size, borderRadius: radius, flexShrink: 0, background: tema.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontWeight: 900, fontSize, color: '#fff', boxShadow: `0 0 20px ${tema.accent}44`, border: `3px solid ${c.borderCard}` }}
+    >
+      {toko.nama?.[0]?.toUpperCase()}
+    </motion.div>
+  )
 }
 
-function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare, flashProduk, countdown, getFlashInfo }) {
+function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare, flashProduk, countdown, getFlashInfo, index }) {
   const fotos = parseFotos(p.foto)
   const thumbUrl = fotos[0] || null
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
+  
   return (
-    <div onClick={onClick} style={{ position: 'relative', background: c.glass, backdropFilter: 'blur(20px)', border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', transition: 'all var(--transition-base)', boxShadow: 'var(--shadow-card)' }} onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.borderColor = `${accentColor}44` }} onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.borderColor = c.glassBorder }}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.4 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      style={{ position: 'relative', background: c.glass, backdropFilter: 'blur(20px)', border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-xl)', overflow: 'hidden', cursor: 'pointer', boxShadow: 'var(--shadow-card)' }}
+    >
       <div style={{ position: 'relative', aspectRatio: '3/4', overflow: 'hidden', background: c.surface }}>
-        {thumbUrl ? <img src={thumbUrl} alt={p.nama} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.textTertiary }}><Package size={32} /></div>}
+        {thumbUrl ? (
+          <img
+            src={cloudinaryThumb(thumbUrl, 300, 400)}
+            alt={p.nama}
+            loading="lazy"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
+          />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: c.textTertiary }}>
+            <Package size={32} />
+          </div>
+        )}
         {fotos.length > 1 && <div style={{ position: 'absolute', bottom: 5, right: 5, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)', borderRadius: 'var(--radius-full)', padding: '1px 6px', fontSize: '0.6rem', fontWeight: 700, color: '#fff' }}>1/{fotos.length}</div>}
-        {diskon && <div style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 'var(--radius-full)' }}>-{diskon}%</div>}
+        {diskon && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: 0.2, type: 'spring' }}
+            style={{ position: 'absolute', top: 6, left: 6, background: '#ef4444', color: '#fff', fontSize: '0.65rem', fontWeight: 800, padding: '2px 6px', borderRadius: 'var(--radius-full)' }}
+          >
+            -{diskon}%
+          </motion.div>
+        )}
         {p.stok === 0 && <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="badge badge-danger" style={{ fontSize: '0.65rem' }}>Habis</span></div>}
 
-        {/* ── UI FLASH SALE BADGE di card produk */}
         {(() => {
           const flash = getFlashInfo(p.id)
           if (!flash || !countdown[p.id]) return null
           return (
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, right: 0,
-              background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
-              padding: '4px 8px',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-            }}>
+            <motion.div
+              initial={{ y: 50 }}
+              animate={{ y: 0 }}
+              style={{
+                position: 'absolute', bottom: 0, left: 0, right: 0,
+                background: 'linear-gradient(135deg, #FF4E4E, #FF8C00)',
+                padding: '4px 8px',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                borderTop: '2px solid rgba(255,255,255,0.2)',
+              }}
+            >
               <span style={{ color: '#fff', fontWeight: 700, fontSize: 11 }}>
                 ⚡ Rp {Number(flash.hargaFlash).toLocaleString('id-ID')}
               </span>
               <span style={{ color: 'rgba(255,255,255,0.9)', fontSize: 10, fontFamily: 'monospace' }}>
                 {countdown[p.id]}
               </span>
-            </div>
+            </motion.div>
           )
         })()}
       </div>
@@ -1145,14 +1439,16 @@ function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare, f
           {p.hargaCoret && <p style={{ fontSize: '0.65rem', color: c.textTertiary, textDecoration: 'line-through' }}>{formatRupiah(p.hargaCoret)}</p>}
         </div>
       </div>
-      <button
+      <motion.button
+        whileHover={{ scale: 1.1, rotate: 15 }}
+        whileTap={{ scale: 0.95 }}
         onClick={(e) => { e.stopPropagation(); onShare() }}
         title="Bagikan produk ini"
         style={{ position: 'absolute', bottom: 8, right: 8, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}
       >
         <Share2 size={14} />
-      </button>
-    </div>
+      </motion.button>
+    </motion.div>
   )
 }
 
@@ -1161,12 +1457,40 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   const sold = p.stok === 0
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 640, margin: '0 auto', background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end' }}
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 640, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+      >
         <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: c.surface, flexShrink: 0 }}>
           <PhotoCarousel fotos={fotos} nama={p.nama} c={c} />
-          <button onClick={onClose} style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', padding: '7px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}><X size={15} /></button>
-          {diskon && <div style={{ position: 'absolute', top: 10, left: 10, background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--radius-full)', zIndex: 10 }}>-{diskon}%</div>}
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onClose}
+            style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', border: '2px solid rgba(255,255,255,0.15)', borderRadius: 'var(--radius-full)', padding: '7px', cursor: 'pointer', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+          >
+            <X size={15} />
+          </motion.button>
+          {diskon && (
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              style={{ position: 'absolute', top: 10, left: 10, background: '#ef4444', color: '#fff', fontSize: '0.75rem', fontWeight: 800, padding: '3px 9px', borderRadius: 'var(--radius-full)', zIndex: 10 }}
+            >
+              -{diskon}%
+            </motion.div>
+          )}
         </div>
         <div style={{ padding: '20px 20px 0', overflowY: 'auto', flex: 1 }}>
           {p.kategori && <p style={{ fontSize: '0.7rem', color: c.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{p.kategori}</p>}
@@ -1181,15 +1505,30 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
           <RatingSection produkId={p.id} tokoId={toko.id} tema={tema} c={c} />
           <div style={{ height: 20 }} />
         </div>
-        <div style={{ padding: '12px 16px', borderTop: `1px solid ${c.glassBorder}`, display: 'flex', gap: 10, alignItems: 'center', background: c.bgSecondary }}>
-          <button onClick={() => onChat(p)} className="btn btn-secondary btn-icon" style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--radius-md)' }} title="Tanya Penjual"><MessageCircle size={18} /></button>
-          <button onClick={() => !sold && onCheckout(p)} disabled={sold} style={{ flex: 1, height: 44, background: sold ? c.surface : tema.gradient, color: sold ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${accentColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'all 0.2s' }}>
+        <div style={{ padding: '12px 16px', borderTop: `3px solid ${c.borderCard}`, display: 'flex', gap: 10, alignItems: 'center', background: c.bgSecondary }}>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => onChat(p)}
+            className="btn btn-secondary btn-icon"
+            style={{ flexShrink: 0, width: 44, height: 44, borderRadius: 'var(--radius-md)', border: '2px solid var(--glass-border)' }}
+            title="Tanya Penjual"
+          >
+            <MessageCircle size={18} />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => !sold && onCheckout(p)}
+            disabled={sold}
+            style={{ flex: 1, height: 44, background: sold ? c.surface : tema.gradient, color: sold ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${accentColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          >
             <ShoppingBag size={16} />
             {sold ? 'Stok Habis' : 'Beli Sekarang'}
-          </button>
+          </motion.button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
@@ -1200,7 +1539,6 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
 
-  // ── Voucher state (self-contained di dalam CheckoutModal)
   const [voucherKode, setVoucherKode] = useState('')
   const [voucherApplied, setVoucherApplied] = useState(null)
   const [voucherLoading, setVoucherLoading] = useState(false)
@@ -1209,7 +1547,6 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
   const set = (field, val) => { setForm(f => ({ ...f, [field]: val })); if (errors[field]) setErrors(e => ({ ...e, [field]: null })) }
   const maxQty = p.stok || 99
 
-  // Harga efektif (pakai harga flash sale kalau sedang aktif)
   const flashInfo = getFlashInfo ? getFlashInfo(p.id) : null
   const hargaEfektif = flashInfo?.hargaFlash || p.harga
 
@@ -1253,46 +1590,72 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
   }
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end', animation: 'fadeIn 0.2s ease' }}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: c.bgSecondary, border: `1px solid ${c.glassBorder}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto', animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
-        <div style={{ padding: '16px 20px', borderBottom: `1px solid ${c.glassBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end' }}
+    >
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+        onClick={e => e.stopPropagation()}
+        style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto' }}
+      >
+        <div style={{ padding: '16px 20px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: c.textPrimary }}>Detail Pesanan</h3>
-          <button onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></button>
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }} onClick={onClose} className="btn btn-ghost btn-icon btn-sm"><X size={16} /></motion.button>
         </div>
         <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', gap: '12px', padding: '12px', background: c.surface, borderRadius: 'var(--radius-lg)', border: `1px solid ${c.glassBorder}` }}>
-            {thumbUrl && <img src={thumbUrl} alt={p.nama} style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
+          <div style={{ display: 'flex', gap: '12px', padding: '12px', background: c.surface, borderRadius: 'var(--radius-lg)', border: `3px solid ${c.borderCard}` }}>
+            {thumbUrl && <img src={thumbUrl} alt={p.nama} loading="lazy" style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 'var(--radius-md)', flexShrink: 0 }} />}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 3, color: c.textPrimary }}>{p.nama}</p>
               <p style={{ color: accentColor, fontWeight: 800, fontSize: '0.9rem' }}>{formatRupiah(hargaEfektif)}</p>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <button onClick={() => set('qty', Math.max(1, form.qty - 1))} style={{ width: 28, height: 28, borderRadius: '50%', background: c.surfaceHover, border: `1px solid ${c.glassBorder}`, cursor: 'pointer', color: c.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Minus size={12} /></button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => set('qty', Math.max(1, form.qty - 1))}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: c.surfaceHover, border: `2px solid ${c.glassBorder}`, cursor: 'pointer', color: c.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Minus size={12} />
+              </motion.button>
               <span style={{ fontWeight: 700, minWidth: 20, textAlign: 'center', fontSize: '0.9rem', color: c.textPrimary }}>{form.qty}</span>
-              <button onClick={() => set('qty', Math.min(maxQty, form.qty + 1))} style={{ width: 28, height: 28, borderRadius: '50%', background: c.surfaceHover, border: `1px solid ${c.glassBorder}`, cursor: 'pointer', color: c.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Plus size={12} /></button>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => set('qty', Math.min(maxQty, form.qty + 1))}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: c.surfaceHover, border: `2px solid ${c.glassBorder}`, cursor: 'pointer', color: c.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Plus size={12} />
+              </motion.button>
             </div>
           </div>
           <div className="form-group">
             <label className="form-label">Nama Lengkap *</label>
-            <input className={`form-input ${errors.nama ? 'error' : ''}`} placeholder="Nama penerima" value={form.nama} onChange={e => set('nama', e.target.value)} />
+            <input className={`form-input ${errors.nama ? 'error' : ''}`} placeholder="Nama penerima" value={form.nama} onChange={e => set('nama', e.target.value)} style={{ border: '2px solid var(--glass-border)' }} />
             {errors.nama && <span className="form-error">{errors.nama}</span>}
           </div>
           <div className="form-group">
             <label className="form-label">Nomor WhatsApp *</label>
-            <input className={`form-input ${errors.wa ? 'error' : ''}`} placeholder="081234567890" value={form.wa} onChange={e => set('wa', e.target.value)} />
+            <input className={`form-input ${errors.wa ? 'error' : ''}`} placeholder="081234567890" value={form.wa} onChange={e => set('wa', e.target.value)} style={{ border: '2px solid var(--glass-border)' }} />
             {errors.wa && <span className="form-error">{errors.wa}</span>}
           </div>
           <div className="form-group">
             <label className="form-label">Alamat Pengiriman *</label>
-            <textarea className={`form-input form-textarea ${errors.alamat ? 'error' : ''}`} placeholder="Alamat lengkap pengiriman..." value={form.alamat} onChange={e => set('alamat', e.target.value)} rows={3} />
+            <textarea className={`form-input form-textarea ${errors.alamat ? 'error' : ''}`} placeholder="Alamat lengkap pengiriman..." value={form.alamat} onChange={e => set('alamat', e.target.value)} rows={3} style={{ border: '2px solid var(--glass-border)' }} />
             {errors.alamat && <span className="form-error">{errors.alamat}</span>}
           </div>
           <div className="form-group">
             <label className="form-label">Catatan (Opsional)</label>
-            <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} />
+            <input className="form-input" placeholder="Warna, ukuran, atau permintaan khusus..." value={form.catatan} onChange={e => set('catatan', e.target.value)} style={{ border: '2px solid var(--glass-border)' }} />
           </div>
 
-          {/* ── UI VOUCHER di form checkout */}
           <div style={{ marginBottom: 16 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.05em' }}>
               KODE VOUCHER
@@ -1305,31 +1668,35 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
                 disabled={!!voucherApplied}
                 style={{
                   flex: 1, padding: '9px 12px',
-                  background: 'var(--input-bg)', border: `1px solid ${voucherApplied ? '#22c55e' : 'var(--border)'}`,
+                  background: 'var(--input-bg)', border: `2px solid ${voucherApplied ? '#22c55e' : 'var(--border)'}`,
                   borderRadius: 8, color: 'var(--text)', fontSize: 13,
                   fontFamily: 'monospace', letterSpacing: '0.05em',
                 }}
               />
               {voucherApplied ? (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => { setVoucherApplied(null); setVoucherKode('') }}
                   style={{
                     padding: '9px 14px', borderRadius: 8, fontSize: 12,
-                    background: 'transparent', border: '1px solid var(--border-danger)',
+                    background: 'transparent', border: '2px solid var(--border-danger)',
                     color: 'var(--danger)', cursor: 'pointer', whiteSpace: 'nowrap',
                   }}
-                >Hapus</button>
+                >Hapus</motion.button>
               ) : (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                   onClick={handleApplyVoucher}
                   disabled={voucherLoading || !voucherKode.trim()}
                   style={{
                     padding: '9px 14px', borderRadius: 8, fontSize: 12,
                     background: 'var(--accent)', color: '#fff',
-                    border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+                    border: '2px solid var(--accent)', cursor: 'pointer', whiteSpace: 'nowrap',
                     opacity: voucherLoading || !voucherKode.trim() ? 0.6 : 1,
                   }}
-                >{voucherLoading ? '...' : 'Pakai'}</button>
+                >{voucherLoading ? '...' : 'Pakai'}</motion.button>
               )}
             </div>
 
@@ -1338,25 +1705,28 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
             )}
 
             {voucherApplied && (
-              <div style={{
-                marginTop: 8, padding: '8px 12px', borderRadius: 8,
-                background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                style={{
+                  marginTop: 8, padding: '8px 12px', borderRadius: 8,
+                  background: 'rgba(34,197,94,0.1)', border: '2px solid rgba(34,197,94,0.3)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                }}
+              >
                 <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600 }}>
                   ✓ Voucher {voucherApplied.kode} berhasil dipakai
                 </span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>
                   -Rp {Number(voucherApplied.diskon).toLocaleString('id-ID')}
                 </span>
-              </div>
+              </motion.div>
             )}
 
-            {/* Update total di pesan WA kalau ada voucher */}
             {voucherApplied && (
               <div style={{
                 marginTop: 6, display: 'flex', justifyContent: 'space-between',
-                padding: '8px 0', borderTop: '1px solid var(--border)',
+                padding: '8px 0', borderTop: '2px solid var(--border)',
               }}>
                 <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Total setelah diskon</span>
                 <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--accent)' }}>
@@ -1366,31 +1736,41 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${accentColor}12`, border: `1px solid ${accentColor}22`, borderRadius: 'var(--radius-lg)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 14px', background: `${accentColor}12`, border: `3px solid ${accentColor}22`, borderRadius: 'var(--radius-lg)' }}>
             <span style={{ fontWeight: 700, color: c.textPrimary }}>Total</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: accentColor }}>{formatRupiah(hargaEfektif * form.qty)}</span>
           </div>
-          <button onClick={handleCheckout} disabled={submitting} style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${accentColor}44` }}>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleCheckout}
+            disabled={submitting}
+            style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${accentColor}44` }}
+          >
             <MessageCircle size={17} />
             {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
-          </button>
+          </motion.button>
           <p style={{ textAlign: 'center', color: c.textTertiary, fontSize: '0.72rem' }}>Kamu akan diarahkan ke WhatsApp penjual dengan detail pesanan otomatis</p>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   )
 }
 
-function StorefrontSkeleton() {
+function StorefrontSkeleton({ c }) {
   return (
-    <div style={{ minHeight: '100vh' }}>
+    <div style={{ minHeight: '100vh', background: c.bgPrimary }}>
       <style>{`
         .produk-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
         @media (min-width: 500px) { .produk-grid { grid-template-columns: repeat(3, 1fr); } }
         @media (min-width: 700px) { .produk-grid { grid-template-columns: repeat(4, 1fr); } }
         @media (min-width: 1000px) { .produk-grid { grid-template-columns: repeat(5, 1fr); } }
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
       `}</style>
-      <div style={{ padding: '20px 16px', borderBottom: '1px solid var(--glass-border)' }}>
+      <div style={{ padding: '20px 16px', borderBottom: `3px solid ${c.borderCard}` }}>
         <div style={{ maxWidth: 900, margin: '0 auto', display: 'flex', gap: 12, alignItems: 'center' }}>
           <div className="skeleton" style={{ width: 52, height: 52, borderRadius: '14px', flexShrink: 0 }} />
           <div style={{ flex: 1 }}>
@@ -1401,7 +1781,9 @@ function StorefrontSkeleton() {
       </div>
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px' }}>
         <div className="produk-grid">
-          {Array(6).fill(0).map((_, i) => <div key={i} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: 'var(--radius-xl)' }} />)}
+          {Array(6).fill(0).map((_, i) => (
+            <div key={i} className="skeleton" style={{ aspectRatio: '3/4', borderRadius: 'var(--radius-xl)', border: `3px solid ${c.borderCard}` }} />
+          ))}
         </div>
       </div>
     </div>
