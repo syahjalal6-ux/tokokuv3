@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './lib/store.js'
@@ -89,13 +89,13 @@ function PageWrapper({ children }) {
 export default function App() {
   const init = useAuthStore(s => s.init)
   const location = useLocation()
-  
+
   useEffect(() => {
     init()
   }, [init])
 
   return (
-    <BrowserRouter>
+    <>
       <div className="bg-mesh">
         <div className="bg-mesh-mid" />
       </div>
@@ -146,6 +146,6 @@ export default function App() {
           <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
         </Routes>
       </AnimatePresence>
-    </BrowserRouter>
+    </>
   )
 }
