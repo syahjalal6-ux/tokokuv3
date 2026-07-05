@@ -202,6 +202,7 @@ export default function StreamPage() {
   const [notifOpen, setNotifOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [scrollProgress, setScrollProgress] = useState(0)
+  const [expandedPosts, setExpandedPosts] = useState({})
 
   useEffect(() => {
     loadFeed(tokenObj, {})
@@ -328,6 +329,10 @@ export default function StreamPage() {
     }
   }
 
+  const toggleExpandPost = (postId) => {
+    setExpandedPosts(prev => ({ ...prev, [postId]: !prev[postId] }))
+  }
+
   // ── DM thread view ──
   if (view === 'dm-thread' && activeThreadId) {
     const thread = dmThreads.find(t => t.id === activeThreadId)
@@ -370,6 +375,8 @@ export default function StreamPage() {
           onDm={openDm}
           onTag={handleTag}
           onDelete={handleDeletePost}
+          isExpanded={expandedPosts[postDetail?.id] || false}
+          onToggleExpand={() => toggleExpandPost(postDetail?.id)}
         />
         {replyTarget && (
           <ReplySheet
@@ -525,6 +532,8 @@ export default function StreamPage() {
               onDm={() => openDm(post.toko?.id)}
               onTag={handleTag}
               onDelete={() => handleDeletePost(post.id)}
+              isExpanded={expandedPosts[post.id] || false}
+              onToggleExpand={() => toggleExpandPost(post.id)}
             />
           ))}
         </div>
@@ -581,7 +590,7 @@ export default function StreamPage() {
 // ================================================
 // POST CARD
 // ================================================
-function PostCard({ post, index, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete }) {
+function PostCard({ post, index, myTokoId, pro, onExpand, onLike, onRepost, onBookmark, onReply, onReplyToComment, onDm, onTag, onDelete, isExpanded, onToggleExpand }) {
   const t = post.toko
   const isMine = myTokoId != null && t?.id != null && String(t.id) === String(myTokoId)
   const previewReplies = post.previewReplies?.length
@@ -656,7 +665,7 @@ function PostCard({ post, index, myTokoId, pro, onExpand, onLike, onRepost, onBo
             )}
           </div>
           <PostTypeBadge type={post.postType} />
-          <PostText text={post.teks} onTag={onTag} />
+          <PostText text={post.teks} onTag={onTag} isExpanded={isExpanded} onToggleExpand={onToggleExpand} />
           <PostImages images={post.foto} />
           {post.shopLink && <ShopLinkCard link={post.shopLink} />}
           <HashtagPills tags={post.hashtags} onTag={onTag} />
@@ -780,7 +789,7 @@ function FeedReplyItem({ reply, postId, myTokoId, depth = 0, onReplyToComment, o
 // ================================================
 // POST DETAIL VIEW
 // ================================================
-function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete }) {
+function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost, onBookmark, onReply, onDm, onTag, onDelete, isExpanded, onToggleExpand }) {
   const liveReplies = post?.replies || []
 
   if (loading || !post) {
@@ -827,7 +836,7 @@ function PostDetailView({ post, loading, myTokoId, pro, onBack, onLike, onRepost
             )}
           </div>
           <PostTypeBadge type={post.postType} />
-          <PostText text={post.teks} onTag={onTag} />
+          <PostText text={post.teks} onTag={onTag} isExpanded={isExpanded} onToggleExpand={onToggleExpand} />
           <PostImages images={post.foto} />
           {post.shopLink && <ShopLinkCard link={post.shopLink} />}
           <HashtagPills tags={post.hashtags} onTag={onTag} />
@@ -1000,7 +1009,7 @@ function DmThreadView({ thread, messages, myTokoId, onBack, onSend }) {
               maxWidth: '72%', padding: '10px 13px',
               borderRadius: m.isMine ? 'var(--radius-xl) var(--radius-xl) 4px var(--radius-xl)' : 'var(--radius-xl) var(--radius-xl) var(--radius-xl) 4px',
               background: m.isMine ? 'var(--accent-gradient)' : 'var(--surface)',
-              border: `3px solid ${m.isMine ? 'var(--glass-border)' : 'var(--glass-border)'}`,
+              border: `3px solid ${m.isMine ? THEME_TOKENS.light.bubbleBorderMine : THEME_TOKENS.light.bubbleBorderOther}`,
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
             }}>
               <p style={{ fontFamily: PJS, fontSize: '0.855rem', color: m.isMine ? '#fff' : 'var(--text-primary)', margin: 0, lineHeight: 1.55 }}>{m.teks}</p>
@@ -1514,22 +1523,64 @@ function PostActions({ likesCount, repostsCount, repliesCount, liked, reposted, 
   )
 }
 
-function PostText({ text, onTag }) {
+// PostText dengan fitur See More
+function PostText({ text, onTag, isExpanded, onToggleExpand }) {
+  const MAX_CHARS = 200
+  const teks = text || ''
+  const shouldTruncate = teks.length > MAX_CHARS
+  const displayText = isExpanded || !shouldTruncate ? teks : teks.slice(0, MAX_CHARS)
+  
   return (
-    <p style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 10px', whiteSpace: 'pre-line' }}>
-      {String(text || '').split(/(\s+)/).map((w, i) =>
-        w.startsWith('#')
-          ? <motion.span
-              key={i}
-              whileHover={{ scale: 1.05 }}
-              onClick={() => onTag(w)}
-              style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', display: 'inline-block' }}
-            >
-              {w}
-            </motion.span>
-          : w
+    <div>
+      <p style={{ fontFamily: PJS, fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 5px', whiteSpace: 'pre-line' }}>
+        {displayText.split(/(\s+)/).map((w, i) =>
+          w.startsWith('#')
+            ? <motion.span
+                key={i}
+                whileHover={{ scale: 1.05 }}
+                onClick={() => onTag(w)}
+                style={{ color: 'var(--accent)', fontWeight: 600, cursor: 'pointer', display: 'inline-block' }}
+              >
+                {w}
+              </motion.span>
+            : w
+        )}
+        {shouldTruncate && !isExpanded && '...'}
+      </p>
+      
+      {shouldTruncate && (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onToggleExpand}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--accent)',
+            fontFamily: PJS,
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            padding: '4px 0 10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+          }}
+        >
+          {isExpanded ? (
+            <>
+              Lihat lebih sedikit
+              <ChevronUp size={14} />
+            </>
+          ) : (
+            <>
+              Lihat selengkapnya
+              <ChevronDown size={14} />
+            </>
+          )}
+        </motion.button>
       )}
-    </p>
+    </div>
   )
 }
 
