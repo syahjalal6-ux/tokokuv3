@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './lib/store.js'
-import AdminGuard from './lib/AdminGuard.jsx'
+import AdminGuard, { isAdminEmail } from './lib/AdminGuard.jsx'
 // Pages
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
@@ -44,9 +44,12 @@ function PrivateRoute({ children }) {
 }
 
 function PublicRoute({ children }) {
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isAuthenticated, isLoading, user } = useAuthStore()
   if (isLoading) return <AppLoader />
-  if (isAuthenticated) return <Navigate to="/dashboard" replace />
+  if (isAuthenticated) {
+    // Admin gak perlu ke /dashboard (yang minta bikin toko dulu)
+    return <Navigate to={isAdminEmail(user?.email) ? '/admin' : '/dashboard'} replace />
+  }
   return children
 }
 
