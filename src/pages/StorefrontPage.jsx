@@ -8,6 +8,7 @@ import { formatRupiah, generateCheckoutMessage, generateWALink, validateWA, trun
 import { CONFIG } from '../lib/config.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
 import { useTheme } from '../lib/useTheme.js'
+import confetti from 'canvas-confetti'
 
 const TEMA = {
   default: { accent: '#5b8af5', accent2: '#7c6af7', gradient: 'linear-gradient(135deg, #5b8af5, #7c6af7)' },
@@ -46,6 +47,133 @@ const THEMES = {
     footerBorder: '#e7e7ea',
   },
 }
+
+// ========== TAMBAHAN FITUR BARU: Helpers ==========
+
+// 1. Magnetic Button - tombol yang mengikuti kursor saat hover
+function MagneticButton({ children, strength = 0.3, style, className, ...props }) {
+  const ref = useRef(null)
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+
+  const handleMouseMove = (e) => {
+    if (!ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const centerX = rect.left + rect.width / 2
+    const centerY = rect.top + rect.height / 2
+    const dx = e.clientX - centerX
+    const dy = e.clientY - centerY
+    setOffset({ x: dx * strength, y: dy * strength })
+  }
+
+  const handleMouseLeave = () => setOffset({ x: 0, y: 0 })
+
+  return (
+    <motion.div
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      animate={{ x: offset.x, y: offset.y }}
+      transition={{ type: 'spring', stiffness: 150, damping: 15, mass: 0.1 }}
+      style={{ display: 'inline-block', ...style }}
+      className={className}
+      {...props}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// 2. Parallax - hook untuk efek paralaks berdasarkan scroll/mouse
+function useParallax(strength = 0.1) {
+  const [offset, setOffset] = useState({ x: 0, y: 0 })
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const x = (e.clientX - window.innerWidth / 2) * strength
+      const y = (e.clientY - window.innerHeight / 2) * strength
+      setOffset({ x, y })
+    }
+    window.addEventListener('mousemove', handleMouseMove)
+    return () => window.removeEventListener('mousemove', handleMouseMove)
+  }, [strength])
+
+  return offset
+}
+
+// 3. Shake-to-Refresh - hook untuk deteksi goyangan perangkat
+function useShakeDetection(onShake, threshold = 15) {
+  const lastShake = useRef(0)
+  const lastAcc = useRef({ x: 0, y: 0, z: 0 })
+
+  useEffect(() => {
+    const handleMotion = (e) => {
+      const acc = e.accelerationIncludingGravity || e.acceleration
+      if (!acc || acc.x == null) return
+      const deltaX = Math.abs(acc.x - lastAcc.current.x)
+      const deltaY = Math.abs(acc.y - lastAcc.current.y)
+      const deltaZ = Math.abs(acc.z - lastAcc.current.z)
+      if ((deltaX + deltaY + deltaZ) > threshold) {
+        const now = Date.now()
+        if (now - lastShake.current > 1500) {
+          lastShake.current = now
+          onShake && onShake()
+        }
+      }
+      lastAcc.current = { x: acc.x || 0, y: acc.y || 0, z: acc.z || 0 }
+    }
+
+    const enable = () => {
+      if (typeof DeviceMotionEvent !== 'undefined') {
+        if (typeof DeviceMotionEvent.requestPermission === 'function') {
+          DeviceMotionEvent.requestPermission().then(res => {
+            if (res === 'granted') window.addEventListener('devicemotion', handleMotion)
+          }).catch(() => {})
+        } else {
+          window.addEventListener('devicemotion', handleMotion)
+        }
+      }
+    }
+
+    // Auto-enable on first user interaction (untuk iOS)
+    const onFirstTouch = () => {
+      enable()
+      document.removeEventListener('touchstart', onFirstTouch)
+    }
+    document.addEventListener('touchstart', onFirstTouch, { once: true })
+    enable()
+
+    return () => {
+      window.removeEventListener('devicemotion', handleMotion)
+      document.removeEventListener('touchstart', onFirstTouch)
+    }
+  }, [onShake, threshold])
+}
+
+// 4. Confetti helper - fungsi untuk memicu confetti
+function fireConfetti() {
+  const duration = 2000
+  const end = Date.now() + duration
+  const colors = ['#5b8af5', '#7c6af7', '#f59e0b', '#ef4444', '#10b981', '#f43f5e']
+  ;(function frame() {
+    confetti({
+      particleCount: 3,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0, y: 0.7 },
+      colors,
+    })
+    confetti({
+      particleCount: 3,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1, y: 0.7 },
+      colors,
+    })
+    if (Date.now() < end) requestAnimationFrame(frame)
+  })()
+}
+
+// ========== AKHIR TAMBAHAN FITUR BARU ==========
 
 function parseFotos(foto) {
   if (!foto) return []
@@ -880,6 +1008,17 @@ export default function StorefrontPage() {
 
   const debouncedSearch = useDebounce(search, 300)
 
+  // ========== TAMBAHAN: Shake-to-Refresh ==========
+  const parallaxOffset = useParallax(0.05)
+  const handleShake = useCallback(() => {
+    if (toko?.id) {
+      fireConfetti()
+      loadStorefront()
+    }
+  }, [toko?.id])
+  useShakeDetection(handleShake, 18)
+  // ========== AKHIR TAMBAHAN ==========
+
   useEffect(() => {
     if (toko?.id) {
       trafficApi.trackVisit(toko.id).catch(() => {})
@@ -1040,7 +1179,30 @@ export default function StorefrontPage() {
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
       `}</style>
 
-      <div style={{ background: `linear-gradient(180deg, ${accentColor}22 0%, transparent 100%)`, borderBottom: `3px solid ${c.borderCard}`, padding: '20px 16px 16px' }}>
+      {/* ========== TAMBAHAN: Parallax decorative blobs ========== */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 400, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+        <motion.div
+          animate={{ x: parallaxOffset.x * 2, y: parallaxOffset.y * 2 }}
+          transition={{ type: 'spring', stiffness: 50, damping: 30 }}
+          style={{
+            position: 'absolute', top: -100, right: -100,
+            width: 300, height: 300, borderRadius: '50%',
+            background: `${accentColor}22`, filter: 'blur(60px)',
+          }}
+        />
+        <motion.div
+          animate={{ x: -parallaxOffset.x * 1.5, y: -parallaxOffset.y * 1.5 }}
+          transition={{ type: 'spring', stiffness: 50, damping: 30 }}
+          style={{
+            position: 'absolute', top: 100, left: -80,
+            width: 250, height: 250, borderRadius: '50%',
+            background: `${tema.accent2}22`, filter: 'blur(60px)',
+          }}
+        />
+      </div>
+      {/* ========== AKHIR TAMBAHAN ========== */}
+
+      <div style={{ position: 'relative', background: `linear-gradient(180deg, ${accentColor}22 0%, transparent 100%)`, borderBottom: `3px solid ${c.borderCard}`, padding: '20px 16px 16px', zIndex: 1 }}>
         <div style={{ maxWidth: 900, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <TokoAvatar toko={toko} tema={tema} c={c} size={52} radius={14} fontSize={22} />
@@ -1062,15 +1224,19 @@ export default function StorefrontPage() {
               >
                 {theme === 'light' ? <Moon size={15} /> : <Sun size={15} />}
               </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setChatOpen(null)}
-                className="btn btn-sm"
-                style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${accentColor}44`, flexShrink: 0, padding: '7px 12px' }}
-              >
-                <MessageCircle size={13} />
-              </motion.button>
+              {/* ========== TAMBAHAN: Magnetic Button pada Chat ========== */}
+              <MagneticButton strength={0.35}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setChatOpen(null)}
+                  className="btn btn-sm"
+                  style={{ background: tema.gradient, color: '#fff', border: 'none', boxShadow: `0 4px 12px ${accentColor}44`, flexShrink: 0, padding: '7px 12px' }}
+                >
+                  <MessageCircle size={13} />
+                </motion.button>
+              </MagneticButton>
+              {/* ========== AKHIR TAMBAHAN ========== */}
             </div>
           </div>
 
@@ -1121,7 +1287,7 @@ export default function StorefrontPage() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '16px 16px 80px' }}>
+      <div style={{ position: 'relative', maxWidth: 900, margin: '0 auto', padding: '16px 16px 80px', zIndex: 1 }}>
         <div style={{ marginBottom: '16px' }}>
           <div style={{ position: 'relative' }}>
             <Search size={15} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: c.textTertiary, pointerEvents: 'none' }} />
@@ -1294,23 +1460,27 @@ export default function StorefrontPage() {
                       })}
                     </div>
 
-                    <motion.button
-                      whileHover={{ scale: 1.03 }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => {
-                        const msg = `Halo ${toko.nama}, saya mau pesan bundle *${bundle.nama}*\n\nIsi bundle:\n${produkDiBundle.map(p => `- ${p.nama}`).join('\n')}\n\nTotal: Rp ${Number(bundle.hargaBundle).toLocaleString('id-ID')}\n\nMohon konfirmasi ya! 🙏`
-                        const waClean = toko.wa.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')
-                        window.open(`https://wa.me/${waClean}?text=${encodeURIComponent(msg)}`, '_blank')
-                      }}
-                      style={{
-                        width: '100%', marginTop: 12, padding: '10px',
-                        borderRadius: 100, background: '#25D366', color: '#fff',
-                        border: '2px solid rgba(255,255,255,0.2)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                      }}
-                    >
-                      <span>💬</span> Pesan Bundle via WhatsApp
-                    </motion.button>
+                    {/* ========== TAMBAHAN: Magnetic Button pada Pesan Bundle ========== */}
+                    <MagneticButton strength={0.25} style={{ width: '100%', marginTop: 12 }}>
+                      <motion.button
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => {
+                          const msg = `Halo ${toko.nama}, saya mau pesan bundle *${bundle.nama}*\n\nIsi bundle:\n${produkDiBundle.map(p => `- ${p.nama}`).join('\n')}\n\nTotal: Rp ${Number(bundle.hargaBundle).toLocaleString('id-ID')}\n\nMohon konfirmasi ya! 🙏`
+                          const waClean = toko.wa.replace(/[^0-9]/g, '').replace(/^0/, '62').replace(/^8/, '628')
+                          window.open(`https://wa.me/${waClean}?text=${encodeURIComponent(msg)}`, '_blank')
+                        }}
+                        style={{
+                          width: '100%', padding: '10px',
+                          borderRadius: 100, background: '#25D366', color: '#fff',
+                          border: '2px solid rgba(255,255,255,0.2)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                        }}
+                      >
+                        <span>💬</span> Pesan Bundle via WhatsApp
+                      </motion.button>
+                    </MagneticButton>
+                    {/* ========== AKHIR TAMBAHAN ========== */}
                   </motion.div>
                 )
               })}
@@ -1516,16 +1686,20 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
           >
             <MessageCircle size={18} />
           </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => !sold && onCheckout(p)}
-            disabled={sold}
-            style={{ flex: 1, height: 44, background: sold ? c.surface : tema.gradient, color: sold ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${accentColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-          >
-            <ShoppingBag size={16} />
-            {sold ? 'Stok Habis' : 'Beli Sekarang'}
-          </motion.button>
+          {/* ========== TAMBAHAN: Magnetic Button pada Beli Sekarang ========== */}
+          <MagneticButton strength={0.2} style={{ flex: 1 }}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => !sold && onCheckout(p)}
+              disabled={sold}
+              style={{ width: '100%', height: 44, background: sold ? c.surface : tema.gradient, color: sold ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.9rem', cursor: sold ? 'not-allowed' : 'pointer', boxShadow: sold ? 'none' : `0 4px 20px ${accentColor}44`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            >
+              <ShoppingBag size={16} />
+              {sold ? 'Stok Habis' : 'Beli Sekarang'}
+            </motion.button>
+          </MagneticButton>
+          {/* ========== AKHIR TAMBAHAN ========== */}
         </div>
       </motion.div>
     </motion.div>
@@ -1568,7 +1742,10 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
     try {
       const totalBelanja = hargaEfektif * (form.qty || 1)
       const res = await voucherApi.validate(toko.id, voucherKode.trim(), totalBelanja)
-      if (res.success) setVoucherApplied(res.data)
+      if (res.success) {
+        setVoucherApplied(res.data)
+        fireConfetti() // ========== TAMBAHAN: Confetti saat voucher berhasil ==========
+      }
       else setVoucherError(res.message || 'Voucher tidak valid')
     } catch (e) {
       setVoucherError(e.message || 'Voucher tidak valid')
@@ -1583,6 +1760,7 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
       await pesananApi.create({ tokoId: toko.id, produkId: p.id, produkNama: p.nama, harga: hargaEfektif, qty: form.qty, total: hargaEfektif * form.qty, buyerNama: form.nama, buyerWa: form.wa, buyerAlamat: form.alamat, catatan: form.catatan || '' })
       const message = generateCheckoutMessage(p, toko, form) + `${voucherApplied ? `\n🎟️ Voucher: ${voucherApplied.kode} (-Rp ${Number(voucherApplied.diskon).toLocaleString('id-ID')})\n💰 Total Bayar: Rp ${Number(voucherApplied.totalSetelahDiskon).toLocaleString('id-ID')}` : ''}`
       const link = generateWALink(toko.wa, message)
+      fireConfetti() // ========== TAMBAHAN: Confetti saat checkout berhasil ==========
       window.open(link, '_blank')
       onClose()
     } catch (err) { alert('Gagal menyimpan pesanan: ' + err.message) }
@@ -1740,16 +1918,20 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
             <span style={{ fontWeight: 700, color: c.textPrimary }}>Total</span>
             <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: '1.05rem', color: accentColor }}>{formatRupiah(hargaEfektif * form.qty)}</span>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleCheckout}
-            disabled={submitting}
-            style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${accentColor}44` }}
-          >
-            <MessageCircle size={17} />
-            {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
-          </motion.button>
+          {/* ========== TAMBAHAN: Magnetic Button pada tombol Checkout ========== */}
+          <MagneticButton strength={0.2} style={{ width: '100%' }}>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={handleCheckout}
+              disabled={submitting}
+              style={{ width: '100%', height: 48, background: submitting ? c.surface : tema.gradient, color: submitting ? c.textTertiary : '#fff', border: 'none', borderRadius: 'var(--radius-full)', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.95rem', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: submitting ? 'none' : `0 4px 24px ${accentColor}44` }}
+            >
+              <MessageCircle size={17} />
+              {submitting ? 'Menyimpan...' : 'Lanjut ke WhatsApp Penjual'}
+            </motion.button>
+          </MagneticButton>
+          {/* ========== AKHIR TAMBAHAN ========== */}
           <p style={{ textAlign: 'center', color: c.textTertiary, fontSize: '0.72rem' }}>Kamu akan diarahkan ke WhatsApp penjual dengan detail pesanan otomatis</p>
         </div>
       </motion.div>
