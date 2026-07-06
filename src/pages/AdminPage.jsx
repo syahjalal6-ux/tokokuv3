@@ -9,7 +9,7 @@ import { useAuthStore } from '../lib/store.js'
 import { formatDate, formatRupiah } from '../lib/utils.js'
 import { adminApi } from '../lib/api/index.js'
 import toast from 'react-hot-toast'
-import { Link } from 'react-router-dom'D
+import { Link } from 'react-router-dom'
 
 const DURATIONS = [
   { label: '1 Bulan', months: 1 },
