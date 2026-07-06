@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../lib/store.js'
 import { CONFIG } from '../lib/config.js'
+import { isAdminEmail } from '../lib/AdminGuard.jsx'
 import toast from 'react-hot-toast'
 
 const PJS = "'Plus Jakarta Sans', sans-serif"
@@ -94,7 +95,9 @@ export default function LoginPage() {
         sub: payload.sub,
       })
       toast.success(`Selamat datang, ${payload.name.split(' ')[0]}! 👋`)
-      navigate('/dashboard')
+
+      // Admin langsung ke panel admin, tanpa perlu bikin toko dulu
+      navigate(isAdminEmail(payload.email) ? '/admin' : '/dashboard')
     } catch (err) {
       toast.error(err.message || 'Login gagal, coba lagi')
     } finally {
