@@ -23,7 +23,8 @@
     "livekit-server-sdk": "^2.13.0",
     "@livekit/components-react": "^2.6.0",
     "@livekit/components-styles": "^1.1.0",
-    "canvas-confetti": "^1.9.3"
+    "canvas-confetti": "^1.9.3",
+    "gsap": "^3.12.5"
   },
   "devDependencies": {
     "@types/react": "^18.3.11",
