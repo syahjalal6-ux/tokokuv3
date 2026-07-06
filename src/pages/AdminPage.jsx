@@ -9,6 +9,7 @@ import { useAuthStore } from '../lib/store.js'
 import { formatDate, formatRupiah } from '../lib/utils.js'
 import { adminApi } from '../lib/api/index.js'
 import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'D
 
 const DURATIONS = [
   { label: '1 Bulan', months: 1 },
@@ -141,6 +142,9 @@ export default function AdminPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Link to="/dashboard" className="btn btn-ghost btn-sm">
+            <Store size={14} /> Dashboard Toko
+          </Link>
           <button onClick={loadAll} className="btn btn-ghost btn-icon btn-sm" disabled={loading}>
             <RefreshCw size={15} style={{ animation: loading ? 'spin 0.7s linear infinite' : 'none' }} />
           </button>
