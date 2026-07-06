@@ -22,7 +22,8 @@
     "@supabase/supabase-js": "^2.45.0",
     "livekit-server-sdk": "^2.13.0",
     "@livekit/components-react": "^2.6.0",
-    "@livekit/components-styles": "^1.1.0"
+    "@livekit/components-styles": "^1.1.0",
+    "canvas-confetti": "^1.9.3"
   },
   "devDependencies": {
     "@types/react": "^18.3.11",
