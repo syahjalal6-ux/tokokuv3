@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { useAuthStore } from './lib/store.js'
 import AdminGuard, { isAdminEmail } from './lib/AdminGuard.jsx'
+import InstallPrompt from './components/InstallPrompt.jsx'
 // Pages
 import LandingPage from './pages/LandingPage.jsx'
 import LoginPage from './pages/LoginPage.jsx'
