@@ -9,6 +9,11 @@ import { CONFIG } from '../lib/config.js'
 import ChatModal from '../components/seller/ChatModal.jsx'
 import { useTheme } from '../lib/useTheme.js'
 import confetti from 'canvas-confetti'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { Draggable } from 'gsap/Draggable'
+
+gsap.registerPlugin(ScrollTrigger, Draggable)
 
 const TEMA = {
   default: { accent: '#5b8af5', accent2: '#7c6af7', gradient: 'linear-gradient(135deg, #5b8af5, #7c6af7)' },
@@ -1008,7 +1013,7 @@ export default function StorefrontPage() {
 
   const debouncedSearch = useDebounce(search, 300)
 
-  // ========== TAMBAHAN: Shake-to-Refresh ==========
+  // ========== TAMBAHAN: Shake-to-Refresh & Parallax ==========
   const parallaxOffset = useParallax(0.05)
   const handleShake = useCallback(() => {
     if (toko?.id) {
@@ -1017,6 +1022,40 @@ export default function StorefrontPage() {
     }
   }, [toko?.id])
   useShakeDetection(handleShake, 18)
+  // ========== AKHIR TAMBAHAN ==========
+
+  // ========== TAMBAHAN: GSAP ScrollTrigger & Stagger ==========
+  useEffect(() => {
+    if (!loading && produk.length > 0) {
+      // Stagger animation saat load
+      gsap.fromTo('.produk-card', 
+        { y: 30, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          stagger: 0.08,
+          duration: 0.5,
+          ease: 'power2.out'
+        }
+      )
+
+      // ScrollTrigger untuk auto reveal
+      ScrollTrigger.batch('.produk-card', {
+        onEnter: (elements) => {
+          gsap.fromTo(elements,
+            { y: 50, opacity: 0 },
+            { y: 0, opacity: 1, stagger: 0.1, duration: 0.6, ease: 'power2.out' }
+          )
+        },
+        start: 'top 90%',
+        once: true
+      })
+    }
+
+    return () => {
+      ScrollTrigger.getAll().forEach(trigger => trigger.kill())
+    }
+  }, [loading, produk, filtered])
   // ========== AKHIR TAMBAHAN ==========
 
   useEffect(() => {
@@ -1543,6 +1582,7 @@ function ProdukCard({ produk: p, toko, tema, accentColor, c, onClick, onShare, f
   
   return (
     <motion.div
+      className="produk-card"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.4 }}
@@ -1626,6 +1666,35 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
   const fotos = parseFotos(p.foto)
   const diskon = p.hargaCoret ? Math.round((1 - p.harga / p.hargaCoret) * 100) : null
   const sold = p.stok === 0
+  const modalRef = useRef(null)
+
+  // ========== TAMBAHAN: GSAP Draggable untuk bottom sheet ==========
+  useEffect(() => {
+    if (modalRef.current) {
+      const draggable = Draggable.create(modalRef.current, {
+        type: 'y',
+        bounds: { minY: 0 },
+        onDragEnd: function() {
+          if (this.y > 100) {
+            gsap.to(modalRef.current, { 
+              y: '100%', 
+              duration: 0.3, 
+              ease: 'power2.in',
+              onComplete: onClose 
+            })
+          } else {
+            gsap.to(modalRef.current, { y: 0, duration: 0.3, ease: 'back.out(1.7)' })
+          }
+        }
+      })
+
+      return () => {
+        draggable.forEach(d => d.kill())
+      }
+    }
+  }, [onClose])
+  // ========== AKHIR TAMBAHAN ==========
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -1635,12 +1704,13 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
       style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end' }}
     >
       <motion.div
+        ref={modalRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 640, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
+        style={{ width: '100%', maxWidth: 640, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column', cursor: 'grab' }}
       >
         <div style={{ position: 'relative', aspectRatio: '4/3', overflow: 'hidden', background: c.surface, flexShrink: 0 }}>
           <PhotoCarousel fotos={fotos} nama={p.nama} c={c} />
@@ -1718,6 +1788,35 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
   const [voucherLoading, setVoucherLoading] = useState(false)
   const [voucherError, setVoucherError] = useState('')
 
+  const modalRef = useRef(null)
+
+  // ========== TAMBAHAN: GSAP Draggable untuk bottom sheet ==========
+  useEffect(() => {
+    if (modalRef.current) {
+      const draggable = Draggable.create(modalRef.current, {
+        type: 'y',
+        bounds: { minY: 0 },
+        onDragEnd: function() {
+          if (this.y > 100) {
+            gsap.to(modalRef.current, { 
+              y: '100%', 
+              duration: 0.3, 
+              ease: 'power2.in',
+              onComplete: onClose 
+            })
+          } else {
+            gsap.to(modalRef.current, { y: 0, duration: 0.3, ease: 'back.out(1.7)' })
+          }
+        }
+      })
+
+      return () => {
+        draggable.forEach(d => d.kill())
+      }
+    }
+  }, [onClose])
+  // ========== AKHIR TAMBAHAN ==========
+
   const set = (field, val) => { setForm(f => ({ ...f, [field]: val })); if (errors[field]) setErrors(e => ({ ...e, [field]: null })) }
   const maxQty = p.stok || 99
 
@@ -1776,12 +1875,13 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
       style={{ position: 'fixed', inset: 0, zIndex: 600, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'flex-end' }}
     >
       <motion.div
+        ref={modalRef}
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
-        style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto' }}
+        style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto', cursor: 'grab' }}
       >
         <div style={{ padding: '16px 20px', borderBottom: `3px solid ${c.borderCard}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: c.bgSecondary, zIndex: 1 }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '1rem', color: c.textPrimary }}>Detail Pesanan</h3>
