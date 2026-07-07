@@ -119,6 +119,7 @@ export default function App() {
           },
         }}
       />
+      <InstallPrompt />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           {/* Public */}
