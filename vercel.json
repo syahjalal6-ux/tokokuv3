@@ -6,9 +6,18 @@
     {
       "source": "/:slug([a-zA-Z0-9-]+)",
       "destination": "/api/og?slug=:slug",
-      "has": [{ "type": "header", "key": "user-agent", "value": ".*(bot|facebookexternalhit|whatsapp|telegram|linkedinbot|twitterbot|slackbot|discordbot|applebot).*" }]
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(?:bot|Bot|BOT|facebookexternalhit|WhatsApp|whatsapp|Telegram|telegram|LinkedInBot|linkedinbot|TwitterBot|twitterbot|Slackbot|slackbot|Discordbot|discordbot|Applebot|applebot|Googlebot|googlebot|Bingbot|bingbot|ia_archiver|Preview|preview|Instagram|instagram|Threads|threads|Barcelona).*"
+        }
+      ]
     },
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
+    }
   ],
   "headers": [
     {
