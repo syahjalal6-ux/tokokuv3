@@ -815,6 +815,51 @@ function RatingSection({ produkId, tokoId, tema, c }) {
   )
 }
 
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = reject
+    img.src = url
+  })
+}
+
+function drawImageCover(ctx, img, x, y, w, h) {
+  const imgRatio = img.width / img.height
+  const boxRatio = w / h
+  let sx, sy, sw, sh
+  if (imgRatio > boxRatio) {
+    sh = img.height
+    sw = sh * boxRatio
+    sx = (img.width - sw) / 2
+    sy = 0
+  } else {
+    sw = img.width
+    sh = sw / boxRatio
+    sx = 0
+    sy = (img.height - sh) / 2
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h)
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = text.split(' ')
+  let line = ''
+  let curY = y
+  for (const word of words) {
+    const test = line + word + ' '
+    if (ctx.measureText(test).width > maxWidth && line) {
+      ctx.fillText(line, x, curY)
+      line = word + ' '
+      curY += lineHeight
+    } else {
+      line = test
+    }
+  }
+  ctx.fillText(line, x, curY)
+}
+
 function ShareModal({ produk, toko, onClose, c }) {
   const [copied, setCopied] = useState(false)
   const isMobile = window.innerWidth < 640
@@ -840,26 +885,69 @@ function ShareModal({ produk, toko, onClose, c }) {
     }
   }
 
-  const handleShareIG = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: produk.nama,
-          text: `${produk.nama} — ${formatRupiah(produk.harga)}`,
-          url: produkUrl,
-        })
-      } catch (err) {
-        if (err.name !== 'AbortError') {
-          navigator.clipboard.writeText(produkUrl).catch(() => {})
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(produkUrl).catch(() => {})
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
+ const handleShareIG = async () => {
+  try {
+    const canvas = document.createElement('canvas')
+    const W = 1080, H = 1920
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')
 
+    // Background
+    ctx.fillStyle = '#0a0a0f'
+    ctx.fillRect(0, 0, W, H)
+
+    // Load foto produk
+    const fotoUrl = parseFotos(produk.foto)[0]
+    if (fotoUrl) {
+      const img = await loadImage(fotoUrl)
+      // Cover-fit gambar produk ke area atas (misal 1080x1350)
+      drawImageCover(ctx, img, 0, 0, W, 1350)
+    }
+
+    // Overlay gradient bawah biar teks kebaca
+    const gradient = ctx.createLinearGradient(0, 1200, 0, H)
+    gradient.addColorStop(0, 'rgba(10,10,15,0)')
+    gradient.addColorStop(1, 'rgba(10,10,15,1)')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 1200, W, H - 1200)
+
+    // Nama produk
+    ctx.fillStyle = '#ffffff'
+    ctx.font = 'bold 56px sans-serif'
+    wrapText(ctx, produk.nama, 60, 1480, W - 120, 64)
+
+    // Harga
+    ctx.fillStyle = '#5b8af5'
+    ctx.font = 'bold 64px sans-serif'
+    ctx.fillText(formatRupiah(produk.harga), 60, 1620)
+
+    // Nama toko + CTA
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'
+    ctx.font = '36px sans-serif'
+    ctx.fillText(`${toko.nama} — Cek link di bio`, 60, 1700)
+
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], 'produk.png', { type: 'image/png' })
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] })
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error(err)
+        }
+      } else {
+        // Fallback: download gambar kalau device gak support share file
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = 'produk.png'
+        link.click()
+      }
+    }, 'image/png')
+  } catch (err) {
+    console.error('Gagal generate gambar story:', err)
+  }
+}
+  
   const channels = [
     {
       key: 'wa',
