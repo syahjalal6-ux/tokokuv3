@@ -3,16 +3,18 @@
     { "source": "/toko/:slug", "destination": "/:slug", "permanent": true }
   ],
   "rewrites": [
+    {
+      "source": "/:slug([a-zA-Z0-9-]+)",
+      "destination": "/api/og?slug=:slug",
+      "has": [{ "type": "header", "key": "user-agent", "value": ".*(bot|facebookexternalhit|whatsapp|telegram|linkedinbot|twitterbot|slackbot|discordbot|applebot).*" }]
+    },
     { "source": "/((?!api/).*)", "destination": "/index.html" }
   ],
   "headers": [
     {
       "source": "/(.*)",
       "headers": [
-        {
-          "key": "Cross-Origin-Opener-Policy",
-          "value": "same-origin-allow-popups"
-        }
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin-allow-popups" }
       ]
     }
   ]
