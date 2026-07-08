@@ -807,7 +807,7 @@ function TokoNameLinkShowcase({ toko, theme, c, fontSize = '0.875rem', fontWeigh
 
   return (
     <span style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
-      
+      <a
         href={url}
         target="_blank"
         rel="noreferrer"
