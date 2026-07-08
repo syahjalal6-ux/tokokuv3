@@ -881,7 +881,7 @@ function ShareModal({ produk, toko, onClose, c }) {
         </svg>
       ),
       color: '#000000',
-      action: () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(shareText.replace(produkUrl, ogUrl))}`, '_blank'),
+      action: () => window.open(`https://www.threads.net/intent/post?text=${encodeURIComponent(shareText)}`, '_blank'),
     },
     {
       key: 'facebook',
