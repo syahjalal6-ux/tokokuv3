@@ -1438,18 +1438,134 @@ function SellerAvatar({ toko, size = 40 }) {
 
 function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
   const url = toko?.slug ? getStorefrontUrl(toko.slug) : null
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewData, setPreviewData] = useState(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+  const hoverTimer = useRef(null)
+  const hideTimer = useRef(null)
+  const cacheRef = useRef({})
+
   const style = { fontFamily: PJS, fontSize, fontWeight, color: 'var(--text-primary)', textDecoration: 'none', cursor: url ? 'pointer' : 'default', transition: 'color 0.15s ease' }
-  if (url) {
-    return (
-      <a href={url} target="_blank" rel="noreferrer" style={style}
+
+  const fetchPreview = async () => {
+    if (!toko?.slug) return
+    if (cacheRef.current[toko.slug]) {
+      setPreviewData(cacheRef.current[toko.slug])
+      return
+    }
+    setLoadingPreview(true)
+    try {
+      const res = await fetch('/api/admin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'produkApi.getByToko', args: [toko.slug] }),
+      })
+      const json = await res.json()
+      const produk = json.success ? (json.data || []).slice(0, 4) : []
+      const data = { produk }
+      cacheRef.current[toko.slug] = data
+      setPreviewData(data)
+    } catch {
+      setPreviewData({ produk: [] })
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
+
+  const handleEnter = () => {
+    if (!url) return
+    clearTimeout(hideTimer.current)
+    hoverTimer.current = setTimeout(() => {
+      setShowPreview(true)
+      fetchPreview()
+    }, 400)
+  }
+
+  const handleLeave = () => {
+    clearTimeout(hoverTimer.current)
+    hideTimer.current = setTimeout(() => setShowPreview(false), 150)
+  }
+
+  // ✅ TAMBAHAN: intercept tap pertama di mobile
+  const handleClick = (e) => {
+    const isTouchDevice = window.matchMedia('(hover: none)').matches
+    if (isTouchDevice && !showPreview) {
+      e.preventDefault()
+      setShowPreview(true)
+      fetchPreview()
+    }
+    // Kalau preview udah kebuka, tap kedua biarin navigasi normal
+  }
+
+  if (!url) return <span style={style}>{toko?.nama || 'Toko'}</span>
+
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        style={style}
+        onClick={handleClick}
         onMouseEnter={e => e.currentTarget.style.color = 'var(--accent)'}
         onMouseLeave={e => e.currentTarget.style.color = 'var(--text-primary)'}
       >
         {toko?.nama || 'Toko'}
       </a>
-    )
-  }
-  return <span style={style}>{toko?.nama || 'Toko'}</span>
+      <AnimatePresence>
+        {showPreview && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 60,
+              width: 260, background: 'var(--bg-secondary)', border: '2px solid var(--glass-border)',
+              borderRadius: 'var(--radius-xl)', boxShadow: '0 12px 32px rgba(0,0,0,0.25)',
+              padding: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <SellerAvatar toko={toko} size={40} />
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '0.85rem', margin: 0, color: 'var(--text-primary)' }}>{toko?.nama}</p>
+                {toko?.pro && <ProBadge small />}
+              </div>
+            </div>
+            {loadingPreview && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+                <Loader size={16} color="var(--accent)" style={{ animation: 'spin 0.7s linear infinite' }} />
+              </div>
+            )}
+            {!loadingPreview && previewData?.produk?.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+                {previewData.produk.map(p => {
+                  let foto = []
+                  try { foto = p.foto ? JSON.parse(p.foto) : [] } catch { foto = Array.isArray(p.foto) ? p.foto : [] }
+                  const thumb = foto[0]
+                  return (
+                    <div key={p.id} style={{ aspectRatio: '1/1', borderRadius: 6, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--glass-border)' }}>
+                      {thumb ? <img src={cloudinaryThumb(thumb)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {!loadingPreview && previewData && previewData.produk.length === 0 && (
+              <p style={{ fontFamily: PJS, fontSize: '0.72rem', color: 'var(--text-tertiary)', margin: 0 }}>Belum ada produk</p>
+            )}
+            <a href={url} target="_blank" rel="noreferrer" style={{
+              display: 'block', textAlign: 'center', marginTop: 10, fontFamily: PJS, fontSize: '0.75rem',
+              fontWeight: 700, color: 'var(--accent)', textDecoration: 'none',
+            }}>
+              Kunjungi Toko →
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  )
 }
 
 function ProBadge({ small }) {
