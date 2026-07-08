@@ -461,15 +461,7 @@ function ShowcaseCard({ post, theme, c, index, onAuthRequired, onImageClick, onT
         <Avatar toko={t} size={40} theme={theme} c={c} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-            <a
-              href={t?.slug ? getStorefrontUrl(t.slug) : '#'}
-              target="_blank" rel="noreferrer"
-              style={{ fontFamily: PJS, fontSize: '0.875rem', fontWeight: 800, color: c.textPrimary, textDecoration: 'none', transition: 'color 0.15s ease' }}
-              onMouseEnter={(e) => e.target.style.color = accent}
-              onMouseLeave={(e) => e.target.style.color = c.textPrimary}
-            >
-              {t?.nama || 'Toko'}
-            </a>
+            <TokoNameLinkShowcase toko={t} theme={theme} c={c} />
             {t?.pro && (
               <motion.span
                 whileHover={{ scale: 1.05 }}
