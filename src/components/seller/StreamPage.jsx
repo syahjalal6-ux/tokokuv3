@@ -1501,7 +1501,7 @@ function TokoNameLink({ toko, fontSize = '0.875rem', fontWeight = 800 }) {
 
   return (
     <span style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
-      
+      <a
         href={url}
         target="_blank"
         rel="noreferrer"
