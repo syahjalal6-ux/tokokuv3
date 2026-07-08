@@ -743,3 +743,141 @@ function Avatar({ toko, size = 40, theme, c }) {
     </motion.div>
   )
 }
+
+function TokoNameLinkShowcase({ toko, theme, c, fontSize = '0.875rem', fontWeight = 800 }) {
+  const accent = theme === 'light' ? NAVY : BLUE
+  const url = toko?.slug ? getStorefrontUrl(toko.slug) : null
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewData, setPreviewData] = useState(null)
+  const [loadingPreview, setLoadingPreview] = useState(false)
+  const hoverTimer = useRef(null)
+  const hideTimer = useRef(null)
+  const cacheRef = useRef({})
+
+  const style = {
+    fontFamily: PJS, fontSize, fontWeight, color: c.textPrimary,
+    textDecoration: 'none', cursor: url ? 'pointer' : 'default',
+    transition: 'color 0.15s ease',
+  }
+
+  const fetchPreview = async () => {
+    if (!toko?.slug) return
+    if (cacheRef.current[toko.slug]) {
+      setPreviewData(cacheRef.current[toko.slug])
+      return
+    }
+    setLoadingPreview(true)
+    try {
+      const res = await produkApi.getByToko(toko.slug)
+      const produk = (res.data || []).slice(0, 4)
+      const data = { produk }
+      cacheRef.current[toko.slug] = data
+      setPreviewData(data)
+    } catch {
+      setPreviewData({ produk: [] })
+    } finally {
+      setLoadingPreview(false)
+    }
+  }
+
+  const handleEnter = () => {
+    if (!url) return
+    clearTimeout(hideTimer.current)
+    hoverTimer.current = setTimeout(() => {
+      setShowPreview(true)
+      fetchPreview()
+    }, 400)
+  }
+
+  const handleLeave = () => {
+    clearTimeout(hoverTimer.current)
+    hideTimer.current = setTimeout(() => setShowPreview(false), 150)
+  }
+
+  const handleClick = (e) => {
+    const isTouchDevice = window.matchMedia('(hover: none)').matches
+    if (isTouchDevice && !showPreview) {
+      e.preventDefault()
+      setShowPreview(true)
+      fetchPreview()
+    }
+  }
+
+  if (!url) return <span style={style}>{toko?.nama || 'Toko'}</span>
+
+  return (
+    <span style={{ position: 'relative', display: 'inline-block' }} onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        style={style}
+        onClick={handleClick}
+        onMouseEnter={e => e.currentTarget.style.color = accent}
+        onMouseLeave={e => e.currentTarget.style.color = c.textPrimary}
+      >
+        {toko?.nama || 'Toko'}
+      </a>
+      <AnimatePresence>
+        {showPreview && (
+          <motion.div
+            initial={{ opacity: 0, y: 6, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 6, scale: 0.97 }}
+            transition={{ duration: 0.15 }}
+            style={{
+              position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 60,
+              width: 260, background: c.bgCard, border: `2px solid ${c.border}`,
+              borderRadius: '16px', boxShadow: c.hoverShadow,
+              padding: 14,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <Avatar toko={toko} size={40} theme={theme} c={c} />
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontFamily: PJS, fontWeight: 800, fontSize: '0.85rem', margin: 0, color: c.textPrimary }}>{toko?.nama}</p>
+                {toko?.pro && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                    fontFamily: PJS, fontSize: '0.6rem', fontWeight: 700,
+                    color: c.proText, background: c.proBg,
+                    border: `1px solid ${c.proBorder}`,
+                    padding: '1px 6px', borderRadius: '999px', marginTop: 2,
+                  }}>⭐ Pro</span>
+                )}
+              </div>
+            </div>
+            {loadingPreview && (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: 12 }}>
+                <Loader2 size={16} style={{ animation: 'spin 1s linear infinite', color: accent }} />
+              </div>
+            )}
+            {!loadingPreview && previewData?.produk?.length > 0 && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 5 }}>
+                {previewData.produk.map(p => {
+                  let foto = []
+                  try { foto = p.foto ? JSON.parse(p.foto) : [] } catch { foto = Array.isArray(p.foto) ? p.foto : [] }
+                  const thumb = foto[0]
+                  return (
+                    <div key={p.id} style={{ aspectRatio: '1/1', borderRadius: 6, overflow: 'hidden', background: c.bgSurface, border: `1px solid ${c.border}` }}>
+                      {thumb ? <img src={thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {!loadingPreview && previewData && previewData.produk.length === 0 && (
+              <p style={{ fontFamily: PJS, fontSize: '0.72rem', color: c.textTertiary, margin: 0 }}>Belum ada produk</p>
+            )}
+            <a href={url} target="_blank" rel="noreferrer" style={{
+              display: 'block', textAlign: 'center', marginTop: 10, fontFamily: PJS, fontSize: '0.75rem',
+              fontWeight: 700, color: accent, textDecoration: 'none',
+            }}>
+              Kunjungi Toko →
+            </a>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </span>
+  )
+}
