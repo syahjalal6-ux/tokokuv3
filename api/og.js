@@ -35,22 +35,30 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;')
 }
 
-// Deteksi apakah request dari crawler sosmed
+// Pastikan URL gambar selalu absolute — Meta/WA skip image relative path
+function toAbsoluteUrl(url, baseUrl) {
+  if (!url) return null
+  if (/^https?:\/\//i.test(url)) return url
+  const path = url.startsWith('/') ? url : `/${url}`
+  return `${baseUrl}${path}`
+}
+
+// Deteksi apakah request dari crawler sosmed (samakan dengan daftar di vercel.json)
 function isCrawler(userAgent = '') {
   const ua = userAgent.toLowerCase()
   return (
+    ua.includes('bot') ||
     ua.includes('facebookexternalhit') ||
     ua.includes('whatsapp') ||
-    ua.includes('twitterbot') ||
-    ua.includes('linkedinbot') ||
-    ua.includes('telegrambot') ||
+    ua.includes('telegram') ||
     ua.includes('slackbot') ||
     ua.includes('discordbot') ||
     ua.includes('applebot') ||
-    ua.includes('googlebot') ||
-    ua.includes('bingbot') ||
     ua.includes('ia_archiver') ||
-    ua.includes('preview')
+    ua.includes('preview') ||
+    ua.includes('instagram') ||
+    ua.includes('threads') ||
+    ua.includes('barcelona')
   )
 }
 
@@ -62,6 +70,10 @@ export default async function handler(req, res) {
   const { slug, produk: produkId } = req.query
   const userAgent = req.headers['user-agent'] || ''
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || `https://${req.headers.host}`
+
+  if (!slug) {
+    return res.status(400).send('<html><body>Missing slug</body></html>')
+  }
 
   // Kalau bukan crawler, redirect ke halaman React langsung
   if (!isCrawler(userAgent)) {
@@ -86,30 +98,34 @@ export default async function handler(req, res) {
       }))
     }
 
-    // Kalau ada produkId, fetch produk
     let title = escapeHtml(toko.nama)
     let description = escapeHtml(toko.deskripsi || `Belanja di ${toko.nama}`)
-    let image = toko.logo || `${baseUrl}/og-default.png`
+    let image = toAbsoluteUrl(toko.logo, baseUrl) || `${baseUrl}/og-default.png`
     const url = produkId
       ? `${baseUrl}/${slug}?produk=${produkId}`
       : `${baseUrl}/${slug}`
 
     if (produkId) {
-      const { data: produk } = await supabasePublic
+      const { data: produk, error: produkErr } = await supabasePublic
         .from('produk')
         .select('nama, harga, deskripsi, foto')
         .eq('id', produkId)
         .maybeSingle()
+
+      if (produkErr) {
+        console.error('og.js produk fetch error:', produkErr)
+      }
 
       if (produk) {
         const fotos = parseFotos(produk.foto)
         title = escapeHtml(`${produk.nama} — ${formatRupiah(produk.harga)}`)
         description = escapeHtml(
           produk.deskripsi
-            ? produk.deskripsi.slice(0, 120)
+            ? produk.deskripsi.slice(0, 120).trim()
             : `Beli ${produk.nama} di ${toko.nama}`
         )
-        if (fotos[0]) image = fotos[0]
+        const produkImage = toAbsoluteUrl(fotos[0], baseUrl)
+        if (produkImage) image = produkImage
       }
     }
 
@@ -140,6 +156,7 @@ function buildHtml({ title, description, image, url, tokoNama }) {
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:image" content="${image}" />
+  <meta property="og:image:secure_url" content="${image}" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   ${tokoNama ? `<meta property="og:site_name" content="${escapeHtml(tokoNama)}" />` : ''}
