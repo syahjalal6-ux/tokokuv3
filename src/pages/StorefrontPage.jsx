@@ -1766,12 +1766,6 @@ function ProdukModal({ produk: p, toko, tema, accentColor, c, onClose, onCheckou
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        drag="y"
-        dragConstraints={{ top: 0 }}
-        dragElastic={0.2}
-        onDragEnd={(e, info) => {
-          if (info.offset.y > 100) onClose()
-        }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: 640, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', overflow: 'hidden', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}
@@ -1913,12 +1907,6 @@ function CheckoutModal({ produk: p, toko, tema, accentColor, c, onClose, getFlas
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
-        drag="y"
-        dragConstraints={{ top: 0 }}
-        dragElastic={0.2}
-        onDragEnd={(e, info) => {
-          if (info.offset.y > 100) onClose()
-        }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
         style={{ width: '100%', maxWidth: 560, margin: '0 auto', background: c.bgSecondary, border: `3px solid ${c.borderCard}`, borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0', maxHeight: '92vh', overflow: 'auto' }}
