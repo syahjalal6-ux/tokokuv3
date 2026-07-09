@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { X, Send, Bot, User, Loader, ShoppingBag } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { chatApi } from '../../lib/api/groqClient.js'
 
 function renderMarkdown(text) {
@@ -130,10 +131,19 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
         position: 'fixed', inset: 0, zIndex: 700,
         background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)',
         display: 'flex', alignItems: 'flex-end',
-        animation: 'fadeIn 0.2s ease',
       }}
     >
-      <div
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 100) onClose()
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 640,
@@ -144,13 +154,11 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
           height: vpHeight,
           maxHeight: vpHeight,
           display: 'flex', flexDirection: 'column',
-          animation: 'slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           transition: 'height 0.15s ease',
           overflow: 'hidden',
         }}
       >
         <style>{`
-          @keyframes slideUp { from { transform: translateY(100%); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
           @keyframes spin { to { transform: rotate(360deg) } }
         `}</style>
 
@@ -316,7 +324,7 @@ export default function ChatModal({ produk, toko, tema, onClose, onCheckout, sem
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
