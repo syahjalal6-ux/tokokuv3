@@ -16,7 +16,7 @@ export default function RedirectResi() {
       .then(res => {
         const slug = res.data?.slug
         if (slug) {
-          navigate(`/toko/${slug}?resi=${resi}`, { replace: true })
+          navigate(`/${slug}?resi=${resi}`, { replace: true })
         } else {
           navigate('/', { replace: true })
         }
