@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ShoppingBag, MessageCircle, ChevronDown, Search, Download, Truck } from 'lucide-react'
 import DashboardLayout from '../components/seller/DashboardLayout.jsx'
-import { EmptyState, ProGate } from '../components/ui/index.jsx'
+import { EmptyState } from '../components/ui/index.jsx'
 import { useAuthStore } from '../lib/store.js'
 import { pesananApi } from '../lib/api/index.js'
 import { formatRupiah, formatDateTime, generateWALink, isPro, PESANAN_STATUS } from '../lib/utils.js'
