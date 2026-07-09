@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react'
 import { X, Send, Bot, User, Loader, ExternalLink } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { showcaseChatApi } from '../../lib/api/groqClient.js'
 import { getStorefrontUrl } from '../../lib/utils.js'
 
 const NAVY = '#0C447C'
 const BLUE = '#378ADD'
 const GRADIENT = `linear-gradient(90deg, ${NAVY}, ${BLUE})`
-const INTERNAL_DOMAINS = ['exorav2.vercel.app', 'exora.id']
+const INTERNAL_DOMAINS = ['exorashop.vercel.app', 'exora.id']
 
 // Parse teks menjadi array token: paragraf, bullet list, bold, link tombol
 function parseMessage(text) {
@@ -253,7 +254,17 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
         display: 'flex', alignItems: 'flex-end',
       }}
     >
-      <div
+      <motion.div
+        initial={{ y: '100%' }}
+        animate={{ y: 0 }}
+        exit={{ y: '100%' }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(e, info) => {
+          if (info.offset.y > 100) onClose()
+        }}
+        transition={{ type: 'spring', stiffness: 300, damping: 30 }}
         onClick={e => e.stopPropagation()}
         style={{
           width: '100%', maxWidth: 560, margin: '0 auto',
@@ -353,7 +364,7 @@ export default function ShowcaseChatModal({ onClose, posts = [], produkList = []
             </button>
           </div>
         </div>
-      </div>
+      </motion.div>
     </div>
   )
 }
